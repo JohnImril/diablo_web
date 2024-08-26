@@ -1,7 +1,7 @@
 {
 	"name": "diablo_web",
 	"private": true,
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -10,8 +10,17 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@fortawesome/free-solid-svg-icons": "^6.6.0",
+		"@fortawesome/react-fontawesome": "^0.2.2",
+		"axios": "^1.7.5",
+		"classnames": "^2.5.1",
+		"idb-kv-store": "^4.5.0",
+		"peerjs": "^1.5.4",
 		"react": "^18.3.1",
-		"react-dom": "^18.3.1"
+		"react-dom": "^18.3.1",
+		"sass": "^1.77.8",
+		"sourcemapped-stacktrace": "^1.1.11",
+		"vite-plugin-wasm": "^3.3.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.9.0",
