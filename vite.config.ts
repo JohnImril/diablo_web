@@ -6,33 +6,31 @@ import packageJson from "./package.json";
 function jsccPlugin() {
 	return {
 		name: "vite-plugin-jscc",
-		transform(code: string[], id: string) {
+		transform(src: string, id: string) {
 			if (id.endsWith(".jscc")) {
 				const functionName = id.includes("DiabloSpawn")
 					? "DiabloSpawn"
 					: id.includes("MpqCmp")
-					? "MpqCmp"
-					: "Diablo";
+						? "MpqCmp"
+						: "Diablo";
 
 				return {
-					code: `${code}\nexport default ${functionName};`,
+					code: `
+						${src}
+						export default ${functionName};
+					`,
 					map: null,
 				};
 			}
+			return null;
 		},
 	};
 }
 
 export default defineConfig({
+	base: "/diablo_web/",
 	plugins: [react(), wasm(), jsccPlugin()],
-	resolve: {
-		alias: {
-			path: "path-browserify",
-			fs: "empty-module",
-		},
-	},
 	define: {
-		"empty-module": "{}",
 		"import.meta.env.VERSION": JSON.stringify(packageJson.version),
 	},
 });

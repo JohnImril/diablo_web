@@ -9,7 +9,6 @@ import websocket_open from "./websocket";
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
 
-/* eslint-disable-next-line no-restricted-globals */
 const worker = self;
 
 let canvas = null,
@@ -419,7 +418,7 @@ async function init_game(mpq, spawn, offscreen) {
 		? readFile(mpq, (e) => {
 				mpqLoaded = e.loaded;
 				updateProgress();
-		  })
+			})
 		: Promise.resolve(null);
 	[wasm, mpq] = await Promise.all([loadWasm, loadMpq]);
 

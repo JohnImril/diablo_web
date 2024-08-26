@@ -135,21 +135,21 @@ body, #root, .App {
         }
         .btnRemove {
           color: #800;
+          float: right;
+          cursor: pointer;
+          margin: 0 4px;
           &:hover {
             color: #f00;
           }
-          float: right;
-          cursor: pointer;
-          margin: 0 4px;
         }
         .btnDownload {
           color: #888;
-          &:hover {
-            color: #fff;
-          }
           float: right;
           cursor: pointer;
           margin: 0 4px;
+          &:hover {
+            color: #fff;
+          }
         }
         &:hover {
           background-color: #444;
@@ -217,10 +217,10 @@ body, #root, .App {
     display: inline-block;
     color: rgb(112, 112, 255);
     text-decoration: none;
+    cursor: pointer;
     &:hover {
       text-decoration: underline;
     }
-    cursor: pointer;
   }
 }
 
@@ -238,10 +238,10 @@ body, #root, .App {
       background-color: #444;
       transform: translate(-50%, -50%);
       pointer-events: auto;
+      mask-size: 100% 100%;
       &.active {
         background-color: #fff;
       }
-      mask-size: 100% 100%;
     }
     .touch-button-0 {
       top: 15vh;
@@ -336,10 +336,10 @@ body, #root, .App {
         background-color: #444;
         transform: translate(-50%, -50%);
         pointer-events: auto;
+        mask-size: 100% 100%;
         &.active {
           background-color: #fff;
         }
-        mask-size: 100% 100%;
       }
       .touch-button-3 {
         top: 0;
@@ -366,10 +366,10 @@ body, #root, .App {
         background-color: #444;
         transform: translate(-50%, -50%);
         pointer-events: auto;
+        mask-size: 100% 100%;
         &.active {
           background-color: #fff;
         }
-        mask-size: 100% 100%;
       }
       .touch-button-5 {
         top: 0;
