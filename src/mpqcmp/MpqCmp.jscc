@@ -2421,3 +2421,4 @@ if (typeof exports === 'object' && typeof module === 'object')
   else if (typeof exports === 'object')
     exports["MpqCmp"] = MpqCmp;
   
+  export default MpqCmp;

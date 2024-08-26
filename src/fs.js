@@ -1,37 +1,7 @@
-import IdbKvStore from "idb-kv-store";
+import { openDB } from "idb";
 
-/*const importStorage = () => new Promise((resolve, reject) => {
-  let done = false;
-  const frame = document.createElement('iframe');
-  window.addEventListener('message', ({data}) => {
-    if (data.method === 'storage' && !done) {
-      done = true;
-      resolve(data.files);
-      frame.contentWindow.postMessage({method: 'clear'}, '*');
-    }
-  });
-  frame.addEventListener('load', () => {
-    frame.contentWindow.postMessage({method: 'transfer'}, '*');
-  });
-  frame.addEventListener('error', () => {
-    if (!done) {
-      done = true;
-      resolve(null);
-    }
-  });
-  frame.src = "https://diablo.rivsoft.net/storage.html";
-  frame.style.display = "none";
-  document.body.appendChild(frame);
-  setTimeout(() => {
-    if (!done) {
-      done = true;
-      resolve(null);
-    }
-  }, 10000);
-});*/
-
-async function downloadFile(store, name) {
-	const file = await store.get(name.toLowerCase());
+async function downloadFile(db, name) {
+	const file = await db.get("files", name.toLowerCase());
 	if (file) {
 		const blob = new Blob([file], { type: "binary/octet-stream" });
 		const url = URL.createObjectURL(blob);
@@ -47,10 +17,11 @@ async function downloadFile(store, name) {
 	}
 }
 
-async function downloadSaves(store) {
-	for (let name of await store.keys()) {
+async function downloadSaves(db) {
+	const keys = await db.getAllKeys("files");
+	for (let name of keys) {
 		if (name.match(/\.sv$/i)) {
-			downloadFile(store, name);
+			await downloadFile(db, name);
 		}
 	}
 }
@@ -63,39 +34,40 @@ const readFile = (file) =>
 		reader.onabort = () => reject();
 		reader.readAsArrayBuffer(file);
 	});
-async function uploadFile(store, files, file) {
+
+async function uploadFile(db, files, file) {
 	const data = new Uint8Array(await readFile(file));
 	files.set(file.name.toLowerCase(), data);
-	return store.set(file.name.toLowerCase(), data);
+	await db.put("files", data, file.name.toLowerCase());
 }
 
-export default async function create_fs(load) {
+export default async function create_fs() {
 	try {
-		const store = new IdbKvStore("diablo_fs");
+		const db = await openDB("diablo_fs", 1, {
+			upgrade(db) {
+				db.createObjectStore("files");
+			},
+		});
+
 		const files = new Map();
-		for (let [name, data] of Object.entries(await store.json())) {
-			files.set(name, data);
+
+		const keys = await db.getAllKeys("files");
+		for (let key of keys) {
+			const value = await db.get("files", key);
+			files.set(key, value);
 		}
-		/*if (load) {
-      const files = await importStorage();
-      if (files) {
-        for (let [name, data] of files) {
-          files.set(name, data);
-          store.set(name, data);
-        }
-      }
-    }*/
-		window.DownloadFile = (name) => downloadFile(store, name);
-		window.DownloadSaves = () => downloadSaves(store);
+
+		window.DownloadFile = (name) => downloadFile(db, name);
+		window.DownloadSaves = () => downloadSaves(db);
 		return {
 			files,
-			update: (name, data) => store.set(name, data),
-			delete: (name) => store.remove(name),
-			clear: () => store.clear(),
-			download: (name) => downloadFile(store, name),
-			upload: (file) => uploadFile(store, files, file),
+			update: (name, data) => db.put("files", data, name),
+			delete: (name) => db.delete("files", name),
+			clear: () => db.clear("files"),
+			download: (name) => downloadFile(db, name),
+			upload: (file) => uploadFile(db, files, file),
 			fileUrl: async (name) => {
-				const file = await store.get(name.toLowerCase());
+				const file = await db.get("files", name.toLowerCase());
 				if (file) {
 					const blob = new Blob([file], {
 						type: "binary/octet-stream",

@@ -2992,4 +2992,5 @@ if (typeof exports === 'object' && typeof module === 'object')
       define([], function() { return DiabloSpawn; });
     else if (typeof exports === 'object')
       exports["DiabloSpawn"] = DiabloSpawn;
-    
+
+  export default DiabloSpawn;

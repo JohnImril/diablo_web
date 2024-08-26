@@ -1,12 +1,23 @@
 import create_fs from "./fs";
 
-const fs = create_fs();
-window.addEventListener("message", ({ data, source }) => {
-	if (data.method === "transfer") {
-		fs.then(({ files }) => {
-			source.postMessage({ method: "storage", files }, "*");
-		});
-	} else if (data.method === "clear") {
-		fs.then(({ clear }) => clear());
-	}
+async function init() {
+	const fs = await create_fs();
+
+	window.addEventListener("message", ({ data, source }) => {
+		if (data.method === "transfer") {
+			source.postMessage({ method: "storage", files: Array.from(fs.files) }, "*");
+		} else if (data.method === "clear") {
+			fs.clear()
+				.then(() => {
+					console.log("File system cleared");
+				})
+				.catch((error) => {
+					console.error("Failed to clear file system:", error);
+				});
+		}
+	});
+}
+
+init().catch((error) => {
+	console.error("Failed to initialize file system:", error);
 });
