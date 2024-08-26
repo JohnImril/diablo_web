@@ -1,6 +1,5 @@
 import MpqModule from "./MpqCmp.jscc";
 
-/* eslint-disable-next-line no-restricted-globals */
 const worker = self;
 
 let input_file = null;

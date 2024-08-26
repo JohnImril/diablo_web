@@ -1,12 +1,5 @@
 import Peer from "peerjs";
-import {
-	buffer_reader,
-	read_packet,
-	write_packet,
-	client_packet,
-	server_packet,
-	RejectionReason,
-} from "./packet";
+import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
 
 /*function log_packet(data, type) {
   const reader = new buffer_reader(data);
@@ -23,12 +16,7 @@ const Options = { port: 443, secure: true };
 const MAX_PLRS = 4;
 
 class webrtc_server {
-	constructor(
-		version,
-		{ cookie, name, password, difficulty },
-		onMessage,
-		onClose
-	) {
+	constructor(version, { cookie, name, password, difficulty }, onMessage, onClose) {
 		this.version = version;
 		this.name = name;
 		this.password = password;
@@ -132,10 +120,7 @@ class webrtc_server {
 									difficulty: this.difficulty,
 								})
 							);
-							this.send(
-								0xff,
-								write_packet(server_packet.connect, { id: i })
-							);
+							this.send(0xff, write_packet(server_packet.connect, { id: i }));
 						}
 					}
 					break;
@@ -177,16 +162,11 @@ class webrtc_server {
 			for (let i = 1; i < MAX_PLRS; ++i) {
 				this.drop(i, 0x40000006);
 			}
-			this.onMessage(
-				write_packet(server_packet.disconnect, { id, reason })
-			);
+			this.onMessage(write_packet(server_packet.disconnect, { id, reason }));
 			this.peer.destroy();
 			this.onClose();
 		} else if (this.players[id]) {
-			this.send(
-				0xff,
-				write_packet(server_packet.disconnect, { id, reason })
-			);
+			this.send(0xff, write_packet(server_packet.disconnect, { id, reason }));
 			this.players[id].id = null;
 			if (this.players[id].conn) {
 				this.players[id].conn.close();
@@ -213,10 +193,7 @@ class webrtc_server {
 				);
 				break;
 			case client_packet.turn.code:
-				this.send(
-					~(1 << id),
-					write_packet(server_packet.turn, { id, turn: pkt.turn })
-				);
+				this.send(~(1 << id), write_packet(server_packet.turn, { id, turn: pkt.turn }));
 				break;
 			default:
 				throw Error(`invalid packet ${code}`);
@@ -339,12 +316,7 @@ export default function webrtc_open(onMessage) {
 							})
 						);
 					} else {
-						server = new webrtc_server(
-							version,
-							pkt,
-							onMessage,
-							() => (server = null)
-						);
+						server = new webrtc_server(version, pkt, onMessage, () => (server = null));
 					}
 					break;
 				case client_packet.join_game.code:
@@ -356,12 +328,7 @@ export default function webrtc_open(onMessage) {
 							})
 						);
 					} else {
-						client = new webrtc_client(
-							version,
-							pkt,
-							onMessage,
-							() => (client = null)
-						);
+						client = new webrtc_client(version, pkt, onMessage, () => (client = null));
 					}
 					break;
 				default:

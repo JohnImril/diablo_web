@@ -124,18 +124,12 @@ export class MpqReader {
 		const hashCount = u32[6];
 		const blockCount = u32[7];
 		this.hashTable = this.readTable(hashOffset, hashCount, "(hash table)");
-		this.blockTable = this.readTable(
-			blockOffset,
-			blockCount,
-			"(block table)"
-		);
+		this.blockTable = this.readTable(blockOffset, blockCount, "(block table)");
 		this.blockSize = 1 << (9 + sizeId);
 	}
 
 	readTable(offset, count, key) {
-		const buffer = new Uint32Array(
-			this.buffer.slice(offset, offset + count * 16)
-		);
+		const buffer = new Uint32Array(this.buffer.slice(offset, offset + count * 16));
 		decrypt(buffer, hash(key, 3));
 		return buffer;
 	}
@@ -151,11 +145,7 @@ export class MpqReader {
 			hashTable[i * 4 + 3] !== 0xffffffff && count < length;
 			i = (i + 1) % length, ++count
 		) {
-			if (
-				hashTable[i * 4] === keyA &&
-				hashTable[i * 4 + 1] === keyB &&
-				hashTable[i * 4 + 3] !== 0xfffffffe
-			) {
+			if (hashTable[i * 4] === keyA && hashTable[i * 4 + 1] === keyB && hashTable[i * 4 + 3] !== 0xfffffffe) {
 				return i;
 			}
 		}
@@ -174,10 +164,7 @@ export class MpqReader {
 			flags: this.blockTable[block * 4 + 3],
 			key: hash(path_name(name), 3),
 		};
-		if (
-			info.flags & Flags.PatchFile ||
-			info.filePos + info.cmpSize > this.buffer.byteLength
-		) {
+		if (info.flags & Flags.PatchFile || info.filePos + info.cmpSize > this.buffer.byteLength) {
 			return;
 		}
 		if (!(info.flags & Flags.Compressed)) {
@@ -214,19 +201,14 @@ export class MpqReader {
 			if (info.flags & Flags.Encrypted) {
 				for (let i = 0; i < info.fileSize; i += this.blockSize) {
 					decrypt8(
-						data.subarray(
-							i,
-							Math.min(info.fileSize, i + this.blockSize)
-						),
+						data.subarray(i, Math.min(info.fileSize, i + this.blockSize)),
 						info.key + i / this.blockSize
 					);
 				}
 			}
 			return data;
 		} else {
-			const numBlocks = Math.floor(
-				(info.fileSize + this.blockSize - 1) / this.blockSize
-			);
+			const numBlocks = Math.floor((info.fileSize + this.blockSize - 1) / this.blockSize);
 			const tableSize = numBlocks + 1;
 			if (data.length < tableSize * 4) {
 				return;

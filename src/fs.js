@@ -106,8 +106,7 @@ export default async function create_fs(load) {
 		};
 	} catch (e) {
 		window.DownloadFile = () => console.error("IndexedDB is not supported");
-		window.DownloadSaves = () =>
-			console.error("IndexedDB is not supported");
+		window.DownloadSaves = () => console.error("IndexedDB is not supported");
 		return {
 			files: new Map(),
 			update: () => Promise.resolve(),

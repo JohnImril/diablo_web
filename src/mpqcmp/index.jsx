@@ -41,9 +41,9 @@ export default class CompressMpq extends React.Component {
 
 	start(file) {
 		this.setState({ started: true });
-		compress(file, (text, loaded, total) =>
-			this.onProgress({ text, loaded, total })
-		).then(this.onDone, (e) => this.onError(e.message, e.stack));
+		compress(file, (text, loaded, total) => this.onProgress({ text, loaded, total })).then(this.onDone, (e) =>
+			this.onError(e.message, e.stack)
+		);
 	}
 
 	render() {
@@ -71,10 +71,7 @@ export default class CompressMpq extends React.Component {
 							<span>
 								<span
 									style={{
-										width: `${Math.round(
-											(100 * progress.loaded) /
-												progress.total
-										)}%`,
+										width: `${Math.round((100 * progress.loaded) / progress.total)}%`,
 									}}
 								/>
 							</span>
@@ -86,10 +83,9 @@ export default class CompressMpq extends React.Component {
 		return (
 			<div className="start">
 				<p>
-					You can use this tool to reduce the original MPQ to about
-					half its size. It encodes sounds in MP3 format and uses
-					better compression for regular files. To begin, click the
-					button below or drop the MPQ onto the page.
+					You can use this tool to reduce the original MPQ to about half its size. It encodes sounds in MP3
+					format and uses better compression for regular files. To begin, click the button below or drop the
+					MPQ onto the page.
 				</p>
 				<form>
 					<label htmlFor="loadFile" className="startButton">

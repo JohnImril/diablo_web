@@ -1,7 +1,6 @@
 export class buffer_reader {
 	constructor(buffer) {
-		this.buffer =
-			buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+		this.buffer = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
 		this.pos = 0;
 	}
 	done() {
@@ -27,11 +26,7 @@ export class buffer_reader {
 		if (pos + 4 > buffer.byteLength) {
 			throw Error("packet too small");
 		}
-		const result =
-			buffer[pos] |
-			(buffer[pos + 1] << 8) |
-			(buffer[pos + 2] << 16) |
-			(buffer[pos + 3] << 24);
+		const result = buffer[pos] | (buffer[pos + 1] << 8) | (buffer[pos + 2] << 16) | (buffer[pos + 3] << 24);
 		this.pos += 4;
 		return result;
 	}
@@ -41,9 +36,7 @@ export class buffer_reader {
 		if (pos + length > buffer.byteLength) {
 			throw Error("packet too small");
 		}
-		const result = String.fromCharCode(
-			...buffer.subarray(pos, pos + length)
-		);
+		const result = String.fromCharCode(...buffer.subarray(pos, pos + length));
 		this.pos += length;
 		return result;
 	}
@@ -123,9 +116,7 @@ export function read_packet(reader, types) {
 	return { type: cls, packet: cls.read(reader) };
 }
 export function packet_size(type, packet) {
-	return (
-		(typeof type.size === "function" ? type.size(packet) : type.size) + 1
-	);
+	return (typeof type.size === "function" ? type.size(packet) : type.size) + 1;
 }
 export function write_packet(type, packet) {
 	const size = packet_size(type, packet);
@@ -143,11 +134,7 @@ export function make_batch(types) {
 			}
 			return packets;
 		},
-		size: (packets) =>
-			packets.reduce(
-				(sum, { type, packet }) => sum + packet_size(type, packet),
-				2
-			),
+		size: (packets) => packets.reduce((sum, { type, packet }) => sum + packet_size(type, packet), 2),
 		write: (writer, packets) => {
 			writer.write16(packets.length);
 			for (let { type, packet } of packets) {
@@ -175,8 +162,7 @@ export const server_packet = {
 			}
 			return { games };
 		},
-		size: ({ games }) =>
-			games.reduce((sum, { name }) => sum + 5 + name.length, 2),
+		size: ({ games }) => games.reduce((sum, { name }) => sum + 5 + name.length, 2),
 		write: (writer, { games }) => {
 			writer.write16(games.length);
 			for (let { type, name } of games) {
@@ -196,18 +182,13 @@ export const server_packet = {
 		}),
 		size: 13,
 		write: (writer, { cookie, index, seed, difficulty }) =>
-			writer
-				.write32(cookie)
-				.write8(index)
-				.write32(seed)
-				.write32(difficulty),
+			writer.write32(cookie).write8(index).write32(seed).write32(difficulty),
 	},
 	join_reject: {
 		code: 0x15,
 		read: (reader) => ({ cookie: reader.read32(), reason: reader.read8() }),
 		size: 5,
-		write: (writer, { cookie, reason }) =>
-			writer.write32(cookie).write8(reason),
+		write: (writer, { cookie, reason }) => writer.write32(cookie).write8(reason),
 	},
 	connect: {
 		code: 0x13,
@@ -225,8 +206,7 @@ export const server_packet = {
 		code: 0x01,
 		read: (reader) => ({ id: reader.read8(), payload: reader.read_buf() }),
 		size: ({ payload }) => 5 + payload.byteLength,
-		write: (writer, { id, payload }) =>
-			writer.write8(id).write_buf(payload),
+		write: (writer, { id, payload }) => writer.write8(id).write_buf(payload),
 	},
 	turn: {
 		code: 0x02,
@@ -260,11 +240,7 @@ export const client_packet = {
 		}),
 		size: ({ name, password }) => 10 + name.length + password.length,
 		write: (writer, { cookie, name, password, difficulty }) =>
-			writer
-				.write32(cookie)
-				.write_str(name)
-				.write_str(password)
-				.write32(difficulty),
+			writer.write32(cookie).write_str(name).write_str(password).write32(difficulty),
 	},
 	join_game: {
 		code: 0x23,
@@ -274,8 +250,7 @@ export const client_packet = {
 			password: reader.read_str(),
 		}),
 		size: ({ name, password }) => 6 + name.length + password.length,
-		write: (writer, { cookie, name, password }) =>
-			writer.write32(cookie).write_str(name).write_str(password),
+		write: (writer, { cookie, name, password }) => writer.write32(cookie).write_str(name).write_str(password),
 	},
 	leave_game: {
 		code: 0x24,
@@ -293,8 +268,7 @@ export const client_packet = {
 		code: 0x01,
 		read: (reader) => ({ id: reader.read8(), payload: reader.read_buf() }),
 		size: ({ payload }) => 5 + payload.byteLength,
-		write: (writer, { id, payload }) =>
-			writer.write8(id).write_buf(payload),
+		write: (writer, { id, payload }) => writer.write8(id).write_buf(payload),
 	},
 	turn: {
 		code: 0x02,

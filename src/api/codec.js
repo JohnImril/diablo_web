@@ -1,7 +1,6 @@
 const W = new Uint32Array(80);
 
-const SHA1CircularShift = (shift, value) =>
-	(value << shift) | (value >> (32 - shift));
+const SHA1CircularShift = (shift, value) => (value << shift) | (value >> (32 - shift));
 
 class SHA1 {
 	digest = new Uint32Array(5);
@@ -26,12 +25,7 @@ class SHA1 {
 		let E = this.digest[4];
 
 		for (let i = 0; i < 20; i++) {
-			const temp =
-				SHA1CircularShift(5, A) +
-				((B & C) | (~B & D)) +
-				E +
-				W[i] +
-				0x5a827999;
+			const temp = SHA1CircularShift(5, A) + ((B & C) | (~B & D)) + E + W[i] + 0x5a827999;
 			E = D;
 			D = C;
 			C = SHA1CircularShift(30, B);
@@ -40,8 +34,7 @@ class SHA1 {
 		}
 
 		for (let i = 20; i < 40; i++) {
-			const temp =
-				SHA1CircularShift(5, A) + (B ^ C ^ D) + E + W[i] + 0x6ed9eba1;
+			const temp = SHA1CircularShift(5, A) + (B ^ C ^ D) + E + W[i] + 0x6ed9eba1;
 			E = D;
 			D = C;
 			C = SHA1CircularShift(30, B);
@@ -50,12 +43,7 @@ class SHA1 {
 		}
 
 		for (let i = 40; i < 60; i++) {
-			const temp =
-				SHA1CircularShift(5, A) +
-				((B & C) | (B & D) | (C & D)) +
-				E +
-				W[i] +
-				0x8f1bbcdc;
+			const temp = SHA1CircularShift(5, A) + ((B & C) | (B & D) | (C & D)) + E + W[i] + 0x8f1bbcdc;
 			E = D;
 			D = C;
 			C = SHA1CircularShift(30, B);
@@ -64,8 +52,7 @@ class SHA1 {
 		}
 
 		for (let i = 60; i < 80; i++) {
-			const temp =
-				SHA1CircularShift(5, A) + (B ^ C ^ D) + E + W[i] + 0xca62c1d6;
+			const temp = SHA1CircularShift(5, A) + (B ^ C ^ D) + E + W[i] + 0xca62c1d6;
 			E = D;
 			D = C;
 			C = SHA1CircularShift(30, B);
@@ -96,12 +83,7 @@ class Random {
 		this.seed = seed;
 	}
 	next() {
-		this.seed =
-			(((this.seed * 3) << 16) +
-				((this.seed * 67) << 8) +
-				this.seed * 253 +
-				2531011) |
-			0;
+		this.seed = (((this.seed * 3) << 16) + ((this.seed * 67) << 8) + this.seed * 253 + 2531011) | 0;
 		return (this.seed >> 16) & 0x7fff;
 	}
 }

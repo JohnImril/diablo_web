@@ -36,16 +36,12 @@ export default function init_sound() {
 			}
 			const buffer = context.createBuffer(channels, length, rate);
 			for (let i = 0; i < channels; ++i) {
-				buffer
-					.getChannelData(i)
-					.set(data.subarray(i * length, i * length + length));
+				buffer.getChannelData(i).set(data.subarray(i * length, i * length + length));
 			}
 			sounds.set(id, {
 				buffer: Promise.resolve(buffer),
 				gain: context.createGain(),
-				panner:
-					StereoPannerNode &&
-					new StereoPannerNode(context, { pan: 0 }),
+				panner: StereoPannerNode && new StereoPannerNode(context, { pan: 0 }),
 			});
 		},
 		create_sound(id, data) {
@@ -56,9 +52,7 @@ export default function init_sound() {
 			sounds.set(id, {
 				buffer,
 				gain: context.createGain(),
-				panner:
-					StereoPannerNode &&
-					new StereoPannerNode(context, { pan: 0 }),
+				panner: StereoPannerNode && new StereoPannerNode(context, { pan: 0 }),
 			});
 		},
 		duplicate_sound(id, srcId) {
@@ -72,9 +66,7 @@ export default function init_sound() {
 			sounds.set(id, {
 				buffer: src.buffer,
 				gain: context.createGain(),
-				panner:
-					StereoPannerNode &&
-					new StereoPannerNode(context, { pan: 0 }),
+				panner: StereoPannerNode && new StereoPannerNode(context, { pan: 0 }),
 			});
 		},
 		play_sound(id, volume, pan, loop) {
