@@ -1,21 +1,38 @@
-import React from "react";
+import React, { ChangeEvent } from "react";
 import compress from "./compress";
 
-export default class CompressMpq extends React.Component {
-	state = {};
+interface IProps {
+	api: {
+		setState: (state: { compress: boolean }) => void;
+		onError: (message: string, stack: string) => void;
+	};
+}
 
-	parseFile = (e) => {
+interface IState {
+	url?: string;
+	started?: boolean;
+	progress?: {
+		text?: string;
+		loaded: number;
+		total?: number;
+	};
+}
+
+export default class CompressMpq extends React.Component<IProps, IState> {
+	state: IState = {};
+
+	parseFile = (e: ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
-		if (files.length > 0) {
+		if (files && files.length > 0) {
 			this.start(files[0]);
 		}
 	};
 
-	onProgress(progress) {
+	onProgress = (progress: { text?: string; loaded: number; total?: number }) => {
 		this.setState({ progress });
-	}
-	onDone = (blob) => {
-		//const blob = new Blob([result], {type: 'binary/octet-stream'});
+	};
+
+	onDone = (blob: Blob) => {
 		const url = URL.createObjectURL(blob);
 		this.setState({ url });
 
@@ -26,11 +43,12 @@ export default class CompressMpq extends React.Component {
 		lnk.click();
 		document.body.removeChild(lnk);
 	};
-	onError(message, stack) {
+
+	onError = (message: string, stack: string) => {
 		const { api } = this.props;
 		api.setState({ compress: false });
 		api.onError(message, stack);
-	}
+	};
 
 	onClose = () => {
 		if (this.state.url) {
@@ -39,15 +57,16 @@ export default class CompressMpq extends React.Component {
 		this.props.api.setState({ compress: false });
 	};
 
-	start(file) {
+	start = (file: File) => {
 		this.setState({ started: true });
-		compress(file, (text, loaded, total) => this.onProgress({ text, loaded, total })).then(this.onDone, (e) =>
-			this.onError(e.message, e.stack)
-		);
-	}
+		compress(file, (text, loaded, total) => this.onProgress({ text, loaded: loaded || 0, total }))
+			.then(this.onDone)
+			.catch((e) => this.onError(e.message, e.stack));
+	};
 
 	render() {
 		const { url, started, progress } = this.state;
+
 		if (url) {
 			return (
 				<div className="start">
@@ -62,11 +81,12 @@ export default class CompressMpq extends React.Component {
 				</div>
 			);
 		}
+
 		if (started) {
 			return (
 				<div className="loading">
 					{(progress && progress.text) || "Processing..."}
-					{progress != null && !!progress.total && (
+					{progress != null && progress.total != null && (
 						<span className="progressBar">
 							<span>
 								<span
@@ -80,6 +100,7 @@ export default class CompressMpq extends React.Component {
 				</div>
 			);
 		}
+
 		return (
 			<div className="start">
 				<p>

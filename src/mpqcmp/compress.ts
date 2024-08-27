@@ -1,21 +1,23 @@
 import Worker from "./mpqcmp.worker.js?worker";
 import MpqBinary from "./MpqCmp.wasm?url";
 import ListFile from "./ListFile.txt";
-import axios from "axios";
+import axios, { AxiosProgressEvent, AxiosResponse } from "axios";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import { decrypt, encrypt, hash, path_name } from "../api/savefile";
 
 const MpqSize = 156977;
 const ListSize = 75542;
 
-const readFile = (file, progress) =>
+const readFile = (file: File, progress?: (e: ProgressEvent) => void): Promise<ArrayBuffer> =>
 	new Promise((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onload = () => {
 			if (progress) {
-				progress({ loaded: file.size });
+				progress({ loaded: file.size } as ProgressEvent);
 			}
-			resolve(reader.result);
+			resolve(reader.result as ArrayBuffer);
 		};
 		reader.onerror = () => reject(reader.error);
 		reader.onabort = () => reject();
@@ -25,16 +27,20 @@ const readFile = (file, progress) =>
 		reader.readAsArrayBuffer(file);
 	});
 
-async function loadFile(url, progress, responseType = "arraybuffer") {
-	const binary = await axios.request({
+async function loadFile(
+	url: string,
+	progress?: (e: ProgressEvent) => void,
+	responseType: "arraybuffer" | "text" = "arraybuffer"
+): Promise<ArrayBuffer | string> {
+	const binary: AxiosResponse<ArrayBuffer | string> = await axios.request({
 		url,
 		responseType,
-		onDownloadProgress: progress,
+		onDownloadProgress: progress as unknown as (e: AxiosProgressEvent) => void,
 	});
 	return binary.data;
 }
 
-function runWorker(data, transfer, progress) {
+function runWorker(data: unknown, transfer: Transferable[], progress: (value: number) => void): Promise<IWorkerResult> {
 	return new Promise((resolve, reject) => {
 		try {
 			const worker = new Worker();
@@ -53,16 +59,20 @@ function runWorker(data, transfer, progress) {
 					default:
 				}
 			});
-			worker.postMessage({ action: "run", ...data }, transfer);
+			worker.postMessage({ action: "run", ...(data as object) }, transfer);
 		} catch (e) {
 			reject(e);
 		}
 	});
 }
 
-export default async function compress(mpq, progress) {
+export default async function compress(
+	mpq: File,
+	progress: (text: string, loaded?: number, total?: number) => void
+): Promise<Blob> {
 	progress("Loading...");
-	const files = [];
+	const files: IFileLoad[] = [];
+
 	function updateProgress() {
 		progress(
 			"Loading...",
@@ -70,30 +80,31 @@ export default async function compress(mpq, progress) {
 			files.reduce((sum, { total, weight }) => sum + total * weight, 0)
 		);
 	}
-	const loader = (file) => (e) => {
+
+	const loader = (file: IFileLoad) => (e: ProgressEvent) => {
 		file.loaded = e.loaded;
 		updateProgress();
 	};
 
 	const mpqsize = mpq.size;
 
-	const fHeader = { loaded: 0, weight: 1, total: mpqsize };
-	fHeader.ready = readFile(mpq.slice(0, 32), loader(fHeader));
+	const fHeader: IFileLoad = { loaded: 0, weight: 1, total: mpqsize };
+	fHeader.ready = readFile(mpq.slice(0, 32) as File, loader(fHeader));
 	files.push(fHeader);
 
-	const fBinary = { loaded: 0, weight: 5, total: MpqSize };
+	const fBinary: IFileLoad = { loaded: 0, weight: 5, total: MpqSize };
 	fBinary.ready = loadFile(MpqBinary, loader(fBinary));
 	files.push(fBinary);
 
-	const fList = { loaded: 0, weight: 5, total: ListSize };
+	const fList: IFileLoad = { loaded: 0, weight: 5, total: ListSize };
 	fList.ready = loadFile(ListFile, loader(fList), "text");
 	files.push(fList);
 
-	const header = new Uint32Array(await fHeader.ready);
+	const header = new Uint32Array((await fHeader.ready) as ArrayBuffer);
 	const header16 = new Uint16Array(header.buffer);
 
 	if (header[0] !== 0x1a51504d) {
-		throw Error("invalid MPQ file");
+		throw new Error("invalid MPQ file");
 	}
 
 	const blockSize = 1 << (9 + header16[7]);
@@ -102,33 +113,39 @@ export default async function compress(mpq, progress) {
 	const hashTableSize = header[6];
 	const blockTableSize = header[7];
 	if (hashTablePos + hashTableSize * 16 > mpqsize || blockTablePos + blockTableSize * 16 > mpqsize) {
-		throw Error("invalid MPQ file");
+		throw new Error("invalid MPQ file");
 	}
 
-	const fHashTable = { loaded: 0, weight: 1, total: hashTableSize * 16 };
-	const fBlockTable = { loaded: 0, weight: 1, total: blockTableSize * 16 };
+	const fHashTable: IFileLoad = { loaded: 0, weight: 1, total: hashTableSize * 16 };
+	const fBlockTable: IFileLoad = { loaded: 0, weight: 1, total: blockTableSize * 16 };
 	fHeader.total -= fHashTable.total + fBlockTable.total;
-	fHashTable.ready = readFile(mpq.slice(hashTablePos, hashTablePos + fHashTable.total), loader(fHashTable));
-	fBlockTable.ready = readFile(mpq.slice(blockTablePos, blockTablePos + fBlockTable.total), loader(fBlockTable));
+	fHashTable.ready = readFile(mpq.slice(hashTablePos, hashTablePos + fHashTable.total) as File, loader(fHashTable));
+	fBlockTable.ready = readFile(
+		mpq.slice(blockTablePos, blockTablePos + fBlockTable.total) as File,
+		loader(fBlockTable)
+	);
 	files.push(fHashTable, fBlockTable);
 
-	const hashTable = new Uint32Array(await fHashTable.ready);
-	const blockTable = new Uint32Array(await fBlockTable.ready);
+	const hashTable = new Uint32Array((await fHashTable.ready) as ArrayBuffer);
+	const blockTable = new Uint32Array((await fBlockTable.ready) as ArrayBuffer);
 	decrypt(hashTable, hash("(hash table)", 3));
 	decrypt(blockTable, hash("(block table)", 3));
 
-	const list = (await fList.ready)
+	const list = ((await fList.ready) as string)
 		.split("\n")
 		.map((name) => name.trim())
 		.filter((name) => name.length);
-	const listMap = {};
-	const hashStr = (h1, h2) => h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
-	for (let name of list) {
+
+	const listMap: Record<string, string> = {};
+	const hashStr = (h1: number, h2: number) => h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+
+	for (const name of list) {
 		listMap[hashStr(hash(name, 1), hash(name, 2))] = name;
 	}
 
 	const NUM_TASKS = 4;
-	const tasks = [];
+	const tasks: ITask[] = [];
+
 	for (let i = 0; i < NUM_TASKS; ++i) {
 		tasks.push({
 			entries: [],
@@ -161,20 +178,22 @@ export default async function compress(mpq, progress) {
 	const numFiles = tasks.reduce((sum, task) => sum + task.entries.length, 0);
 
 	fHeader.total = 32;
-	for (let task of tasks) {
+	for (const task of tasks) {
 		if (task.min < task.max) {
-			const fLoad = { loaded: 0, weight: 1, total: task.max - task.min };
-			task.ready = readFile(mpq.slice(task.min, task.max), loader(fLoad)).then((data) => (task.data = data));
+			const fLoad: IFileLoad = { loaded: 0, weight: 1, total: task.max - task.min };
+			task.ready = readFile(mpq.slice(task.min, task.max) as File, loader(fLoad)).then(
+				(data) => (task.data = data)
+			);
 			files.push(fLoad);
 		}
 	}
 
 	await Promise.all(tasks.map((t) => t.ready).filter(Boolean));
-	const binary = await fBinary.ready;
+	const binary = (await fBinary.ready) as ArrayBuffer;
 
 	progress("Processing...");
 
-	for (let task of tasks) {
+	for (const task of tasks) {
 		if (task.data) {
 			const input = new Uint32Array(task.entries.length * 6);
 			task.entries.forEach((i, pos) => {
@@ -207,7 +226,7 @@ export default async function compress(mpq, progress) {
 
 	blockTable.fill(0);
 	let blockPos = 0;
-	for (let task of tasks) {
+	for (const task of tasks) {
 		if (task.result) {
 			const { buffer, blocks } = task.result;
 			for (let pos = 0; pos < task.entries.length; ++pos) {
@@ -235,4 +254,27 @@ export default async function compress(mpq, progress) {
 	encrypt(blockTable, hash("(block table)", 3));
 
 	return new Blob(output, { type: "binary/octet-stream" });
+}
+
+interface ITask {
+	entries: number[];
+	min: number;
+	max: number;
+	progress: number;
+	data?: ArrayBuffer;
+	run?: Promise<IWorkerResult>;
+	ready?: Promise<ArrayBuffer>;
+	result?: IWorkerResult;
+}
+
+interface IWorkerResult {
+	buffer: ArrayBuffer;
+	blocks: Uint32Array;
+}
+
+interface IFileLoad {
+	loaded: number;
+	weight: number;
+	total: number;
+	ready?: Promise<ArrayBuffer | string>;
 }
