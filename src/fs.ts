@@ -1,13 +1,5 @@
 import { openDB, IDBPDatabase } from "idb";
 
-//TODO: refuse to declare
-declare global {
-	interface Window {
-		DownloadFile: (name: string) => void;
-		DownloadSaves: () => void;
-	}
-}
-
 interface IFileSystem {
 	files: Map<string, Uint8Array>;
 	update: (name: string, data: Uint8Array) => Promise<unknown>;

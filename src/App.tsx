@@ -1,18 +1,24 @@
-import React from "react";
-import "./App.scss";
+import React, { Component, ChangeEvent } from "react";
 import classNames from "classnames";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faDownload } from "@fortawesome/free-solid-svg-icons";
-import getPlayerName from "./api/savefile";
-
 import { mapStackTrace } from "sourcemapped-stacktrace";
+import Peer from "peerjs";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import getPlayerName from "./api/savefile";
 import create_fs from "./fs";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import load_game from "./api/loader";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import { SpawnSizes } from "./api/load_spawn";
 import CompressMpq from "./mpqcmp";
 import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
-import Peer from "peerjs";
+
+import "./App.scss";
 
 window.Peer = Peer;
 
@@ -20,33 +26,90 @@ const TOUCH_MOVE = 0;
 const TOUCH_RMB = 1;
 const TOUCH_SHIFT = 2;
 
-let keyboardRule = null;
+let keyboardRule: CSSStyleRule | null = null;
 try {
 	keyboardRule = findKeyboardRule();
-} catch (e) {}
+} catch (e) {
+	console.error(e);
+}
 
-const Link = ({ children, ...props }) => (
+interface IState {
+	started: boolean;
+	loading: boolean;
+	dropping: number;
+	has_spawn: boolean;
+	error?: { message: string; stack?: string; save?: string };
+	progress?: { text?: string; loaded?: number; total?: number };
+	save_names?:
+		| boolean
+		| Record<
+				string,
+				{
+					level: string;
+					name: string;
+					cls: number;
+				}
+		  >;
+	show_saves?: boolean;
+	compress?: boolean;
+	retail?: boolean;
+}
+
+const Link: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({ children, ...props }) => (
 	<a target="_blank" rel="noopener noreferrer" {...props}>
 		{children}
 	</a>
 );
 
-class App extends React.Component {
-	files = new Map();
-	state = { started: false, loading: false, dropping: 0, has_spawn: false };
+class App extends Component<object, IState> {
+	files: Map<string, ArrayBuffer> = new Map();
 	cursorPos = { x: 0, y: 0 };
-
 	touchControls = false;
-	touchButtons = [null, null, null, null, null, null, null, null, null, null];
-	touchCtx = [null, null, null, null, null, null];
-	touchMods = [false, false, false, false, false, false];
-	touchBelt = [-1, -1, -1, -1, -1, -1];
+	touchButtons: HTMLDivElement[] = Array(10).fill(null);
+	touchCtx: (CanvasRenderingContext2D | null)[] = Array(6).fill(null);
+	touchMods: boolean[] = Array(6).fill(false);
+	touchBelt: number[] = Array(6).fill(-1);
 	maxKeyboard = 0;
 
-	fs = create_fs(true);
+	fs = create_fs();
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	game: any;
+	element!: HTMLDivElement;
+	canvas!: HTMLCanvasElement;
+	keyboard!: HTMLInputElement;
+	compressMpq!: CompressMpq;
+	saveName?: string;
+	showKeyboard: unknown;
+	keyboardNum = 0;
+	beltTime?: number;
+	panPos?: { x: number; y: number };
+	touchButton: {
+		original: boolean;
+		id: number;
+		clientX: number;
+		clientY: number;
+		stick: boolean | null;
+		index: number;
+	} | null = null;
+	touchCanvas: {
+		clientX: number;
+		clientY: number;
+	} | null = null;
+	setTouch0: (e: HTMLDivElement) => void;
+	setTouch1: (e: HTMLDivElement) => void;
+	setTouch2: (e: HTMLDivElement) => void;
+	setTouch3: (e: HTMLDivElement) => void;
+	setTouch4: (e: HTMLDivElement) => void;
+	setTouch5: (e: HTMLDivElement) => void;
+	setTouch6: (e: HTMLDivElement) => void;
+	setTouch7: (e: HTMLDivElement) => void;
+	setTouch8: (e: HTMLDivElement) => void;
+	setTouch9: (e: HTMLDivElement) => void;
 
-	constructor(props) {
+	constructor(props: object) {
 		super(props);
+
+		this.state = { started: false, loading: false, dropping: 0, has_spawn: false };
 
 		this.setTouch0 = this.setTouch_.bind(this, 0);
 		this.setTouch1 = this.setTouch_.bind(this, 1);
@@ -78,7 +141,7 @@ class App extends React.Component {
 		});
 	}
 
-	onDrop = (e) => {
+	onDrop = (e: DragEvent) => {
 		const file = getDropFile(e);
 		if (file) {
 			e.preventDefault();
@@ -90,49 +153,60 @@ class App extends React.Component {
 		}
 		this.setState({ dropping: 0 });
 	};
-	onDragEnter = (e) => {
+
+	onDragEnter = (e: DragEvent) => {
 		e.preventDefault();
 		this.setDropping(1);
 	};
-	onDragOver = (e) => {
+
+	onDragOver = (e: DragEvent) => {
 		if (isDropFile(e)) {
 			e.preventDefault();
 		}
 	};
-	onDragLeave = (e) => {
+
+	onDragLeave = () => {
 		this.setDropping(-1);
 	};
-	setDropping(inc) {
+
+	setDropping(inc: number) {
 		this.setState(({ dropping }) => ({
 			dropping: Math.max(dropping + inc, 0),
 		}));
 	}
 
-	onError(message, stack) {
+	onError(message: string, stack?: string) {
 		(async () => {
-			const errorObject = { message };
+			const errorObject: { message: string; stack?: string; save?: string } = { message };
 			if (this.saveName) {
 				errorObject.save = await (await this.fs).fileUrl(this.saveName);
 			}
 			if (stack) {
 				mapStackTrace(stack, (stack) => {
-					this.setState(
-						({ error }) =>
-							!error && {
+					this.setState(({ error }) => {
+						if (!error) {
+							return {
 								error: {
 									...errorObject,
 									stack: stack.join("\n"),
 								},
-							}
-					);
+							};
+						}
+						return null;
+					});
 				});
 			} else {
-				this.setState(({ error }) => !error && { error: errorObject });
+				this.setState(({ error }) => {
+					if (!error) {
+						return { error: errorObject };
+					}
+					return null;
+				});
 			}
 		})();
 	}
 
-	openKeyboard(rect) {
+	openKeyboard(rect: number[] | null) {
 		if (rect) {
 			this.showKeyboard = {
 				left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
@@ -158,7 +232,7 @@ class App extends React.Component {
 		}
 	}
 
-	setCursorPos(x, y) {
+	setCursorPos(x: number, y: number) {
 		const rect = this.canvas.getBoundingClientRect();
 		this.cursorPos = {
 			x: rect.left + ((rect.right - rect.left) * x) / 640,
@@ -169,7 +243,7 @@ class App extends React.Component {
 		});
 	}
 
-	onProgress(progress) {
+	onProgress(progress: { text?: string; loaded?: number; total?: number }) {
 		this.setState({ progress });
 	}
 
@@ -179,7 +253,7 @@ class App extends React.Component {
 		}
 	}
 
-	setCurrentSave(name) {
+	setCurrentSave(name: string) {
 		this.saveName = name;
 	}
 
@@ -190,18 +264,20 @@ class App extends React.Component {
 			this.setState({ show_saves: !this.state.show_saves });
 		}
 	};
+
 	updateSaves() {
 		return this.fs.then((fs) => {
-			const saves = {};
+			const saves: Record<string, { level: string; name: string; cls: number }> = {};
 			[...fs.files.keys()]
 				.filter((name) => name.match(/\.sv$/i))
 				.forEach((name) => {
-					saves[name] = getPlayerName(fs.files.get(name).buffer, name);
+					saves[name] = getPlayerName(fs.files.get(name)!.buffer, name);
 				});
 			this.setState({ save_names: saves });
 		});
 	}
-	removeSave(name) {
+
+	removeSave(name: string) {
 		if (window.confirm(`Are you sure you want to delete ${name}?`)) {
 			(async () => {
 				const fs = await this.fs;
@@ -211,27 +287,28 @@ class App extends React.Component {
 			})();
 		}
 	}
-	downloadSave(name) {
+
+	downloadSave(name: string) {
 		this.fs.then((fs) => fs.download(name));
 	}
 
-	drawBelt(idx, slot) {
+	drawBelt(idx: number, slot: number) {
 		if (!this.canvas) return;
 		if (!this.touchButtons[idx]) {
 			return;
 		}
 		this.touchBelt[idx] = slot;
 		if (slot >= 0) {
-			this.touchButtons[idx].style.display = "block";
-			this.touchCtx[idx].drawImage(this.canvas, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
+			this.touchButtons[idx]!.style.display = "block";
+			this.touchCtx[idx]?.drawImage(this.canvas, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
 		} else {
-			this.touchButtons[idx].style.display = "none";
+			this.touchButtons[idx]!.style.display = "none";
 		}
 	}
 
-	updateBelt(belt) {
+	updateBelt(belt: number[]) {
 		if (belt) {
-			const used = new Set();
+			const used = new Set<number>();
 			let pos = 3;
 			for (let i = 0; i < belt.length && pos < 6; ++i) {
 				if (belt[i] >= 0 && !used.has(belt[i])) {
@@ -249,7 +326,7 @@ class App extends React.Component {
 		}
 	}
 
-	start(file) {
+	start(file: File | null = null) {
 		if (file && file.name.match(/\.sv$/i)) {
 			this.fs
 				.then((fs) => fs.upload(file))
@@ -279,7 +356,7 @@ class App extends React.Component {
 		this.setState({ loading: true, retail });
 
 		load_game(this, file, !retail).then(
-			(game) => {
+			(game: unknown) => {
 				this.game = game;
 
 				document.addEventListener("mousemove", this.onMouseMove, true);
@@ -307,21 +384,32 @@ class App extends React.Component {
 
 				this.setState({ started: true });
 			},
-			(e) => this.onError(e.message, e.stack)
+			(e: { message: string; stack: string | undefined }) => this.onError(e.message, e.stack)
 		);
 	}
 
 	pointerLocked() {
-		return document.pointerLockElement === this.canvas || document.mozPointerLockElement === this.canvas;
+		return document.pointerLockElement === this.canvas || document.pointerLockElement === this.canvas;
 	}
 
-	mousePos(e) {
+	mousePos(
+		e: {
+			clientX: number;
+			clientY: number;
+		} | null
+	): { x: number; y: number } {
 		const rect = this.canvas.getBoundingClientRect();
 		if (this.pointerLocked()) {
-			this.cursorPos.x = Math.max(rect.left, Math.min(rect.right, this.cursorPos.x + e.movementX));
-			this.cursorPos.y = Math.max(rect.top, Math.min(rect.bottom, this.cursorPos.y + e.movementY));
+			this.cursorPos.x = Math.max(
+				rect.left,
+				Math.min(rect.right, this.cursorPos.x + (e as MouseEvent).movementX)
+			);
+			this.cursorPos.y = Math.max(
+				rect.top,
+				Math.min(rect.bottom, this.cursorPos.y + (e as MouseEvent).movementY)
+			);
 		} else {
-			this.cursorPos = { x: e.clientX, y: e.clientY };
+			this.cursorPos = { x: (e as MouseEvent | Touch).clientX, y: (e as MouseEvent | Touch).clientY };
 		}
 		return {
 			x: Math.max(
@@ -332,7 +420,7 @@ class App extends React.Component {
 		};
 	}
 
-	mouseButton(e) {
+	mouseButton(e: MouseEvent): number {
 		switch (e.button) {
 			case 0:
 				return 1;
@@ -348,12 +436,13 @@ class App extends React.Component {
 				return 1;
 		}
 	}
-	eventMods(e) {
+
+	eventMods(e: MouseEvent | KeyboardEvent | TouchEvent): number {
 		return (
-			(e.shiftKey || this.touchMods[TOUCH_SHIFT] ? 1 : 0) +
-			(e.ctrlKey ? 2 : 0) +
-			(e.altKey ? 4 : 0) +
-			(e.touches ? 8 : 0)
+			((e as KeyboardEvent).shiftKey || this.touchMods[TOUCH_SHIFT] ? 1 : 0) +
+			((e as KeyboardEvent).ctrlKey ? 2 : 0) +
+			((e as KeyboardEvent).altKey ? 4 : 0) +
+			((e as TouchEvent).touches ? 8 : 0)
 		);
 	}
 
@@ -363,20 +452,19 @@ class App extends React.Component {
 
 	onPointerLockChange = () => {
 		if (window.screen && window.innerHeight === window.screen.height && !this.pointerLocked()) {
-			// assume that the user pressed escape
 			this.game("DApi_Key", 0, 0, 27);
 			this.game("DApi_Key", 1, 0, 27);
 		}
 	};
 
-	onMouseMove = (e) => {
+	onMouseMove = (e: MouseEvent) => {
 		if (!this.canvas) return;
 		const { x, y } = this.mousePos(e);
 		this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
 		e.preventDefault();
 	};
 
-	onMouseDown = (e) => {
+	onMouseDown = (e: MouseEvent) => {
 		if (!this.canvas) return;
 		if (e.target === this.keyboard) {
 			return;
@@ -396,7 +484,7 @@ class App extends React.Component {
 		e.preventDefault();
 	};
 
-	onMouseUp = (e) => {
+	onMouseUp = (e: MouseEvent) => {
 		if (!this.canvas) return;
 		if (e.target === this.keyboard) {
 			//return;
@@ -408,7 +496,7 @@ class App extends React.Component {
 		}
 	};
 
-	onKeyDown = (e) => {
+	onKeyDown = (e: KeyboardEvent) => {
 		if (!this.canvas) return;
 		this.game("DApi_Key", 0, this.eventMods(e), e.keyCode);
 		if (!this.showKeyboard && e.keyCode >= 32 && e.key.length === 1) {
@@ -424,11 +512,11 @@ class App extends React.Component {
 		}
 	};
 
-	onMenu = (e) => {
+	onMenu = (e: MouseEvent) => {
 		e.preventDefault();
 	};
 
-	onKeyUp = (e) => {
+	onKeyUp = (e: KeyboardEvent) => {
 		if (!this.canvas) return;
 		this.game("DApi_Key", 1, this.eventMods(e), e.keyCode);
 		this.clearKeySel();
@@ -441,10 +529,10 @@ class App extends React.Component {
 		}
 	}
 
-	onKeyboardInner(flags) {
+	onKeyboardInner(flags: number) {
 		if (this.showKeyboard) {
 			const text = this.keyboard.value;
-			let valid;
+			let valid: string;
 			if (this.maxKeyboard > 0) {
 				valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, this.maxKeyboard);
 			} else {
@@ -461,31 +549,30 @@ class App extends React.Component {
 			this.game("text", valid, flags);
 		}
 	}
+
 	onKeyboard = () => {
 		this.onKeyboardInner(0);
 	};
+
 	onKeyboardBlur = () => {
 		this.onKeyboardInner(1);
 	};
 
-	parseFile = (e) => {
+	parseFile = (e: ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
-		if (files.length > 0) {
+		if (files && files.length > 0) {
 			this.start(files[0]);
 		}
 	};
 
-	parseSave = (e) => {
+	parseSave = (e: ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
-		if (files.length > 0) {
+		if (files && files.length > 0) {
 			this.start(files[0]);
 		}
 	};
 
-	touchButton = null;
-	touchCanvas = null;
-
-	setTouchMod(index, value, use) {
+	setTouchMod(index: number, value: boolean, use?: boolean) {
 		if (index < 3) {
 			this.touchMods[index] = value;
 			if (this.touchButtons[index]) {
@@ -500,21 +587,31 @@ class App extends React.Component {
 		}
 	}
 
-	updateTouchButton(touches, release) {
-		let touchOther = null;
+	updateTouchButton(touches: TouchList, release: boolean): boolean {
+		let touchOther: {
+			id: number;
+			index: number;
+			stick: boolean;
+			original: boolean;
+			clientX: number;
+			clientY: number;
+		} | null = null;
+
 		if (!this.touchControls) {
 			this.touchControls = true;
 			this.element.classList.add("touch");
 		}
+
 		const btn = this.touchButton;
-		for (let { target, identifier, clientX, clientY } of touches) {
+		for (let i = 0; i < touches.length; i++) {
+			const { target, identifier, clientX, clientY } = touches[i];
 			if (btn && btn.id === identifier && this.touchButtons[btn.index] === target) {
 				if (touches.length > 1) {
 					btn.stick = false;
 				}
 				btn.clientX = clientX;
 				btn.clientY = clientY;
-				this.touchCanvas = [...touches].find((t) => t.identifier !== identifier);
+				this.touchCanvas = [...touches].find((t) => t.identifier !== identifier) || null;
 				if (this.touchCanvas) {
 					this.touchCanvas = {
 						clientX: this.touchCanvas.clientX,
@@ -524,7 +621,7 @@ class App extends React.Component {
 				delete this.panPos;
 				return this.touchCanvas != null;
 			}
-			const idx = this.touchButtons.indexOf(target);
+			const idx = this.touchButtons.indexOf(target as HTMLDivElement);
 			if (idx >= 0 && !touchOther) {
 				touchOther = {
 					id: identifier,
@@ -536,6 +633,7 @@ class App extends React.Component {
 				};
 			}
 		}
+
 		if (btn && !touchOther && release && btn.stick) {
 			const rect = this.touchButtons[btn.index].getBoundingClientRect();
 			const { clientX, clientY } = btn;
@@ -547,7 +645,9 @@ class App extends React.Component {
 		} else if (btn) {
 			this.setTouchMod(btn.index, false);
 		}
+
 		this.touchButton = touchOther;
+
 		if (touchOther) {
 			if (touchOther.index < 6) {
 				this.setTouchMod(touchOther.index, true);
@@ -562,11 +662,11 @@ class App extends React.Component {
 				this.game("DApi_Key", 0, 0, 110 + touchOther.index);
 			}
 		} else if (touches.length === 2) {
-			const x = (touches[1].clientX + touches[0].clientX) / 2,
-				y = (touches[1].clientY + touches[0].clientY) / 2;
+			const x = (touches[1].clientX + touches[0].clientX) / 2;
+			const y = (touches[1].clientY + touches[0].clientY) / 2;
 			if (this.panPos) {
-				const dx = x - this.panPos.x,
-					dy = y - this.panPos.y;
+				const dx = x - this.panPos.x;
+				const dy = y - this.panPos.y;
 				const step = this.canvas.offsetHeight / 12;
 				if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
 					let key;
@@ -589,17 +689,19 @@ class App extends React.Component {
 		} else {
 			delete this.panPos;
 		}
-		this.touchCanvas = [...touches].find((t) => !touchOther || t.identifier !== touchOther.id);
+
+		this.touchCanvas = [...touches].find((t) => !touchOther || t.identifier !== touchOther.id) || null;
 		if (this.touchCanvas) {
 			this.touchCanvas = {
 				clientX: this.touchCanvas.clientX,
 				clientY: this.touchCanvas.clientY,
 			};
 		}
+
 		return this.touchCanvas != null;
 	}
 
-	onTouchStart = (e) => {
+	onTouchStart = (e: TouchEvent) => {
 		if (!this.canvas) return;
 		if (e.target === this.keyboard) {
 			return;
@@ -615,7 +717,8 @@ class App extends React.Component {
 			}
 		}
 	};
-	onTouchMove = (e) => {
+
+	onTouchMove = (e: TouchEvent) => {
 		if (!this.canvas) return;
 		if (e.target === this.keyboard) {
 			return;
@@ -626,7 +729,8 @@ class App extends React.Component {
 			this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
 		}
 	};
-	onTouchEnd = (e) => {
+
+	onTouchEnd = (e: TouchEvent) => {
 		if (!this.canvas) return;
 		if (e.target === this.keyboard) {
 			//return;
@@ -649,13 +753,14 @@ class App extends React.Component {
 		}
 	};
 
-	setCanvas = (e) => (this.canvas = e);
-	setElement = (e) => (this.element = e);
-	setKeyboard = (e) => (this.keyboard = e);
-	setTouch_(i, e) {
+	setCanvas = (e: HTMLCanvasElement) => (this.canvas = e);
+	setElement = (e: HTMLDivElement) => (this.element = e);
+	setKeyboard = (e: HTMLInputElement) => (this.keyboard = e);
+	setTouch_(i: number, e: HTMLDivElement) {
 		this.touchButtons[i] = e;
 	}
-	setTouchBelt_(i, e) {
+
+	setTouchBelt_(i: number, e: HTMLDivElement) {
 		this.touchButtons[i] = e;
 		if (e) {
 			const canvas = document.createElement("canvas");
@@ -716,10 +821,10 @@ class App extends React.Component {
 				</div>
 			);
 		} else if (compress) {
-			return <CompressMpq api={this} ref={(e) => (this.compressMpq = e)} />;
+			return <CompressMpq api={this} ref={(e) => (this.compressMpq = e!)} />;
 		} else if (error) {
 			return (
-				<Link className="error" href={reportLink(error, this.state.retail)}>
+				<Link className="error" href={reportLink(error, this.state.retail!)}>
 					<p className="header">The following error has occurred:</p>
 					<p className="body">{error.message}</p>
 					<p className="footer">Click to create an issue on GitHub</p>
@@ -739,7 +844,7 @@ class App extends React.Component {
 							<span>
 								<span
 									style={{
-										width: `${Math.round((100 * progress.loaded) / progress.total)}%`,
+										width: `${Math.round((100 * progress.loaded!) / progress.total)}%`,
 									}}
 								/>
 							</span>
