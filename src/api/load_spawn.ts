@@ -4,7 +4,21 @@ const SpawnSizes = [50274091, 25830791];
 
 export { SpawnSizes };
 
-export default async function load_spawn(api, fs) {
+interface IApi {
+	onProgress: (progress: { text: string; loaded: number; total: number }) => void;
+}
+
+interface IFileSystem {
+	files: {
+		get: (key: string) => Uint8Array | undefined | null;
+		delete: (key: string) => void;
+		set: (key: string, data: Uint8Array) => void;
+	};
+	delete: (key: string) => Promise<void>;
+	update: (key: string, data: Uint8Array) => void;
+}
+
+export default async function load_spawn(api: IApi, fs: IFileSystem): Promise<IFileSystem> {
 	let file = fs.files.get("spawn.mpq");
 	if (file && !SpawnSizes.includes(file.byteLength)) {
 		fs.files.delete("spawn.mpq");
