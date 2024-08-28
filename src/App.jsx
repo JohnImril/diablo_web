@@ -11,83 +11,15 @@ import create_fs from "./fs";
 import load_game from "./api/loader";
 import { SpawnSizes } from "./api/load_spawn";
 import CompressMpq from "./mpqcmp";
-
+import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
 import Peer from "peerjs";
 
 window.Peer = Peer;
-
-function reportLink(e, retail) {
-	const message = (e.message || "Unknown error") + (e.stack ? "\n" + e.stack : "");
-	const url = new URL("https://github.com/d07RiV/diabloweb/issues/new");
-	url.searchParams.set(
-		"body",
-		`**Description:**
-[Please describe what you were doing before the error occurred]
-
-**App version:**
-DiabloWeb ${import.meta.env.VERSION} (${retail ? "Retail" : "Shareware"})
-
-**Error message:**
-    
-${message
-	.split("\n")
-	.map((line) => "    " + line)
-	.join("\n")}
-
-**User agent:**
-
-    ${navigator.userAgent}
-
-**Save file:**
-[Please attach the save file, if applicable. The error box should have a link to download the current save you were playing; alternatively, you can open dev console on the game page (F12) and type in ${"`DownloadSaves()`"}]
-`
-	);
-	return url.toString();
-}
-
-function isDropFile(e) {
-	if (e.dataTransfer.items) {
-		for (let i = 0; i < e.dataTransfer.items.length; ++i) {
-			if (e.dataTransfer.items[i].kind === "file") {
-				return true;
-			}
-		}
-	}
-	if (e.dataTransfer.files.length) {
-		return true;
-	}
-	return false;
-}
-function getDropFile(e) {
-	if (e.dataTransfer.items) {
-		for (let i = 0; i < e.dataTransfer.items.length; ++i) {
-			if (e.dataTransfer.items[i].kind === "file") {
-				return e.dataTransfer.items[i].getAsFile();
-			}
-		}
-	}
-	if (e.dataTransfer.files.length) {
-		return e.dataTransfer.files[0];
-	}
-}
 
 const TOUCH_MOVE = 0;
 const TOUCH_RMB = 1;
 const TOUCH_SHIFT = 2;
 
-function findKeyboardRule() {
-	for (let sheet of document.styleSheets) {
-		for (let rule of sheet.cssRules) {
-			if (rule.type === CSSRule.MEDIA_RULE && rule.conditionText === "(min-aspect-ratio: 3/1)") {
-				for (let sub of rule.cssRules) {
-					if (sub.selectorText === ".App.keyboard .Body .inner") {
-						return sub;
-					}
-				}
-			}
-		}
-	}
-}
 let keyboardRule = null;
 try {
 	keyboardRule = findKeyboardRule();
