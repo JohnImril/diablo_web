@@ -1,6 +1,24 @@
-import { openDB } from "idb";
+import { openDB, IDBPDatabase } from "idb";
 
-async function downloadFile(db, name) {
+//TODO: refuse to declare
+declare global {
+	interface Window {
+		DownloadFile: (name: string) => void;
+		DownloadSaves: () => void;
+	}
+}
+
+interface IFileSystem {
+	files: Map<string, Uint8Array>;
+	update: (name: string, data: Uint8Array) => Promise<unknown>;
+	delete: (name: string) => Promise<void>;
+	clear: () => Promise<void>;
+	download: (name: string) => Promise<void>;
+	upload: (file: File) => Promise<void>;
+	fileUrl: (name: string) => Promise<string | undefined>;
+}
+
+async function downloadFile(db: IDBPDatabase<unknown>, name: string): Promise<void> {
 	const file = await db.get("files", name.toLowerCase());
 	if (file) {
 		const blob = new Blob([file], { type: "binary/octet-stream" });
@@ -17,31 +35,31 @@ async function downloadFile(db, name) {
 	}
 }
 
-async function downloadSaves(db) {
+async function downloadSaves(db: IDBPDatabase<unknown>): Promise<void> {
 	const keys = await db.getAllKeys("files");
-	for (let name of keys) {
-		if (name.match(/\.sv$/i)) {
-			await downloadFile(db, name);
+	for (const name of keys) {
+		if ((name as string).match(/\.sv$/i)) {
+			await downloadFile(db, name as string);
 		}
 	}
 }
 
-const readFile = (file) =>
+const readFile = (file: File): Promise<ArrayBuffer> =>
 	new Promise((resolve, reject) => {
 		const reader = new FileReader();
-		reader.onload = () => resolve(reader.result);
+		reader.onload = () => resolve(reader.result as ArrayBuffer);
 		reader.onerror = () => reject(reader.error);
 		reader.onabort = () => reject();
 		reader.readAsArrayBuffer(file);
 	});
 
-async function uploadFile(db, files, file) {
+async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Array>, file: File): Promise<void> {
 	const data = new Uint8Array(await readFile(file));
 	files.set(file.name.toLowerCase(), data);
 	await db.put("files", data, file.name.toLowerCase());
 }
 
-export default async function create_fs() {
+export default async function create_fs(): Promise<IFileSystem> {
 	try {
 		const db = await openDB("diablo_fs", 1, {
 			upgrade(db) {
@@ -49,24 +67,27 @@ export default async function create_fs() {
 			},
 		});
 
-		const files = new Map();
+		const files = new Map<string, Uint8Array>();
 
 		const keys = await db.getAllKeys("files");
-		for (let key of keys) {
+		for (const key of keys) {
 			const value = await db.get("files", key);
-			files.set(key, value);
+			if (value) {
+				files.set(key as string, value as Uint8Array);
+			}
 		}
 
-		window.DownloadFile = (name) => downloadFile(db, name);
+		window.DownloadFile = (name: string) => downloadFile(db, name);
 		window.DownloadSaves = () => downloadSaves(db);
+
 		return {
 			files,
-			update: (name, data) => db.put("files", data, name),
-			delete: (name) => db.delete("files", name),
+			update: (name: string, data: Uint8Array) => db.put("files", data, name),
+			delete: (name: string) => db.delete("files", name),
 			clear: () => db.clear("files"),
-			download: (name) => downloadFile(db, name),
-			upload: (file) => uploadFile(db, files, file),
-			fileUrl: async (name) => {
+			download: (name: string) => downloadFile(db, name),
+			upload: (file: File) => uploadFile(db, files, file),
+			fileUrl: async (name: string) => {
 				const file = await db.get("files", name.toLowerCase());
 				if (file) {
 					const blob = new Blob([file], {
@@ -74,19 +95,22 @@ export default async function create_fs() {
 					});
 					return URL.createObjectURL(blob);
 				}
+				return undefined;
 			},
 		};
 	} catch (e) {
+		console.error("IndexedDB is not supported", e);
 		window.DownloadFile = () => console.error("IndexedDB is not supported");
 		window.DownloadSaves = () => console.error("IndexedDB is not supported");
+
 		return {
-			files: new Map(),
+			files: new Map<string, Uint8Array>(),
 			update: () => Promise.resolve(),
 			delete: () => Promise.resolve(),
 			clear: () => Promise.resolve(),
 			download: () => Promise.resolve(),
 			upload: () => Promise.resolve(),
-			fileUrl: () => Promise.resolve(),
+			fileUrl: () => Promise.resolve(undefined),
 		};
 	}
 }
