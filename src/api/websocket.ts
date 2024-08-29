@@ -3,7 +3,7 @@ import { IWebSocketProxy } from "../types";
 type WebSocketHandler = (data: ArrayBuffer | string) => void;
 type WebSocketFinisher = (code: number) => void;
 
-async function do_websocket_open(url: string, handler: WebSocketHandler): Promise<WebSocket> {
+async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	const socket = new WebSocket(url);
 	socket.binaryType = "arraybuffer";
 

@@ -1,6 +1,6 @@
 import { IError } from "./types";
 
-export function reportLink(e: IError, retail?: boolean): string {
+export function reportLink(e: IError, retail?: boolean) {
 	const message = (e.message || "Unknown error") + (e.stack ? "\n" + e.stack : "");
 	const url = new URL("https://github.com/JohnImril/diablo_web/issues/new");
 	url.searchParams.set(
@@ -29,7 +29,7 @@ ${message
 	return url.toString();
 }
 
-export function isDropFile(e: DragEvent): boolean {
+export function isDropFile(e: DragEvent) {
 	if (e.dataTransfer?.items) {
 		for (let i = 0; i < e.dataTransfer.items.length; ++i) {
 			if (e.dataTransfer.items[i].kind === "file") {
@@ -43,7 +43,7 @@ export function isDropFile(e: DragEvent): boolean {
 	return false;
 }
 
-export function getDropFile(e: DragEvent): File | null {
+export function getDropFile(e: DragEvent) {
 	if (e.dataTransfer?.items) {
 		for (let i = 0; i < e.dataTransfer.items.length; ++i) {
 			if (e.dataTransfer.items[i].kind === "file") {
@@ -54,7 +54,7 @@ export function getDropFile(e: DragEvent): File | null {
 	return e.dataTransfer?.files.length ? e.dataTransfer.files[0] : null;
 }
 
-export function findKeyboardRule(): CSSStyleRule | null {
+export function findKeyboardRule() {
 	for (const sheet of document.styleSheets) {
 		for (const rule of sheet.cssRules) {
 			if (rule instanceof CSSMediaRule && rule.conditionText === "(min-aspect-ratio: 3/1)") {

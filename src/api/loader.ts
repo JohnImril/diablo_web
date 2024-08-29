@@ -17,7 +17,7 @@ interface IAudioApi {
 	[func: string]: (...params: any) => void;
 }
 
-function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext, batch: IRenderBatch): void {
+function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext, batch: IRenderBatch) {
 	if (batch.bitmap) {
 		(ctx as ImageBitmapRenderingContext).transferFromImageBitmap(batch.bitmap);
 	} else if (ctx instanceof CanvasRenderingContext2D) {
@@ -176,11 +176,7 @@ async function do_load_game(
 	});
 }
 
-export default function load_game(
-	api: IApi,
-	mpq: File | null,
-	spawn: boolean
-): Promise<(func: string, ...params: unknown[]) => void> {
+export default function load_game(api: IApi, mpq: File | null, spawn: boolean) {
 	const audio = init_sound();
 	return do_load_game(api, audio, mpq, spawn);
 }

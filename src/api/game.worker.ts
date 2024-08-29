@@ -308,7 +308,7 @@ let maxBatchId = 0;
 
 ["play_sound", "set_volume", "stop_sound", "delete_sound"].forEach((func) => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	DApi[func as keyof typeof DApi] = function (...params: any[]): void {
+	DApi[func as keyof typeof DApi] = function (...params: any[]) {
 		if (audioBatch && params[0] >= maxSoundId) {
 			audioBatch.push({ func, params });
 		} else {

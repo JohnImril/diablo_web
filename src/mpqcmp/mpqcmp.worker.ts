@@ -9,7 +9,7 @@ let input_offset = 0;
 let output_file: Uint8Array | null = null;
 let last_progress = 0;
 
-function progress(value: number): void {
+function progress(value: number) {
 	worker.postMessage({ action: "progress", value });
 }
 

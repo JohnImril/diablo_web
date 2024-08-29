@@ -10,7 +10,7 @@ interface IFileSystem {
 	fileUrl: (name: string) => Promise<string | undefined>;
 }
 
-async function downloadFile(db: IDBPDatabase<unknown>, name: string): Promise<void> {
+async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());
 	if (file) {
 		const blob = new Blob([file], { type: "binary/octet-stream" });
@@ -27,7 +27,7 @@ async function downloadFile(db: IDBPDatabase<unknown>, name: string): Promise<vo
 	}
 }
 
-async function downloadSaves(db: IDBPDatabase<unknown>): Promise<void> {
+async function downloadSaves(db: IDBPDatabase<unknown>) {
 	const keys = await db.getAllKeys("files");
 	for (const name of keys) {
 		if ((name as string).match(/\.sv$/i)) {
@@ -45,7 +45,7 @@ const readFile = (file: File): Promise<ArrayBuffer> =>
 		reader.readAsArrayBuffer(file);
 	});
 
-async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Array>, file: File): Promise<void> {
+async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Array>, file: File) {
 	const data = new Uint8Array(await readFile(file));
 	files.set(file.name.toLowerCase(), data);
 	await db.put("files", data, file.name.toLowerCase());

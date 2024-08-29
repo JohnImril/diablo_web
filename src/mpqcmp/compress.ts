@@ -29,7 +29,7 @@ async function loadFile(
 	url: string,
 	progress?: (e: ProgressEvent) => void,
 	responseType: "arraybuffer" | "text" = "arraybuffer"
-): Promise<ArrayBuffer | string> {
+) {
 	const binary: AxiosResponse<ArrayBuffer | string> = await axios.request({
 		url,
 		responseType,
@@ -64,10 +64,7 @@ function runWorker(data: unknown, transfer: Transferable[], progress: (value: nu
 	});
 }
 
-export default async function compress(
-	mpq: File,
-	progress: (text: string, loaded?: number, total?: number) => void
-): Promise<Blob> {
+export default async function compress(mpq: File, progress: (text: string, loaded?: number, total?: number) => void) {
 	progress("Loading...");
 	const files: IFileLoad[] = [];
 

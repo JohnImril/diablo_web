@@ -26,7 +26,7 @@ interface PeerData {
 	version?: number;
 }
 
-const PeerID = (name: string): string => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
+const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
 const Options: PeerOptions = { port: 443, secure: true };
 const MAX_PLRS = 4;
 
@@ -211,7 +211,7 @@ class webrtc_server {
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handle(id: number, code: number, pkt: any): void {
+	handle(id: number, code: number, pkt: any) {
 		switch (code) {
 			case client_packet.leave_game.code:
 				this.drop(id, 3);

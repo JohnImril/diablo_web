@@ -5,7 +5,7 @@ import { IPlayerInfo } from "../types";
 type ReadBuffer = (dst: Uint8Array) => number;
 type WriteBuffer = (src: Uint8Array) => void;
 
-function pkzip_decompress(data: Uint8Array, out_size: number): Uint8Array | null {
+function pkzip_decompress(data: Uint8Array, out_size: number) {
 	if (data.length === out_size) {
 		return data;
 	}
@@ -51,7 +51,7 @@ const hashtable = (function () {
 	return hashtable;
 })();
 
-export function decrypt(u32: Uint32Array, key: number): void {
+export function decrypt(u32: Uint32Array, key: number) {
 	let seed = 0xeeeeeeee;
 	for (let i = 0; i < u32.length; ++i) {
 		seed += hashtable[0x400 + (key & 0xff)];
@@ -61,11 +61,11 @@ export function decrypt(u32: Uint32Array, key: number): void {
 	}
 }
 
-export function decrypt8(u8: Uint8Array, key: number): void {
+export function decrypt8(u8: Uint8Array, key: number) {
 	decrypt(new Uint32Array(u8.buffer, u8.byteOffset, u8.length >> 2), key);
 }
 
-export function encrypt(u32: Uint32Array, key: number): void {
+export function encrypt(u32: Uint32Array, key: number) {
 	let seed = 0xeeeeeeee;
 	for (let i = 0; i < u32.length; ++i) {
 		seed += hashtable[0x400 + (key & 0xff)];
@@ -76,11 +76,11 @@ export function encrypt(u32: Uint32Array, key: number): void {
 	}
 }
 
-export function encrypt8(u8: Uint8Array, key: number): void {
+export function encrypt8(u8: Uint8Array, key: number) {
 	encrypt(new Uint32Array(u8.buffer, u8.byteOffset, u8.length >> 2), key);
 }
 
-export function hash(name: string, type: number): number {
+export function hash(name: string, type: number) {
 	let seed1 = 0x7fed7fed;
 	let seed2 = 0xeeeeeeee;
 	for (let i = 0; i < name.length; ++i) {
@@ -97,7 +97,7 @@ export function hash(name: string, type: number): number {
 	return seed1 >>> 0;
 }
 
-export function path_name(name: string): string {
+export function path_name(name: string) {
 	const pos = Math.max(name.lastIndexOf("/"), name.lastIndexOf("\\"));
 	return name.substring(pos + 1);
 }
@@ -152,7 +152,7 @@ export class MpqReader {
 		this.readHeader();
 	}
 
-	private readHeader(): void {
+	private readHeader() {
 		const { u8, u32 } = this;
 		if (u32[0] !== 0x1a51504d) {
 			throw Error("invalid MPQ header");
@@ -167,13 +167,13 @@ export class MpqReader {
 		this.blockSize = 1 << (9 + sizeId);
 	}
 
-	private readTable(offset: number, count: number, key: string): Uint32Array {
+	private readTable(offset: number, count: number, key: string) {
 		const buffer = new Uint32Array(this.buffer.slice(offset, offset + count * 16));
 		decrypt(buffer, hash(key, 3));
 		return buffer;
 	}
 
-	private fileIndex(name: string): number | undefined {
+	private fileIndex(name: string) {
 		const { hashTable } = this;
 		const length = hashTable.length >> 2;
 		const index = hash(name, 0) % length;
@@ -190,7 +190,7 @@ export class MpqReader {
 		}
 	}
 
-	readRaw(name: string): { info: FileInfo; data: Uint8Array } | undefined {
+	readRaw(name: string) {
 		const index = this.fileIndex(name);
 		if (index == null) {
 			return;
@@ -218,7 +218,7 @@ export class MpqReader {
 		};
 	}
 
-	read(name: string): Uint8Array | undefined | null {
+	read(name: string) {
 		const raw = this.readRaw(name);
 		if (!raw) {
 			return;
@@ -284,7 +284,7 @@ export class MpqReader {
 	}
 }
 
-function getPassword(name: string): string {
+function getPassword(name: string) {
 	if (name.match(/spawn\d+\.sv/i)) {
 		return "lshbkfg1"; // single, spawn
 	} else if (name.match(/share_\d+\.sv/i)) {

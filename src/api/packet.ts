@@ -9,18 +9,18 @@ export class buffer_reader {
 		this.pos = 0;
 	}
 
-	done(): boolean {
+	done() {
 		return this.pos === this.buffer.byteLength;
 	}
 
-	read8(): number {
+	read8() {
 		if (this.pos >= this.buffer.byteLength) {
 			throw Error("packet too small");
 		}
 		return this.buffer[this.pos++];
 	}
 
-	read16(): number {
+	read16() {
 		const { pos, buffer } = this;
 		if (pos + 2 > buffer.byteLength) {
 			throw Error("packet too small");
@@ -30,7 +30,7 @@ export class buffer_reader {
 		return result;
 	}
 
-	read32(): number {
+	read32() {
 		const { pos, buffer } = this;
 		if (pos + 4 > buffer.byteLength) {
 			throw Error("packet too small");
@@ -40,7 +40,7 @@ export class buffer_reader {
 		return result;
 	}
 
-	read_str(): string {
+	read_str() {
 		const length = this.read8();
 		const { pos, buffer } = this;
 		if (pos + length > buffer.byteLength) {
@@ -51,7 +51,7 @@ export class buffer_reader {
 		return result;
 	}
 
-	read_buf(): Uint8Array {
+	read_buf() {
 		const size = this.read32();
 		const result = this.buffer.subarray(this.pos, this.pos + size);
 		this.pos += size;
@@ -68,16 +68,16 @@ export class buffer_writer {
 		this.pos = 0;
 	}
 
-	get result(): ArrayBuffer {
+	get result() {
 		return this.buffer.buffer;
 	}
 
-	write8(value: number): this {
+	write8(value: number) {
 		this.buffer[this.pos++] = value;
 		return this;
 	}
 
-	write16(value: number): this {
+	write16(value: number) {
 		const { pos, buffer } = this;
 		buffer[pos] = value;
 		buffer[pos + 1] = value >> 8;
@@ -85,7 +85,7 @@ export class buffer_writer {
 		return this;
 	}
 
-	write32(value: number): this {
+	write32(value: number) {
 		const { pos, buffer } = this;
 		buffer[pos] = value;
 		buffer[pos + 1] = value >> 8;
@@ -95,7 +95,7 @@ export class buffer_writer {
 		return this;
 	}
 
-	write_str(value: string): this {
+	write_str(value: string) {
 		const length = value.length;
 		this.write8(length);
 		const { pos, buffer } = this;
@@ -106,13 +106,13 @@ export class buffer_writer {
 		return this;
 	}
 
-	rest(value: Uint8Array): this {
+	rest(value: Uint8Array) {
 		this.buffer.set(value, this.pos);
 		this.pos += value.byteLength;
 		return this;
 	}
 
-	write_buf(value: Uint8Array): this {
+	write_buf(value: Uint8Array) {
 		this.write32(value.byteLength);
 		this.rest(value);
 		return this;
@@ -206,7 +206,7 @@ export const server_packet: any = {
 
 	game_list: {
 		code: 0x21,
-		read: (reader: buffer_reader): GameListPacket => {
+		read: (reader: buffer_reader) => {
 			const count = reader.read16();
 			const games: Game[] = [];
 			for (let i = 0; i < count; ++i) {
@@ -307,7 +307,7 @@ export const client_packet = {
 
 	game_list: {
 		code: 0x21,
-		read: (): Record<string, never> => ({}),
+		read: () => ({}),
 		size: 0,
 		write: (writer: buffer_writer) => writer,
 	},
@@ -339,7 +339,7 @@ export const client_packet = {
 
 	leave_game: {
 		code: 0x24,
-		read: (): Record<string, never> => ({}),
+		read: () => ({}),
 		size: 0,
 		write: (writer: buffer_writer) => writer,
 	},
