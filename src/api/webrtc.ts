@@ -1,4 +1,4 @@
-import Peer from "peerjs";
+import Peer, { DataConnection } from "peerjs";
 import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
 
 /*function log_packet(data, type) {
@@ -11,12 +11,53 @@ import { buffer_reader, read_packet, write_packet, client_packet, server_packet,
   }
 }*/
 
-const PeerID = (name) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
-const Options = { port: 443, secure: true };
+type Packet = ArrayBuffer | Uint8Array;
+type MessageHandler = (packet: Packet) => void;
+type CloseHandler = () => void;
+
+interface GameOptions {
+	cookie: number;
+	name: string;
+	password: string;
+	difficulty: number;
+}
+
+interface PeerOptions {
+	port: number;
+	secure: boolean;
+}
+
+interface PeerData {
+	conn: DataConnection;
+	id?: number;
+	version?: number;
+}
+
+const PeerID = (name: string): string => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
+const Options: PeerOptions = { port: 443, secure: true };
 const MAX_PLRS = 4;
 
 class webrtc_server {
-	constructor(version, { cookie, name, password, difficulty }, onMessage, onClose) {
+	version: number;
+	name: string;
+	password: string;
+	difficulty: number;
+	onMessage: MessageHandler;
+	onClose: CloseHandler;
+	peer: Peer;
+	players: {
+		id?: number | null;
+		conn: DataConnection;
+	}[] = [];
+	seed: number;
+	myplr: number;
+
+	constructor(
+		version: number,
+		{ cookie, name, password, difficulty }: GameOptions,
+		onMessage: MessageHandler,
+		onClose: CloseHandler
+	) {
 		this.version = version;
 		this.name = name;
 		this.password = password;
@@ -42,8 +83,8 @@ class webrtc_server {
 			this.peer.off("error", onError);
 			this.peer.off("open", onOpen);
 		};
+
 		const onOpen = () => {
-			//console.log('peer open');
 			setTimeout(() => {
 				onMessage(
 					write_packet(server_packet.join_accept, {
@@ -58,19 +99,17 @@ class webrtc_server {
 			this.peer.off("error", onError);
 			this.peer.off("open", onOpen);
 		};
+
 		this.peer.on("error", onError);
 		this.peer.on("open", onOpen);
-
-		//this.peer.on('error', err => console.log('peer error:', err));
 	}
 
-	onConnect(conn) {
-		//conn.on('error', err => console.log('conn error:', err));
-		//console.log('conn open');
-		const peer = { conn };
+	onConnect(conn: DataConnection) {
+		const peer: PeerData = { conn };
 		conn.on("data", (packet) => {
-			const reader = new buffer_reader(packet);
+			const reader = new buffer_reader(packet as Packet);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
+
 			switch (type.code) {
 				case client_packet.info.code:
 					peer.version = pkt.version;
@@ -131,19 +170,20 @@ class webrtc_server {
 						return;
 					}
 			}
+
 			if (!reader.done()) {
 				throw Error("packet too large");
 			}
 		});
+
 		conn.on("close", () => {
-			//console.log('conn close');
 			if (peer.id != null) {
 				this.drop(peer.id, 0x40000006);
 			}
 		});
 	}
 
-	send(mask, pkt) {
+	send(mask: number, pkt: Packet) {
 		for (let i = 1; i < MAX_PLRS; ++i) {
 			if (mask & (1 << i) && this.players[i]) {
 				if (this.players[i].conn) {
@@ -151,13 +191,12 @@ class webrtc_server {
 				}
 			}
 		}
-		// self last since it will destroy the buffer
 		if (mask & 1) {
 			this.onMessage(pkt);
 		}
 	}
 
-	drop(id, reason) {
+	drop(id: number, reason: number) {
 		if (id === 0) {
 			for (let i = 1; i < MAX_PLRS; ++i) {
 				this.drop(i, 0x40000006);
@@ -171,11 +210,15 @@ class webrtc_server {
 			if (this.players[id].conn) {
 				this.players[id].conn.close();
 			}
-			this.players[id] = null;
+			this.players[id] = null as unknown as {
+				id?: number | null;
+				conn: DataConnection;
+			};
 		}
 	}
 
-	handle(id, code, pkt) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	handle(id: number, code: number, pkt: any): void {
 		switch (code) {
 			case client_packet.leave_game.code:
 				this.drop(id, 3);
@@ -202,23 +245,31 @@ class webrtc_server {
 }
 
 class webrtc_client {
-	pending = [];
+	peer: Peer;
+	conn: DataConnection;
+	pending: Packet[] | null = [];
+	myplr: unknown;
 
-	constructor(version, { cookie, name, password }, onMessage, onClose) {
+	constructor(
+		version: number,
+		{ cookie, name, password }: GameOptions,
+		onMessage: MessageHandler,
+		onClose: CloseHandler
+	) {
 		this.peer = new Peer(Options);
 		this.conn = this.peer.connect(PeerID(name));
 
 		let needUnreg = true;
+
 		const unreg = () => {
-			if (!needUnreg) {
-				return;
-			}
+			if (!needUnreg) return;
 			needUnreg = false;
 			this.peer.off("error", onError);
 			this.conn.off("error", onError);
 			this.conn.off("open", onOpen);
 			clearTimeout(timeout);
 		};
+
 		const onError = () => {
 			onMessage(
 				write_packet(server_packet.join_reject, {
@@ -229,6 +280,7 @@ class webrtc_client {
 			onClose();
 			unreg();
 		};
+
 		const onOpen = () => {
 			this.conn.send(write_packet(client_packet.info, { version }));
 			this.conn.send(
@@ -238,23 +290,21 @@ class webrtc_client {
 					password,
 				})
 			);
-			for (let pkt of this.pending) {
+			for (const pkt of this.pending!) {
 				this.conn.send(pkt);
 			}
 			this.pending = null;
 			this.conn.off("open", onOpen);
 		};
+
 		const timeout = setTimeout(onError, 10000);
 		this.peer.on("error", onError);
 		this.conn.on("error", onError);
 		this.conn.on("open", onOpen);
 
-		//this.peer.on('error', err => console.log('peer error:', err));
-		//this.conn.on('error', err => console.log('conn error:', err));
-
 		this.conn.on("data", (data) => {
 			unreg();
-			const reader = new buffer_reader(data);
+			const reader = new buffer_reader(data as Packet);
 			const { type, packet: pkt } = read_packet(reader, server_packet);
 			switch (type.code) {
 				case server_packet.join_accept.code:
@@ -270,14 +320,14 @@ class webrtc_client {
 					break;
 				default:
 			}
-			onMessage(data);
+			onMessage(data as Packet);
 		});
-		this.conn.on("close", (data) => {
+		this.conn.on("close", () => {
 			onClose();
 		});
 	}
 
-	send(packet) {
+	send(packet: Packet) {
 		if (this.pending) {
 			this.pending.push(packet);
 		} else {
@@ -286,21 +336,14 @@ class webrtc_client {
 	}
 }
 
-export default function webrtc_open(onMessage) {
-	let server = null,
-		client = null;
+export default function webrtc_open(onMessage: MessageHandler) {
+	let server: webrtc_server | null = null,
+		client: webrtc_client | null = null;
 
 	let version = 0;
 
-	/*const prevMessage = onMessage;
-  onMessage = data => {
-    log_packet(data, server_packet);
-    prevMessage(data);
-  };*/
-
 	return {
-		send: function (packet) {
-			//log_packet(packet, client_packet);
+		send: function (packet: Packet) {
 			const reader = new buffer_reader(packet);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
 			switch (type.code) {

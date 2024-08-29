@@ -1,18 +1,24 @@
 export class buffer_reader {
-	constructor(buffer) {
+	private buffer: Uint8Array;
+	private pos: number;
+
+	constructor(buffer: ArrayBuffer | Uint8Array) {
 		this.buffer = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
 		this.pos = 0;
 	}
-	done() {
+
+	done(): boolean {
 		return this.pos === this.buffer.byteLength;
 	}
-	read8() {
+
+	read8(): number {
 		if (this.pos >= this.buffer.byteLength) {
 			throw Error("packet too small");
 		}
 		return this.buffer[this.pos++];
 	}
-	read16() {
+
+	read16(): number {
 		const { pos, buffer } = this;
 		if (pos + 2 > buffer.byteLength) {
 			throw Error("packet too small");
@@ -21,7 +27,8 @@ export class buffer_reader {
 		this.pos += 2;
 		return result;
 	}
-	read32() {
+
+	read32(): number {
 		const { pos, buffer } = this;
 		if (pos + 4 > buffer.byteLength) {
 			throw Error("packet too small");
@@ -30,7 +37,8 @@ export class buffer_reader {
 		this.pos += 4;
 		return result;
 	}
-	read_str() {
+
+	read_str(): string {
 		const length = this.read8();
 		const { pos, buffer } = this;
 		if (pos + length > buffer.byteLength) {
@@ -40,33 +48,42 @@ export class buffer_reader {
 		this.pos += length;
 		return result;
 	}
-	read_buf() {
+
+	read_buf(): Uint8Array {
 		const size = this.read32();
 		const result = this.buffer.subarray(this.pos, this.pos + size);
 		this.pos += size;
 		return result;
 	}
 }
+
 export class buffer_writer {
-	constructor(length) {
+	private buffer: Uint8Array;
+	private pos: number;
+
+	constructor(length: number) {
 		this.buffer = new Uint8Array(length);
 		this.pos = 0;
 	}
-	get result() {
+
+	get result(): ArrayBuffer {
 		return this.buffer.buffer;
 	}
-	write8(value) {
+
+	write8(value: number): this {
 		this.buffer[this.pos++] = value;
 		return this;
 	}
-	write16(value) {
+
+	write16(value: number): this {
 		const { pos, buffer } = this;
 		buffer[pos] = value;
 		buffer[pos + 1] = value >> 8;
 		this.pos += 2;
 		return this;
 	}
-	write32(value) {
+
+	write32(value: number): this {
 		const { pos, buffer } = this;
 		buffer[pos] = value;
 		buffer[pos + 1] = value >> 8;
@@ -75,7 +92,8 @@ export class buffer_writer {
 		this.pos += 4;
 		return this;
 	}
-	write_str(value) {
+
+	write_str(value: string): this {
 		const length = value.length;
 		this.write8(length);
 		const { pos, buffer } = this;
@@ -85,12 +103,14 @@ export class buffer_writer {
 		this.pos += length;
 		return this;
 	}
-	rest(value) {
+
+	rest(value: Uint8Array): this {
 		this.buffer.set(value, this.pos);
 		this.pos += value.byteLength;
 		return this;
 	}
-	write_buf(value) {
+
+	write_buf(value: Uint8Array): this {
 		this.write32(value.byteLength);
 		this.rest(value);
 		return this;
@@ -107,174 +127,281 @@ export const RejectionReason = {
 	CREATE_GAME_EXISTS: 0x06,
 };
 
-export function read_packet(reader, types) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function read_packet<T extends Record<string, any>>(reader: buffer_reader, types: T) {
 	const code = reader.read8();
 	const cls = Object.values(types).find((cls) => cls.code === code);
 	if (!cls) {
-		throw Error("invalid packet code");
+		throw new Error("invalid packet code");
 	}
 	return { type: cls, packet: cls.read(reader) };
 }
-export function packet_size(type, packet) {
+
+export function packet_size<T>(type: { size: number | ((packet: T) => number) }, packet: T) {
 	return (typeof type.size === "function" ? type.size(packet) : type.size) + 1;
 }
-export function write_packet(type, packet) {
+
+export function write_packet<T>(
+	type: {
+		code: number;
+		size: number | ((packet: T) => number);
+		write: (writer: buffer_writer, packet: T) => buffer_writer;
+	},
+	packet: T
+) {
 	const size = packet_size(type, packet);
 	return type.write(new buffer_writer(size).write8(type.code), packet).result;
 }
 
-export function make_batch(types) {
+export function make_batch<T>(
+	types: () => Record<
+		string,
+		{
+			code: number;
+			read: (reader: buffer_reader) => T;
+			size: number | ((packet: T) => number);
+			write: (writer: buffer_writer, packet: T) => buffer_writer;
+		}
+	>
+) {
 	return {
 		code: 0x00,
-		read: (reader) => {
+		read: (reader: buffer_reader) => {
 			const count = reader.read16();
-			const packets = [];
+			const packets: Array<{ type: PacketType<T>; packet: T }> = [];
 			for (let i = 0; i < count; ++i) {
-				packets.push(read_packet(reader, types()));
+				const packetType = types();
+				const packet = read_packet(reader, packetType);
+				packets.push(
+					packet as {
+						type: PacketType<T>;
+						packet: T;
+					}
+				);
 			}
 			return packets;
 		},
-		size: (packets) => packets.reduce((sum, { type, packet }) => sum + packet_size(type, packet), 2),
-		write: (writer, packets) => {
+		size: (packets: Array<{ type: PacketType<T>; packet: T }>) =>
+			packets.reduce((sum, { type, packet }) => sum + packet_size(type, packet), 2),
+		write: (writer: buffer_writer, packets: Array<{ type: PacketType<T>; packet: T }>) => {
 			writer.write16(packets.length);
-			for (let { type, packet } of packets) {
+			for (const { type, packet } of packets) {
 				type.write(writer.write8(type.code), packet);
 			}
 			return writer;
 		},
-	};
+	} as PacketType<Array<{ type: PacketType<T>; packet: T }>>;
 }
 
-export const server_packet = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const server_packet: any = {
 	info: {
 		code: 0x32,
-		read: (reader) => ({ version: reader.read32() }),
+		read: (reader: buffer_reader): InfoPacket => ({ version: reader.read32() }),
 		size: 4,
-		write: (writer, { version }) => writer.write32(version),
-	},
+		write: (writer: buffer_writer, { version }: InfoPacket) => writer.write32(version),
+	} as PacketType<InfoPacket>,
+
 	game_list: {
 		code: 0x21,
-		read: (reader) => {
+		read: (reader: buffer_reader): GameListPacket => {
 			const count = reader.read16();
-			const games = [];
+			const games: Game[] = [];
 			for (let i = 0; i < count; ++i) {
 				games.push({ type: reader.read32(), name: reader.read_str() });
 			}
 			return { games };
 		},
-		size: ({ games }) => games.reduce((sum, { name }) => sum + 5 + name.length, 2),
-		write: (writer, { games }) => {
+		size: ({ games }: GameListPacket) => games.reduce((sum, { name }) => sum + 5 + name.length, 2),
+		write: (writer: buffer_writer, { games }: GameListPacket) => {
 			writer.write16(games.length);
-			for (let { type, name } of games) {
+			for (const { type, name } of games) {
 				writer.write32(type);
 				writer.write_str(name);
 			}
 			return writer;
 		},
-	},
+	} as PacketType<GameListPacket>,
+
 	join_accept: {
 		code: 0x12,
-		read: (reader) => ({
+		read: (reader: buffer_reader): JoinAcceptPacket => ({
 			cookie: reader.read32(),
 			index: reader.read8(),
 			seed: reader.read32(),
 			difficulty: reader.read32(),
 		}),
 		size: 13,
-		write: (writer, { cookie, index, seed, difficulty }) =>
+		write: (writer: buffer_writer, { cookie, index, seed, difficulty }: JoinAcceptPacket) =>
 			writer.write32(cookie).write8(index).write32(seed).write32(difficulty),
-	},
+	} as PacketType<JoinAcceptPacket>,
+
 	join_reject: {
 		code: 0x15,
-		read: (reader) => ({ cookie: reader.read32(), reason: reader.read8() }),
+		read: (reader: buffer_reader): JoinRejectPacket => ({ cookie: reader.read32(), reason: reader.read8() }),
 		size: 5,
-		write: (writer, { cookie, reason }) => writer.write32(cookie).write8(reason),
-	},
+		write: (writer: buffer_writer, { cookie, reason }: JoinRejectPacket) => writer.write32(cookie).write8(reason),
+	} as PacketType<JoinRejectPacket>,
+
 	connect: {
 		code: 0x13,
-		read: (reader) => ({ id: reader.read8() }),
+		read: (reader: buffer_reader): ConnectPacket => ({ id: reader.read8() }),
 		size: 1,
-		write: (writer, { id }) => writer.write8(id),
-	},
+		write: (writer: buffer_writer, { id }: ConnectPacket) => writer.write8(id),
+	} as PacketType<ConnectPacket>,
+
 	disconnect: {
 		code: 0x14,
-		read: (reader) => ({ id: reader.read8(), reason: reader.read32() }),
+		read: (reader: buffer_reader): DisconnectPacket => ({ id: reader.read8(), reason: reader.read32() }),
 		size: 5,
-		write: (writer, { id, reason }) => writer.write8(id).write32(reason),
-	},
+		write: (writer: buffer_writer, { id, reason }: DisconnectPacket) => writer.write8(id).write32(reason),
+	} as PacketType<DisconnectPacket>,
+
 	message: {
 		code: 0x01,
-		read: (reader) => ({ id: reader.read8(), payload: reader.read_buf() }),
-		size: ({ payload }) => 5 + payload.byteLength,
-		write: (writer, { id, payload }) => writer.write8(id).write_buf(payload),
-	},
+		read: (reader: buffer_reader): MessagePacket => ({ id: reader.read8(), payload: reader.read_buf() }),
+		size: ({ payload }: MessagePacket) => 5 + payload.byteLength,
+		write: (writer: buffer_writer, { id, payload }: MessagePacket) => writer.write8(id).write_buf(payload),
+	} as PacketType<MessagePacket>,
+
 	turn: {
 		code: 0x02,
-		read: (reader) => ({ id: reader.read8(), turn: reader.read32() }),
+		read: (reader: buffer_reader): TurnPacket => ({ id: reader.read8(), turn: reader.read32() }),
 		size: 5,
-		write: (writer, { id, turn }) => writer.write8(id).write32(turn),
-	},
-	batch: make_batch(() => server_packet),
+		write: (writer: buffer_writer, { id, turn }: TurnPacket) => writer.write8(id).write32(turn),
+	} as PacketType<TurnPacket>,
+
+	batch: make_batch(() => server_packet) as unknown as PacketType<BatchPacket>,
 };
 
 export const client_packet = {
 	info: {
 		code: 0x31,
-		read: (reader) => ({ version: reader.read32() }),
+		read: (reader: buffer_reader): InfoPacket => ({ version: reader.read32() }),
 		size: 4,
-		write: (writer, { version }) => writer.write32(version),
-	},
+		write: (writer: buffer_writer, { version }: InfoPacket) => writer.write32(version),
+	} as PacketType<InfoPacket>,
+
 	game_list: {
 		code: 0x21,
-		read: () => ({}),
+		read: (): Record<string, never> => ({}),
 		size: 0,
-		write: (writer) => writer,
-	},
+		write: (writer: buffer_writer) => writer,
+	} as PacketType<Record<string, never>>,
+
 	create_game: {
 		code: 0x22,
-		read: (reader) => ({
+		read: (reader: buffer_reader): CreateOrJoinGamePacket => ({
 			cookie: reader.read32(),
 			name: reader.read_str(),
 			password: reader.read_str(),
 			difficulty: reader.read32(),
 		}),
-		size: ({ name, password }) => 10 + name.length + password.length,
-		write: (writer, { cookie, name, password, difficulty }) =>
-			writer.write32(cookie).write_str(name).write_str(password).write32(difficulty),
-	},
+		size: ({ name, password }: CreateOrJoinGamePacket) => 10 + name.length + password.length,
+		write: (writer: buffer_writer, { cookie, name, password, difficulty }: CreateOrJoinGamePacket) =>
+			writer.write32(cookie).write_str(name).write_str(password).write32(difficulty!),
+	} as PacketType<CreateOrJoinGamePacket>,
+
 	join_game: {
 		code: 0x23,
-		read: (reader) => ({
+		read: (reader: buffer_reader): CreateOrJoinGamePacket => ({
 			cookie: reader.read32(),
 			name: reader.read_str(),
 			password: reader.read_str(),
 		}),
-		size: ({ name, password }) => 6 + name.length + password.length,
-		write: (writer, { cookie, name, password }) => writer.write32(cookie).write_str(name).write_str(password),
-	},
+		size: ({ name, password }: CreateOrJoinGamePacket) => 6 + name.length + password.length,
+		write: (writer: buffer_writer, { cookie, name, password }: CreateOrJoinGamePacket) =>
+			writer.write32(cookie).write_str(name).write_str(password),
+	} as PacketType<CreateOrJoinGamePacket>,
+
 	leave_game: {
 		code: 0x24,
-		read: () => ({}),
+		read: (): Record<string, never> => ({}),
 		size: 0,
-		write: (writer) => writer,
-	},
+		write: (writer: buffer_writer) => writer,
+	} as PacketType<Record<string, never>>,
+
 	drop_player: {
 		code: 0x03,
-		read: (reader) => ({ id: reader.read8(), reason: reader.read32() }),
+		read: (reader: buffer_reader): DisconnectPacket => ({ id: reader.read8(), reason: reader.read32() }),
 		size: 5,
-		write: (writer, { id, reason }) => writer.write8(id).write32(reason),
-	},
+		write: (writer: buffer_writer, { id, reason }: DisconnectPacket) => writer.write8(id).write32(reason),
+	} as PacketType<DisconnectPacket>,
+
 	message: {
 		code: 0x01,
-		read: (reader) => ({ id: reader.read8(), payload: reader.read_buf() }),
-		size: ({ payload }) => 5 + payload.byteLength,
-		write: (writer, { id, payload }) => writer.write8(id).write_buf(payload),
-	},
+		read: (reader: buffer_reader): MessagePacket => ({ id: reader.read8(), payload: reader.read_buf() }),
+		size: ({ payload }: MessagePacket) => 5 + payload.byteLength,
+		write: (writer: buffer_writer, { id, payload }: MessagePacket) => writer.write8(id).write_buf(payload),
+	} as PacketType<MessagePacket>,
+
 	turn: {
 		code: 0x02,
-		read: (reader) => ({ turn: reader.read32() }),
+		read: (reader: buffer_reader): TurnPacket => ({ turn: reader.read32() }) as TurnPacket,
 		size: 4,
-		write: (writer, { turn }) => writer.write32(turn),
-	},
-	batch: make_batch(() => server_packet),
+		write: (writer: buffer_writer, { turn }: TurnPacket) => writer.write32(turn),
+	} as PacketType<TurnPacket>,
+
+	batch: make_batch(() => server_packet) as unknown as PacketType<BatchPacket>,
 };
+export interface PacketType<T> {
+	code: number;
+	read: (reader: buffer_reader) => T;
+	size: number | ((packet: T) => number);
+	write: (writer: buffer_writer, packet: T) => buffer_writer;
+}
+
+interface Game {
+	type: number;
+	name: string;
+}
+
+interface InfoPacket {
+	version: number;
+}
+
+interface GameListPacket {
+	games: Game[];
+}
+
+interface JoinAcceptPacket {
+	cookie: number;
+	index: number;
+	seed: number;
+	difficulty: number;
+}
+
+interface CreateOrJoinGamePacket {
+	cookie: number;
+	name: string;
+	password: string;
+	difficulty?: number;
+}
+
+interface JoinRejectPacket {
+	cookie: number;
+	reason: number;
+}
+
+interface ConnectPacket {
+	id: number;
+}
+
+interface DisconnectPacket {
+	reason: number;
+	id: number;
+}
+
+interface MessagePacket {
+	id: number;
+	payload: Uint8Array;
+}
+
+interface TurnPacket {
+	id: number;
+	turn: number;
+}
+
+interface BatchPacket {
+	packets: Array<{ type: PacketType<unknown>; packet: unknown }>;
+}
