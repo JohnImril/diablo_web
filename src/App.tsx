@@ -722,9 +722,6 @@ class App extends Component<object, IState> {
 		}
 	};
 
-	setCanvas = (e: HTMLCanvasElement) => (this.canvas = e);
-	setElement = (e: HTMLDivElement) => (this.element = e);
-	setKeyboard = (e: HTMLInputElement) => (this.keyboard = e);
 	setTouch_(i: number, e: HTMLDivElement) {
 		this.touchButtons[i] = e;
 	}
@@ -873,7 +870,7 @@ class App extends Component<object, IState> {
 					dropping,
 					keyboard: !!this.showKeyboard,
 				})}
-				ref={this.setElement}
+				ref={(e: HTMLDivElement) => (this.element = e)}
 			>
 				<div className="touch-ui touch-mods">
 					<div
@@ -904,13 +901,15 @@ class App extends Component<object, IState> {
 				</div>
 				<div className="Body">
 					<div className="inner">
-						{!error && <canvas ref={this.setCanvas} width={640} height={480} />}
+						{!error && (
+							<canvas ref={(e: HTMLCanvasElement) => (this.canvas = e)} width={640} height={480} />
+						)}
 						<input
 							type="text"
 							className="keyboard"
 							onChange={this.onKeyboard}
 							onBlur={this.onKeyboardBlur}
-							ref={this.setKeyboard}
+							ref={(e: HTMLInputElement) => (this.keyboard = e)}
 							spellCheck={false}
 							style={this.showKeyboard || {}}
 						/>

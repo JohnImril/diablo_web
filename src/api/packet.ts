@@ -192,7 +192,7 @@ export function make_batch<T>(
 			}
 			return writer;
 		},
-	} as PacketType<Array<{ type: PacketType<T>; packet: T }>>;
+	};
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

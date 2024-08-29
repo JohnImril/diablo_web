@@ -12,8 +12,7 @@ import { IGameOptions } from "../types";
   }
 }*/
 
-type Packet = ArrayBuffer | Uint8Array;
-type MessageHandler = (packet: Packet) => void;
+type MessageHandler = (packet: ArrayBuffer | Uint8Array) => void;
 type CloseHandler = () => void;
 
 interface PeerOptions {
@@ -101,7 +100,7 @@ class webrtc_server {
 	onConnect(conn: DataConnection) {
 		const peer: PeerData = { conn };
 		conn.on("data", (packet) => {
-			const reader = new buffer_reader(packet as Packet);
+			const reader = new buffer_reader(packet as ArrayBuffer | Uint8Array);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
 
 			switch (type.code) {
@@ -177,7 +176,7 @@ class webrtc_server {
 		});
 	}
 
-	send(mask: number, pkt: Packet) {
+	send(mask: number, pkt: ArrayBuffer | Uint8Array) {
 		for (let i = 1; i < MAX_PLRS; ++i) {
 			if (mask & (1 << i) && this.players[i]) {
 				if (this.players[i].conn) {
@@ -241,7 +240,7 @@ class webrtc_server {
 class webrtc_client {
 	peer: Peer;
 	conn: DataConnection;
-	pending: Packet[] | null = [];
+	pending: (ArrayBuffer | Uint8Array)[] | null = [];
 	myplr: unknown;
 
 	constructor(
@@ -298,7 +297,7 @@ class webrtc_client {
 
 		this.conn.on("data", (data) => {
 			unreg();
-			const reader = new buffer_reader(data as Packet);
+			const reader = new buffer_reader(data as ArrayBuffer | Uint8Array);
 			const { type, packet: pkt } = read_packet(reader, server_packet);
 			switch (type.code) {
 				case server_packet.join_accept.code:
@@ -314,14 +313,14 @@ class webrtc_client {
 					break;
 				default:
 			}
-			onMessage(data as Packet);
+			onMessage(data as ArrayBuffer | Uint8Array);
 		});
 		this.conn.on("close", () => {
 			onClose();
 		});
 	}
 
-	send(packet: Packet) {
+	send(packet: ArrayBuffer | Uint8Array) {
 		if (this.pending) {
 			this.pending.push(packet);
 		} else {
@@ -337,7 +336,7 @@ export default function webrtc_open(onMessage: MessageHandler) {
 	let version = 0;
 
 	return {
-		send: function (packet: Packet) {
+		send: function (packet: ArrayBuffer | Uint8Array) {
 			const reader = new buffer_reader(packet);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
 			switch (type.code) {
