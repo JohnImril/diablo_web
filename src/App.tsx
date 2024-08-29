@@ -8,11 +8,11 @@ import Peer from "peerjs";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import getPlayerName from "./api/savefile";
-import create_fs from "./fs";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import load_game from "./api/loader";
 import { SpawnSizes } from "./api/load_spawn";
+import create_fs from "./fs";
 import CompressMpq from "./mpqcmp";
 import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
 
