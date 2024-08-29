@@ -91,7 +91,7 @@ const ChCodeAsc = new Uint16Array([
  * @param {Uint8Array} length_bits Table of lengths. Each length is stored as number of bits
  * @param {number} elements Number of elements in start_indexes and length_bits
  */
-function GenDecodeTabs(positions, start_indexes, length_bits, elements) {
+function GenDecodeTabs(positions: Uint8Array, start_indexes: Uint8Array, length_bits: Uint8Array, elements: number) {
 	for (let i = 0; i < elements; i++) {
 		const length = 1 << length_bits[i]; // Get the length in bytes
 		for (let index = start_indexes[i]; index < 0x100; index += length) {
@@ -100,7 +100,7 @@ function GenDecodeTabs(positions, start_indexes, length_bits, elements) {
 	}
 }
 
-function GenAscTabs(pWork) {
+function GenAscTabs(pWork: IPWork) {
 	let pChCodeAsc = 0xff;
 
 	for (let count = 0x00ff; pChCodeAsc >= 0; pChCodeAsc--, count--) {
@@ -158,7 +158,7 @@ function GenAscTabs(pWork) {
 // the input buffer, if needed.
 // Returns: PKDCL_OK:         Operation was successful
 //          PKDCL_STREAM_END: There are no more bits in the input buffer
-function WasteBits(pWork, nBits) {
+function WasteBits(pWork: IPWork, nBits: number) {
 	// If number of bits required is less than number of (bits in the buffer) ?
 	if (nBits <= pWork.extra_bits) {
 		pWork.extra_bits -= nBits;
@@ -194,7 +194,7 @@ function WasteBits(pWork, nBits) {
 //           0x304: Repetition, length of 0x206 bytes
 //           0x305: End of stream
 //           0x306: Error
-function DecodeLit(pWork) {
+function DecodeLit(pWork: IPWork) {
 	if (pWork.bit_buff & 1) {
 		// Remove one bit from the input data
 		if (WasteBits(pWork, 1)) {
@@ -275,7 +275,7 @@ function DecodeLit(pWork) {
 //-----------------------------------------------------------------------------
 // Decodes the distance of the repetition, backwards relative to the
 // current output buffer position
-function DecodeDist(pWork, rep_length) {
+function DecodeDist(pWork: IPWork, rep_length: number) {
 	// Next 2-8 bits in the input buffer is the distance position code
 	const dist_pos_code = pWork.DistPosCodes[pWork.bit_buff & 0xff];
 	const dist_pos_bits = pWork.DistBits[dist_pos_code];
@@ -302,7 +302,7 @@ function DecodeDist(pWork, rep_length) {
 	return distance + 1;
 }
 
-function Expand(pWork) {
+function Expand(pWork: IPWork) {
 	let outputPos = 0x1000; // Initialize output buffer position
 
 	// Decode the next literal from the input data.
@@ -367,9 +367,9 @@ function Expand(pWork) {
 
 //-----------------------------------------------------------------------------
 // Main exploding function.
-export function explode(read_buf, write_buf) {
+export function explode(read_buf: (buffer: Uint8Array) => number, write_buf: (buffer: Uint8Array) => void) {
 	const buffer = new ArrayBuffer(0x3104);
-	const pWork = {
+	const pWork: IPWork = {
 		read_buf,
 		write_buf,
 		in_pos: 3,
@@ -387,6 +387,11 @@ export function explode(read_buf, write_buf) {
 		ExLenBits: new Uint8Array(buffer, 0xed0, 0x10),
 		LenBase: new Uint16Array(buffer, 0xee0, 0x10),
 		out_buff: new Uint8Array(buffer, 0xf00, 0x2204),
+		in_bytes: 0,
+		bit_buff: 0,
+		ctype: 0,
+		dsize_bits: 0,
+		dsize_mask: 0,
 	};
 	pWork.in_bytes = read_buf(pWork.in_buff);
 	if (pWork.in_bytes <= 4) {
@@ -426,3 +431,28 @@ export function explode(read_buf, write_buf) {
 }
 
 export default explode;
+
+interface IPWork {
+	in_pos: number;
+	extra_bits: number;
+	in_buff: Uint8Array;
+	DistPosCodes: Uint8Array;
+	LengthCodes: Uint8Array;
+	offs2C34: Uint8Array;
+	offs2D34: Uint8Array;
+	offs2E34: Uint8Array;
+	offs2EB4: Uint8Array;
+	ChBitsAsc: Uint8Array;
+	DistBits: Uint8Array;
+	LenBits: Uint8Array;
+	ExLenBits: Uint8Array;
+	LenBase: Uint16Array;
+	out_buff: Uint8Array;
+	read_buf: (buffer: Uint8Array) => number;
+	write_buf: (buffer: Uint8Array) => void;
+	in_bytes: number;
+	bit_buff: number;
+	ctype: number;
+	dsize_bits: number;
+	dsize_mask: number;
+}

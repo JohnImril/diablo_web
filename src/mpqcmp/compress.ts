@@ -3,8 +3,6 @@ import MpqBinary from "./MpqCmp.wasm?url";
 import ListFile from "./ListFile.txt";
 import axios, { AxiosProgressEvent, AxiosResponse } from "axios";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import { decrypt, encrypt, hash, path_name } from "../api/savefile";
 
 const MpqSize = 156977;

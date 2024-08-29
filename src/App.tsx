@@ -5,11 +5,7 @@ import { faTimes, faDownload } from "@fortawesome/free-solid-svg-icons";
 import { mapStackTrace } from "sourcemapped-stacktrace";
 import Peer from "peerjs";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import getPlayerName from "./api/savefile";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import load_game from "./api/loader";
 import { SpawnSizes } from "./api/load_spawn";
 import create_fs from "./fs";

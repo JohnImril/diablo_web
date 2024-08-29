@@ -1,16 +1,28 @@
 const W = new Uint32Array(80);
 
-const SHA1CircularShift = (shift, value) => (value << shift) | (value >> (32 - shift));
+const SHA1CircularShift = (shift: number, value: number): number => (value << shift) | (value >> (32 - shift));
 
 class SHA1 {
-	digest = new Uint32Array(5);
-	count = 0;
+	digest: Uint32Array = new Uint32Array(5);
+	digest8: Uint8Array;
+	count: number = 0;
 
-	input8(u8) {
+	constructor() {
+		this.digest[0] = 0x67452301;
+		this.digest[1] = 0xefcdab89;
+		this.digest[2] = 0x98badcfe;
+		this.digest[3] = 0x10325476;
+		this.digest[4] = 0xc3d2e1f0;
+
+		this.digest8 = new Uint8Array(this.digest.buffer);
+	}
+
+	input8(u8: Uint8Array): void {
 		const u32 = new Uint32Array(u8.buffer, u8.byteOffset, 16);
 		this.input(u32);
 	}
-	input(u32) {
+
+	input(u32: Uint32Array): void {
 		this.count += u32.length * 32;
 		for (let i = 0; i < 16; ++i) {
 			W[i] = u32[i];
@@ -66,29 +78,22 @@ class SHA1 {
 		this.digest[3] += D;
 		this.digest[4] += E;
 	}
-
-	constructor() {
-		this.digest[0] = 0x67452301;
-		this.digest[1] = 0xefcdab89;
-		this.digest[2] = 0x98badcfe;
-		this.digest[3] = 0x10325476;
-		this.digest[4] = 0xc3d2e1f0;
-
-		this.digest8 = new Uint8Array(this.digest.buffer);
-	}
 }
 
 class Random {
-	constructor(seed) {
+	seed: number;
+
+	constructor(seed: number) {
 		this.seed = seed;
 	}
-	next() {
+
+	next(): number {
 		this.seed = (((this.seed * 3) << 16) + ((this.seed * 67) << 8) + this.seed * 253 + 2531011) | 0;
 		return (this.seed >> 16) & 0x7fff;
 	}
 }
 
-function codec_init_key(password) {
+function codec_init_key(password: string): SHA1 {
 	const rand = new Random(0x7058);
 	const key = new Uint8Array(136);
 	const k32 = new Uint32Array(key.buffer);
@@ -112,7 +117,7 @@ function codec_init_key(password) {
 	return sha;
 }
 
-export default function codec_decode(data, password) {
+export default function codec_decode(data: Uint8Array, password: string): Uint8Array | undefined {
 	if (data.length <= 8) {
 		return;
 	}
