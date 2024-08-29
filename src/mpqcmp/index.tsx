@@ -1,5 +1,6 @@
 import React, { ChangeEvent } from "react";
 import compress from "./compress";
+import { IProgress } from "../types";
 
 interface IProps {
 	api: {
@@ -11,11 +12,7 @@ interface IProps {
 interface IState {
 	url?: string;
 	started?: boolean;
-	progress?: {
-		text?: string;
-		loaded: number;
-		total?: number;
-	};
+	progress?: IProgress;
 }
 
 export default class CompressMpq extends React.Component<IProps, IState> {
@@ -28,7 +25,7 @@ export default class CompressMpq extends React.Component<IProps, IState> {
 		}
 	};
 
-	onProgress = (progress: { text?: string; loaded: number; total?: number }) => {
+	onProgress = (progress: IProgress) => {
 		this.setState({ progress });
 	};
 
@@ -91,7 +88,7 @@ export default class CompressMpq extends React.Component<IProps, IState> {
 							<span>
 								<span
 									style={{
-										width: `${Math.round((100 * progress.loaded) / progress.total)}%`,
+										width: `${Math.round((100 * (progress.loaded || 0)) / progress.total)}%`,
 									}}
 								/>
 							</span>

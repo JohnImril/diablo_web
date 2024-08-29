@@ -1,5 +1,6 @@
 import Peer, { DataConnection } from "peerjs";
 import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
+import { IGameOptions } from "../types";
 
 /*function log_packet(data, type) {
   const reader = new buffer_reader(data);
@@ -14,13 +15,6 @@ import { buffer_reader, read_packet, write_packet, client_packet, server_packet,
 type Packet = ArrayBuffer | Uint8Array;
 type MessageHandler = (packet: Packet) => void;
 type CloseHandler = () => void;
-
-interface GameOptions {
-	cookie: number;
-	name: string;
-	password: string;
-	difficulty: number;
-}
 
 interface PeerOptions {
 	port: number;
@@ -41,7 +35,7 @@ class webrtc_server {
 	version: number;
 	name: string;
 	password: string;
-	difficulty: number;
+	difficulty?: number;
 	onMessage: MessageHandler;
 	onClose: CloseHandler;
 	peer: Peer;
@@ -54,7 +48,7 @@ class webrtc_server {
 
 	constructor(
 		version: number,
-		{ cookie, name, password, difficulty }: GameOptions,
+		{ cookie, name, password, difficulty }: IGameOptions,
 		onMessage: MessageHandler,
 		onClose: CloseHandler
 	) {
@@ -252,7 +246,7 @@ class webrtc_client {
 
 	constructor(
 		version: number,
-		{ cookie, name, password }: GameOptions,
+		{ cookie, name, password }: IGameOptions,
 		onMessage: MessageHandler,
 		onClose: CloseHandler
 	) {

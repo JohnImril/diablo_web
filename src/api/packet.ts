@@ -1,3 +1,5 @@
+import { IGameOptions } from "../types";
+
 export class buffer_reader {
 	private buffer: Uint8Array;
 	private pos: number;
@@ -197,10 +199,10 @@ export function make_batch<T>(
 export const server_packet: any = {
 	info: {
 		code: 0x32,
-		read: (reader: buffer_reader): InfoPacket => ({ version: reader.read32() }),
+		read: (reader: buffer_reader) => ({ version: reader.read32() }),
 		size: 4,
 		write: (writer: buffer_writer, { version }: InfoPacket) => writer.write32(version),
-	} as PacketType<InfoPacket>,
+	},
 
 	game_list: {
 		code: 0x21,
@@ -221,130 +223,151 @@ export const server_packet: any = {
 			}
 			return writer;
 		},
-	} as PacketType<GameListPacket>,
+	},
 
 	join_accept: {
 		code: 0x12,
-		read: (reader: buffer_reader): JoinAcceptPacket => ({
+		read: (reader: buffer_reader) => ({
 			cookie: reader.read32(),
 			index: reader.read8(),
 			seed: reader.read32(),
 			difficulty: reader.read32(),
 		}),
 		size: 13,
-		write: (writer: buffer_writer, { cookie, index, seed, difficulty }: JoinAcceptPacket) =>
-			writer.write32(cookie).write8(index).write32(seed).write32(difficulty),
-	} as PacketType<JoinAcceptPacket>,
+		write: (
+			writer: buffer_writer,
+			{
+				cookie,
+				index,
+				seed,
+				difficulty,
+			}: {
+				cookie: number;
+				index: number;
+				seed: number;
+				difficulty: number;
+			}
+		) => writer.write32(cookie).write8(index).write32(seed).write32(difficulty),
+	},
 
 	join_reject: {
 		code: 0x15,
-		read: (reader: buffer_reader): JoinRejectPacket => ({ cookie: reader.read32(), reason: reader.read8() }),
+		read: (reader: buffer_reader) => ({ cookie: reader.read32(), reason: reader.read8() }),
 		size: 5,
-		write: (writer: buffer_writer, { cookie, reason }: JoinRejectPacket) => writer.write32(cookie).write8(reason),
-	} as PacketType<JoinRejectPacket>,
+		write: (
+			writer: buffer_writer,
+			{
+				cookie,
+				reason,
+			}: {
+				cookie: number;
+				reason: number;
+			}
+		) => writer.write32(cookie).write8(reason),
+	},
 
 	connect: {
 		code: 0x13,
-		read: (reader: buffer_reader): ConnectPacket => ({ id: reader.read8() }),
+		read: (reader: buffer_reader) => ({ id: reader.read8() }),
 		size: 1,
-		write: (writer: buffer_writer, { id }: ConnectPacket) => writer.write8(id),
-	} as PacketType<ConnectPacket>,
+		write: (writer: buffer_writer, { id }: { id: number }) => writer.write8(id),
+	},
 
 	disconnect: {
 		code: 0x14,
-		read: (reader: buffer_reader): DisconnectPacket => ({ id: reader.read8(), reason: reader.read32() }),
+		read: (reader: buffer_reader) => ({ id: reader.read8(), reason: reader.read32() }),
 		size: 5,
 		write: (writer: buffer_writer, { id, reason }: DisconnectPacket) => writer.write8(id).write32(reason),
-	} as PacketType<DisconnectPacket>,
+	},
 
 	message: {
 		code: 0x01,
-		read: (reader: buffer_reader): MessagePacket => ({ id: reader.read8(), payload: reader.read_buf() }),
+		read: (reader: buffer_reader) => ({ id: reader.read8(), payload: reader.read_buf() }),
 		size: ({ payload }: MessagePacket) => 5 + payload.byteLength,
 		write: (writer: buffer_writer, { id, payload }: MessagePacket) => writer.write8(id).write_buf(payload),
-	} as PacketType<MessagePacket>,
+	},
 
 	turn: {
 		code: 0x02,
-		read: (reader: buffer_reader): TurnPacket => ({ id: reader.read8(), turn: reader.read32() }),
+		read: (reader: buffer_reader) => ({ id: reader.read8(), turn: reader.read32() }),
 		size: 5,
 		write: (writer: buffer_writer, { id, turn }: TurnPacket) => writer.write8(id).write32(turn),
-	} as PacketType<TurnPacket>,
+	},
 
-	batch: make_batch(() => server_packet) as unknown as PacketType<BatchPacket>,
+	batch: make_batch(() => server_packet),
 };
 
 export const client_packet = {
 	info: {
 		code: 0x31,
-		read: (reader: buffer_reader): InfoPacket => ({ version: reader.read32() }),
+		read: (reader: buffer_reader) => ({ version: reader.read32() }),
 		size: 4,
 		write: (writer: buffer_writer, { version }: InfoPacket) => writer.write32(version),
-	} as PacketType<InfoPacket>,
+	},
 
 	game_list: {
 		code: 0x21,
 		read: (): Record<string, never> => ({}),
 		size: 0,
 		write: (writer: buffer_writer) => writer,
-	} as PacketType<Record<string, never>>,
+	},
 
 	create_game: {
 		code: 0x22,
-		read: (reader: buffer_reader): CreateOrJoinGamePacket => ({
+		read: (reader: buffer_reader) => ({
 			cookie: reader.read32(),
 			name: reader.read_str(),
 			password: reader.read_str(),
 			difficulty: reader.read32(),
 		}),
-		size: ({ name, password }: CreateOrJoinGamePacket) => 10 + name.length + password.length,
-		write: (writer: buffer_writer, { cookie, name, password, difficulty }: CreateOrJoinGamePacket) =>
+		size: ({ name, password }: IGameOptions) => 10 + name.length + password.length,
+		write: (writer: buffer_writer, { cookie, name, password, difficulty }: IGameOptions) =>
 			writer.write32(cookie).write_str(name).write_str(password).write32(difficulty!),
-	} as PacketType<CreateOrJoinGamePacket>,
+	},
 
 	join_game: {
 		code: 0x23,
-		read: (reader: buffer_reader): CreateOrJoinGamePacket => ({
+		read: (reader: buffer_reader) => ({
 			cookie: reader.read32(),
 			name: reader.read_str(),
 			password: reader.read_str(),
 		}),
-		size: ({ name, password }: CreateOrJoinGamePacket) => 6 + name.length + password.length,
-		write: (writer: buffer_writer, { cookie, name, password }: CreateOrJoinGamePacket) =>
+		size: ({ name, password }: IGameOptions) => 6 + name.length + password.length,
+		write: (writer: buffer_writer, { cookie, name, password }: IGameOptions) =>
 			writer.write32(cookie).write_str(name).write_str(password),
-	} as PacketType<CreateOrJoinGamePacket>,
+	},
 
 	leave_game: {
 		code: 0x24,
 		read: (): Record<string, never> => ({}),
 		size: 0,
 		write: (writer: buffer_writer) => writer,
-	} as PacketType<Record<string, never>>,
+	},
 
 	drop_player: {
 		code: 0x03,
-		read: (reader: buffer_reader): DisconnectPacket => ({ id: reader.read8(), reason: reader.read32() }),
+		read: (reader: buffer_reader) => ({ id: reader.read8(), reason: reader.read32() }),
 		size: 5,
 		write: (writer: buffer_writer, { id, reason }: DisconnectPacket) => writer.write8(id).write32(reason),
-	} as PacketType<DisconnectPacket>,
+	},
 
 	message: {
 		code: 0x01,
-		read: (reader: buffer_reader): MessagePacket => ({ id: reader.read8(), payload: reader.read_buf() }),
+		read: (reader: buffer_reader) => ({ id: reader.read8(), payload: reader.read_buf() }),
 		size: ({ payload }: MessagePacket) => 5 + payload.byteLength,
 		write: (writer: buffer_writer, { id, payload }: MessagePacket) => writer.write8(id).write_buf(payload),
-	} as PacketType<MessagePacket>,
+	},
 
 	turn: {
 		code: 0x02,
-		read: (reader: buffer_reader): TurnPacket => ({ turn: reader.read32() }) as TurnPacket,
+		read: (reader: buffer_reader) => ({ turn: reader.read32() }) as TurnPacket,
 		size: 4,
 		write: (writer: buffer_writer, { turn }: TurnPacket) => writer.write32(turn),
-	} as PacketType<TurnPacket>,
+	},
 
-	batch: make_batch(() => server_packet) as unknown as PacketType<BatchPacket>,
+	batch: make_batch(() => server_packet),
 };
-export interface PacketType<T> {
+interface PacketType<T> {
 	code: number;
 	read: (reader: buffer_reader) => T;
 	size: number | ((packet: T) => number);
@@ -364,29 +387,6 @@ interface GameListPacket {
 	games: Game[];
 }
 
-interface JoinAcceptPacket {
-	cookie: number;
-	index: number;
-	seed: number;
-	difficulty: number;
-}
-
-interface CreateOrJoinGamePacket {
-	cookie: number;
-	name: string;
-	password: string;
-	difficulty?: number;
-}
-
-interface JoinRejectPacket {
-	cookie: number;
-	reason: number;
-}
-
-interface ConnectPacket {
-	id: number;
-}
-
 interface DisconnectPacket {
 	reason: number;
 	id: number;
@@ -400,8 +400,4 @@ interface MessagePacket {
 interface TurnPacket {
 	id: number;
 	turn: number;
-}
-
-interface BatchPacket {
-	packets: Array<{ type: PacketType<unknown>; packet: unknown }>;
 }

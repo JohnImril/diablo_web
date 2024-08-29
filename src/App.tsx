@@ -11,7 +11,7 @@ import { SpawnSizes } from "./api/load_spawn";
 import create_fs from "./fs";
 import CompressMpq from "./mpqcmp";
 import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
-import { IPlayerInfo } from "./types";
+import { IError, IPlayerInfo, IProgress, ITouchOther } from "./types";
 
 import "./App.scss";
 
@@ -33,8 +33,8 @@ interface IState {
 	loading: boolean;
 	dropping: number;
 	has_spawn: boolean;
-	error?: { message: string; stack?: string; save?: string };
-	progress?: { text?: string; loaded?: number; total?: number };
+	error?: IError;
+	progress?: IProgress;
 	save_names?: boolean | Record<string, IPlayerInfo | null>;
 	show_saves?: boolean;
 	compress?: boolean;
@@ -69,14 +69,7 @@ class App extends Component<object, IState> {
 	keyboardNum = 0;
 	beltTime?: number;
 	panPos?: { x: number; y: number };
-	touchButton: {
-		original: boolean;
-		id: number;
-		clientX: number;
-		clientY: number;
-		stick: boolean | null;
-		index: number;
-	} | null = null;
+	touchButton: ITouchOther | null = null;
 	touchCanvas: {
 		clientX: number;
 		clientY: number;
@@ -163,7 +156,7 @@ class App extends Component<object, IState> {
 
 	onError(message: string, stack?: string) {
 		(async () => {
-			const errorObject: { message: string; stack?: string; save?: string } = { message };
+			const errorObject: IError = { message };
 			if (this.saveName) {
 				errorObject.save = await (await this.fs).fileUrl(this.saveName);
 			}
@@ -229,7 +222,7 @@ class App extends Component<object, IState> {
 		});
 	}
 
-	onProgress(progress: { text?: string; loaded?: number; total?: number }) {
+	onProgress(progress: IProgress) {
 		this.setState({ progress });
 	}
 
@@ -370,7 +363,7 @@ class App extends Component<object, IState> {
 
 				this.setState({ started: true });
 			},
-			(e: { message: string; stack: string | undefined }) => this.onError(e.message, e.stack)
+			(e: IError) => this.onError(e.message, e.stack)
 		);
 	}
 
@@ -383,7 +376,7 @@ class App extends Component<object, IState> {
 			clientX: number;
 			clientY: number;
 		} | null
-	): { x: number; y: number } {
+	) {
 		const rect = this.canvas.getBoundingClientRect();
 		if (this.pointerLocked()) {
 			this.cursorPos.x = Math.max(
@@ -406,7 +399,7 @@ class App extends Component<object, IState> {
 		};
 	}
 
-	mouseButton(e: MouseEvent): number {
+	mouseButton(e: MouseEvent) {
 		switch (e.button) {
 			case 0:
 				return 1;
@@ -423,7 +416,7 @@ class App extends Component<object, IState> {
 		}
 	}
 
-	eventMods(e: MouseEvent | KeyboardEvent | TouchEvent): number {
+	eventMods(e: MouseEvent | KeyboardEvent | TouchEvent) {
 		return (
 			((e as KeyboardEvent).shiftKey || this.touchMods[TOUCH_SHIFT] ? 1 : 0) +
 			((e as KeyboardEvent).ctrlKey ? 2 : 0) +
@@ -472,9 +465,6 @@ class App extends Component<object, IState> {
 
 	onMouseUp = (e: MouseEvent) => {
 		if (!this.canvas) return;
-		if (e.target === this.keyboard) {
-			//return;
-		}
 		const { x, y } = this.mousePos(e);
 		this.game("DApi_Mouse", 2, this.mouseButton(e), this.eventMods(e), x, y);
 		if (e.target !== this.keyboard) {
@@ -573,15 +563,8 @@ class App extends Component<object, IState> {
 		}
 	}
 
-	updateTouchButton(touches: TouchList, release: boolean): boolean {
-		let touchOther: {
-			id: number;
-			index: number;
-			stick: boolean;
-			original: boolean;
-			clientX: number;
-			clientY: number;
-		} | null = null;
+	updateTouchButton(touches: TouchList, release: boolean) {
+		let touchOther: ITouchOther | null = null;
 
 		if (!this.touchControls) {
 			this.touchControls = true;

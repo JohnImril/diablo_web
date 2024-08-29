@@ -1,11 +1,6 @@
-export function reportLink(
-	e: {
-		message: string;
-		stack?: string;
-		save?: string;
-	},
-	retail?: boolean
-): string {
+import { IError } from "./types";
+
+export function reportLink(e: IError, retail?: boolean): string {
 	const message = (e.message || "Unknown error") + (e.stack ? "\n" + e.stack : "");
 	const url = new URL("https://github.com/JohnImril/diablo_web/issues/new");
 	url.searchParams.set(

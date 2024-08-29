@@ -1,11 +1,7 @@
+import { IWebSocketProxy } from "../types";
+
 type WebSocketHandler = (data: ArrayBuffer | string) => void;
 type WebSocketFinisher = (code: number) => void;
-
-interface IWebSocketProxy {
-	readyState: number;
-	send(msg: Uint8Array): void;
-	close(): void;
-}
 
 async function do_websocket_open(url: string, handler: WebSocketHandler): Promise<WebSocket> {
 	const socket = new WebSocket(url);
@@ -61,11 +57,7 @@ async function do_websocket_open(url: string, handler: WebSocketHandler): Promis
 	return socket;
 }
 
-export default function websocket_open(
-	url: string,
-	handler: WebSocketHandler,
-	finisher: WebSocketFinisher
-): IWebSocketProxy {
+export default function websocket_open(url: string, handler: WebSocketHandler, finisher: WebSocketFinisher) {
 	let ws: WebSocket | null = null,
 		batch: Uint8Array[] = [],
 		intr: number | null = null;

@@ -25,3 +25,37 @@ export interface IPlayerInfo {
 	cls: number;
 	level: number;
 }
+
+export interface IWebSocketProxy {
+	readyState: number;
+	send(msg: Uint8Array): void;
+	close(): void;
+}
+
+export interface IError {
+	message: string;
+	stack?: string;
+	save?: string;
+}
+
+export interface IProgress {
+	text: string;
+	loaded?: number;
+	total?: number;
+}
+
+export interface ITouchOther {
+	id: number;
+	index: number;
+	stick: boolean;
+	original: boolean;
+	clientX: number;
+	clientY: number;
+}
+
+export interface IGameOptions {
+	cookie: number;
+	name: string;
+	password: string;
+	difficulty?: number;
+}
