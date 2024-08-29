@@ -11,6 +11,7 @@ import { SpawnSizes } from "./api/load_spawn";
 import create_fs from "./fs";
 import CompressMpq from "./mpqcmp";
 import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
+import { IPlayerInfo } from "./types";
 
 import "./App.scss";
 
@@ -34,16 +35,7 @@ interface IState {
 	has_spawn: boolean;
 	error?: { message: string; stack?: string; save?: string };
 	progress?: { text?: string; loaded?: number; total?: number };
-	save_names?:
-		| boolean
-		| Record<
-				string,
-				{
-					level: string;
-					name: string;
-					cls: number;
-				}
-		  >;
+	save_names?: boolean | Record<string, IPlayerInfo | null>;
 	show_saves?: boolean;
 	compress?: boolean;
 	retail?: boolean;
@@ -261,7 +253,7 @@ class App extends Component<object, IState> {
 
 	updateSaves() {
 		return this.fs.then((fs) => {
-			const saves: Record<string, { level: string; name: string; cls: number }> = {};
+			const saves: Record<string, IPlayerInfo | null> = {};
 			[...fs.files.keys()]
 				.filter((name) => name.match(/\.sv$/i))
 				.forEach((name) => {

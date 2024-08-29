@@ -19,3 +19,9 @@ export interface IApi {
 	onExit: () => void;
 	setCurrentSave: (name: string) => void;
 }
+
+export interface IPlayerInfo {
+	name: string;
+	cls: number;
+	level: number;
+}

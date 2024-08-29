@@ -13,7 +13,8 @@ interface IRenderBatch {
 }
 
 interface IAudioApi {
-	[func: string]: (...params: unknown[]) => void;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	[func: string]: (...params: any) => void;
 }
 
 function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext, batch: IRenderBatch): void {
