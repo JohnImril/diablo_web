@@ -2,26 +2,39 @@ import Worker from "./game.worker.js?worker";
 import init_sound from "./sound";
 import load_spawn from "./load_spawn";
 import webrtc_open from "./webrtc";
+import { IApi } from "../types";
 
-function onRender(api, ctx, { bitmap, images, text, clip, belt }) {
-	if (bitmap) {
-		ctx.transferFromImageBitmap(bitmap);
-	} else {
-		for (let { x, y, w, h, data } of images) {
+interface IRenderBatch {
+	bitmap?: ImageBitmap;
+	images: { x: number; y: number; w: number; h: number; data: Uint8ClampedArray }[];
+	text: { x: number; y: number; text: string; color: number }[];
+	clip?: { x0: number; y0: number; x1: number; y1: number };
+	belt: number[];
+}
+
+interface IAudioApi {
+	[func: string]: (...params: unknown[]) => void;
+}
+
+function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext, batch: IRenderBatch): void {
+	if (batch.bitmap) {
+		(ctx as ImageBitmapRenderingContext).transferFromImageBitmap(batch.bitmap);
+	} else if (ctx instanceof CanvasRenderingContext2D) {
+		for (const { x, y, w, h, data } of batch.images) {
 			const image = ctx.createImageData(w, h);
 			image.data.set(data);
 			ctx.putImageData(image, x, y);
 		}
-		if (text.length) {
+		if (batch.text.length) {
 			ctx.save();
 			ctx.font = "bold 13px Times New Roman";
-			if (clip) {
-				const { x0, y0, x1, y1 } = clip;
+			if (batch.clip) {
+				const { x0, y0, x1, y1 } = batch.clip;
 				ctx.beginPath();
 				ctx.rect(x0, y0, x1 - x0, y1 - y0);
 				ctx.clip();
 			}
-			for (let { x, y, text: str, color } of text) {
+			for (const { x, y, text: str, color } of batch.text) {
 				const r = (color >> 16) & 0xff;
 				const g = (color >> 8) & 0xff;
 				const b = color & 0xff;
@@ -32,7 +45,7 @@ function onRender(api, ctx, { bitmap, images, text, clip, belt }) {
 		}
 	}
 
-	api.updateBelt(belt);
+	api.updateBelt(batch.belt);
 }
 
 function testOffscreen() {
@@ -50,33 +63,39 @@ function testOffscreen() {
   }*/
 }
 
-async function do_load_game(api, audio, mpq, spawn) {
+async function do_load_game(
+	api: IApi,
+	audio: IAudioApi,
+	mpq: File | null,
+	spawn: boolean
+): Promise<(func: string, ...params: unknown[]) => void> {
 	const fs = await api.fs;
 	if (spawn && !mpq) {
 		await load_spawn(api, fs);
 	}
 
-	let context = null,
-		offscreen = false;
+	let context: CanvasRenderingContext2D | ImageBitmapRenderingContext | null = null;
+	let offscreen = false;
 	if (testOffscreen()) {
 		context = api.canvas.getContext("bitmaprenderer");
 		offscreen = true;
 	} else {
 		context = api.canvas.getContext("2d", { alpha: false });
 	}
+
 	return await new Promise((resolve, reject) => {
 		try {
 			const worker = new Worker();
 
-			let packetQueue = [];
-			const webrtc = webrtc_open((data) => {
+			const packetQueue: ArrayBuffer[] = [];
+			const webrtc = webrtc_open((data: ArrayBuffer) => {
 				packetQueue.push(data);
 			});
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
 					case "loaded":
-						resolve((func, ...params) =>
+						resolve((func: string, ...params: unknown[]) =>
 							worker.postMessage({
 								action: "event",
 								func,
@@ -85,18 +104,19 @@ async function do_load_game(api, audio, mpq, spawn) {
 						);
 						break;
 					case "render":
-						onRender(api, context, data.batch);
+						onRender(api, context!, data.batch);
 						break;
 					case "audio":
 						audio[data.func](...data.params);
 						break;
 					case "audioBatch":
-						for (let { func, params } of data.batch) {
+						for (const { func, params } of data.batch) {
 							audio[func](...params);
 						}
 						break;
 					case "fs":
-						fs[data.func](...data.params);
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						(fs as any)[data.func](...data.params);
 						break;
 					case "cursor":
 						api.setCursorPos(data.x, data.y);
@@ -128,15 +148,16 @@ async function do_load_game(api, audio, mpq, spawn) {
 						webrtc.send(data.buffer);
 						break;
 					case "packetBatch":
-						for (let packet of data.batch) {
+						for (const packet of data.batch) {
 							webrtc.send(packet);
 						}
 						break;
 					default:
 				}
 			});
-			const transfer = [];
-			for (let [, file] of fs.files) {
+
+			const transfer: ArrayBuffer[] = [];
+			for (const [, file] of fs.files) {
 				transfer.push(file.buffer);
 			}
 			worker.postMessage({ action: "init", files: fs.files, mpq, spawn, offscreen }, transfer);
@@ -146,14 +167,19 @@ async function do_load_game(api, audio, mpq, spawn) {
 					packetQueue.length = 0;
 				}
 			}, 20);
-			delete fs.files;
+			// TODO: check the work
+			fs.files.clear();
 		} catch (e) {
 			reject(e);
 		}
 	});
 }
 
-export default function load_game(api, mpq, spawn) {
+export default function load_game(
+	api: IApi,
+	mpq: File | null,
+	spawn: boolean
+): Promise<(func: string, ...params: unknown[]) => void> {
 	const audio = init_sound();
 	return do_load_game(api, audio, mpq, spawn);
 }

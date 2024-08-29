@@ -1,29 +1,43 @@
-async function do_websocket_open(url, handler) {
+type WebSocketHandler = (data: ArrayBuffer | string) => void;
+type WebSocketFinisher = (code: number) => void;
+
+interface IWebSocketProxy {
+	readyState: number;
+	send(msg: Uint8Array): void;
+	close(): void;
+}
+
+async function do_websocket_open(url: string, handler: WebSocketHandler): Promise<WebSocket> {
 	const socket = new WebSocket(url);
 	socket.binaryType = "arraybuffer";
-	let versionCbk = null;
-	socket.addEventListener("message", ({ data }) => {
+
+	let versionCbk: ((data: ArrayBuffer | string) => void) | null = null;
+
+	socket.addEventListener("message", ({ data }: MessageEvent) => {
 		if (versionCbk) {
 			versionCbk(data);
 		}
 		handler(data);
 	});
-	await new Promise((resolve, reject) => {
-		const onError = (err) => reject(1);
+
+	await new Promise<void>((resolve, reject) => {
+		const onError = () => reject(1);
 		socket.addEventListener("error", onError);
 		socket.addEventListener("open", () => {
 			socket.removeEventListener("error", onError);
 			resolve();
 		});
 	});
-	await new Promise((resolve, reject) => {
+
+	await new Promise<void>((resolve, reject) => {
 		const to = setTimeout(() => {
 			versionCbk = null;
 			reject(1);
 		}, 5000);
-		versionCbk = (data) => {
+
+		versionCbk = (data: ArrayBuffer | string) => {
 			clearTimeout(to);
-			const u8 = new Uint8Array(data);
+			const u8 = new Uint8Array(data as ArrayBuffer);
 			if (u8[0] === 0x32) {
 				versionCbk = null;
 				const version = u8[1] | (u8[2] << 8) | (u8[3] << 16) | (u8[4] << 24);
@@ -47,15 +61,20 @@ async function do_websocket_open(url, handler) {
 	return socket;
 }
 
-export default function websocket_open(url, handler, finisher) {
-	let ws = null,
-		batch = [],
-		intr = null;
-	const proxy = {
+export default function websocket_open(
+	url: string,
+	handler: WebSocketHandler,
+	finisher: WebSocketFinisher
+): IWebSocketProxy {
+	let ws: WebSocket | null = null,
+		batch: Uint8Array[] = [],
+		intr: number | null = null;
+
+	const proxy: IWebSocketProxy = {
 		get readyState() {
 			return ws ? ws.readyState : 0;
 		},
-		send(msg) {
+		send(msg: Uint8Array) {
 			batch.push(msg.slice());
 		},
 		close() {
@@ -66,10 +85,11 @@ export default function websocket_open(url, handler, finisher) {
 			if (ws) {
 				ws.close();
 			} else {
-				batch = null;
+				batch = null!;
 			}
 		},
 	};
+
 	do_websocket_open(url, handler).then(
 		(sock) => {
 			ws = sock;
@@ -84,11 +104,11 @@ export default function websocket_open(url, handler, finisher) {
 					buffer[1] = batch.length & 0xff;
 					buffer[2] = batch.length >> 8;
 					let pos = 3;
-					for (let msg of batch) {
+					for (const msg of batch) {
 						buffer.set(msg, pos);
 						pos += msg.byteLength;
 					}
-					ws.send(buffer);
+					ws?.send(buffer);
 					batch.length = 0;
 				}, 100);
 			} else {

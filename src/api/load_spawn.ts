@@ -1,29 +1,17 @@
 import axios from "axios";
+import { IApi, IFileSystem } from "../types";
 
 const SpawnSizes = [50274091, 25830791];
 
 export { SpawnSizes };
 
-interface IApi {
-	onProgress: (progress: { text: string; loaded: number; total: number }) => void;
-}
-
-interface IFileSystem {
-	files: {
-		get: (key: string) => Uint8Array | undefined | null;
-		delete: (key: string) => void;
-		set: (key: string, data: Uint8Array) => void;
-	};
-	delete: (key: string) => Promise<void>;
-	update: (key: string, data: Uint8Array) => void;
-}
-
-export default async function load_spawn(api: IApi, fs: IFileSystem): Promise<IFileSystem> {
+export default async function load_spawn(api: IApi, fs: IFileSystem) {
 	let file = fs.files.get("spawn.mpq");
 	if (file && !SpawnSizes.includes(file.byteLength)) {
 		fs.files.delete("spawn.mpq");
 		await fs.delete("spawn.mpq");
-		file = null;
+		// TODO: check the work
+		file = undefined;
 	}
 	if (!file) {
 		const spawn = await axios.request({
