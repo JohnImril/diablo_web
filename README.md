@@ -45,21 +45,13 @@ Ensure that you have Node.js (v22 or later) and npm installed on your machine.
 
 ### Running the Project
 
-Start the development server:
-
-    ```bash
-    npm run dev
-    ```
+Start the development server: `npm run dev`
 
 The application should now be running on `http://localhost:5173/diablo_web/`.
 
 ### Building for Production
 
-To build the project for production, run:
-
-    ```bash
-    npm run build
-    ```
+To build the project for production, run: `npm run build`
 
 The build artifacts will be stored in the `dist/` directory.
 
