@@ -10,9 +10,6 @@ export default defineConfig({
 		react(),
 		wasm(),
 		VitePWA({
-			base: "/",
-			srcDir: "src",
-			outDir: "dist",
 			registerType: "autoUpdate",
 			workbox: {
 				runtimeCaching: [
