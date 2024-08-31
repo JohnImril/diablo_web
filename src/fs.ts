@@ -10,21 +10,25 @@ interface IFileSystem {
 	fileUrl: (name: string) => Promise<string | undefined>;
 }
 
-async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
+export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());
-	if (file) {
-		const blob = new Blob([file], { type: "binary/octet-stream" });
-		const url = URL.createObjectURL(blob);
-		const lnk = document.createElement("a");
-		lnk.setAttribute("href", url);
-		lnk.setAttribute("download", name);
-		document.body.appendChild(lnk);
-		lnk.click();
-		document.body.removeChild(lnk);
-		URL.revokeObjectURL(url);
-	} else {
+	if (!file) {
 		console.error(`File ${name} does not exist`);
+		return;
 	}
+	const blob = new Blob([file], { type: "binary/octet-stream" });
+	const url = URL.createObjectURL(blob);
+	triggerDownload(url, name);
+}
+
+function triggerDownload(url: string, name: string) {
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = name;
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
 }
 
 async function downloadSaves(db: IDBPDatabase<unknown>) {
