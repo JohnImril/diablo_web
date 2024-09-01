@@ -57,9 +57,15 @@ async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Arr
 
 export default async function create_fs(): Promise<IFileSystem> {
 	try {
+		if (!("indexedDB" in window)) {
+			throw new Error("IndexedDB is not supported in this browser.");
+		}
+
 		const db = await openDB("diablo_fs", 1, {
 			upgrade(db) {
-				db.createObjectStore("files");
+				if (!db.objectStoreNames.contains("files")) {
+					db.createObjectStore("files");
+				}
 			},
 		});
 
@@ -95,7 +101,7 @@ export default async function create_fs(): Promise<IFileSystem> {
 			},
 		};
 	} catch (e) {
-		console.error("IndexedDB is not supported", e);
+		console.error("Error initializing IndexedDB", e);
 		window.DownloadFile = () => console.error("IndexedDB is not supported");
 		window.DownloadSaves = () => console.error("IndexedDB is not supported");
 
