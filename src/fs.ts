@@ -69,6 +69,10 @@ export default async function create_fs(): Promise<IFileSystem> {
 			},
 		});
 
+		if (!db.objectStoreNames.contains("files")) {
+			throw new Error("Object store 'files' was not found in the database.");
+		}
+
 		const files = new Map<string, Uint8Array>();
 
 		const keys = await db.getAllKeys("files");
