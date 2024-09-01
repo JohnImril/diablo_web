@@ -10,11 +10,12 @@ export default defineConfig({
 		react(),
 		wasm(),
 		VitePWA({
+			base: "/diablo_web/",
 			registerType: "autoUpdate",
 			workbox: {
 				runtimeCaching: [
 					{
-						urlPattern: /\/.*\.(?:html|css|js|wasm)$/,
+						urlPattern: new RegExp("/diablo_web/.*\\.(?:html|css|js|wasm)$"),
 						handler: "CacheFirst",
 						options: {
 							cacheName: "static-resources",
@@ -25,27 +26,28 @@ export default defineConfig({
 						},
 					},
 				],
-				navigateFallback: "/index.html",
+				navigateFallback: "/diablo_web/index.html",
 				navigateFallbackAllowlist: [/^(?!\/__).*/],
 				maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
 			},
 			devOptions: {
 				enabled: true,
 			},
-			includeAssets: ["favicon.ico", "robots.txt"],
+			includeAssets: ["/diablo_web/favicon.ico", "/diablo_web/robots.txt"],
 			manifest: {
 				name: "Diablo Web",
 				short_name: "DiabloWeb",
 				description: "Diablo Web App",
-				theme_color: "#ffffff",
+				background_color: "#000000",
+				theme_color: "#000000",
 				icons: [
 					{
-						src: "icons/icon-192x192.png",
+						src: "/diablo_web/icons/icon-192x192.png",
 						sizes: "192x192",
 						type: "image/png",
 					},
 					{
-						src: "icons/icon-512x512.png",
+						src: "/diablo_web/icons/icon-512x512.png",
 						sizes: "512x512",
 						type: "image/png",
 					},
