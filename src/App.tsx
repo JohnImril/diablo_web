@@ -915,6 +915,7 @@ class App extends Component<object, IState> {
 						<input
 							type="text"
 							className="keyboard"
+							id="virtual-keyboard-input"
 							onChange={this.onKeyboard}
 							onBlur={this.onKeyboardBlur}
 							ref={(e: HTMLInputElement) => (this.keyboard = e)}
