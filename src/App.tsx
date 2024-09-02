@@ -746,14 +746,12 @@ class App extends Component<object, IState> {
 					<ul className="saveList">
 						{Object.entries(save_names).map(([name, info]) => (
 							<li key={name}>
-								{name}
+								<div>{name}</div>
 								{info ? (
-									<span className="info">
+									<div className="info">
 										{info.name} (lv. {info.level} {plrClass[info.cls]})
-									</span>
-								) : (
-									""
-								)}
+									</div>
+								) : null}
 								<div className="btnDownload" onClick={() => this.downloadSave(name)}>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
