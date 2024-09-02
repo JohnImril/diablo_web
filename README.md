@@ -1,6 +1,10 @@
 # Diablo Web
 
-This project is a web-based port of the original Diablo game, originally inspired by the work of [GalaXyHaXz](https://github.com/d07RiV/diabloweb) and the devilution team. The goal of this project is to bring the classic experience of Diablo to the browser with a modern tech stack, including Vite and TypeScript.
+This project is a web-based port of the original Diablo game. The goal of this project is to bring the classic experience of Diablo to the browser with a modern tech stack, including Vite and TypeScript.
+
+## Playing Diablo
+
+This project is hosted on [https://johnimril.github.io/diablo_web/](https://johnimril.github.io/diablo_web/) along with `spawn.mpq` from the shareware version (place it in the public folder to run locally). This allows the shareware version to be played anywhere, even on mobile phones. To play the full game, you must use your own `DIABDAT.MPQ` that you can obtain with the original copy of the game from [GoG](url=https://www.gog.com/game/diablo).
 
 ## About the Project
 
@@ -54,10 +58,6 @@ The application should now be running on `http://localhost:5173/diablo_web/`.
 To build the project for production, run: `npm run build`
 
 The build artifacts will be stored in the `dist/` directory.
-
-## Playing Diablo
-
-This project is hosted on [https://johnimril.github.io/diablo_web/](https://johnimril.github.io/diablo_web/) along with `spawn.mpq` from the shareware version (place it in the public folder to run locally). This allows the shareware version to be played anywhere, even on mobile phones. To play the full game, you must use your own `DIABDAT.MPQ` that you can obtain with the original copy of the game from GoG.
 
 ## Contributing
 
