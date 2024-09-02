@@ -832,7 +832,9 @@ class App extends Component<object, IState> {
 					<p>
 						This is a web port of the original Diablo game, based on source code reconstructed by GalaXyHaXz
 						and devilution team. The project page with information and links can be found over here{" "}
-						<Link href="https://github.com/d07RiV/diabloweb">https://github.com/d07RiV/diabloweb</Link>
+						<Link href="https://github.com/JohnImril/diablo_web">
+							https://github.com/JohnImril/diablo_web
+						</Link>
 					</p>
 					<p>
 						If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the
