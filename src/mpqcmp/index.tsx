@@ -19,9 +19,9 @@ export default class CompressMpq extends React.Component<IProps, IState> {
 	state: IState = {};
 
 	parseFile = (e: ChangeEvent<HTMLInputElement>) => {
-		const files = e.target.files;
-		if (files && files.length > 0) {
-			this.start(files[0]);
+		const file = e.target.files?.[0];
+		if (file) {
+			this.start(file);
 		}
 	};
 
@@ -33,18 +33,17 @@ export default class CompressMpq extends React.Component<IProps, IState> {
 		const url = URL.createObjectURL(blob);
 		this.setState({ url });
 
-		const lnk = document.createElement("a");
-		lnk.setAttribute("href", url);
-		lnk.setAttribute("download", "DIABDAT.MPQ");
-		document.body.appendChild(lnk);
-		lnk.click();
-		document.body.removeChild(lnk);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = "DIABDAT.MPQ";
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
 	};
 
 	onError = (message: string, stack: string) => {
-		const { api } = this.props;
-		api.setState({ compress: false });
-		api.onError(message, stack);
+		this.props.api.setState({ compress: false });
+		this.props.api.onError(message, stack);
 	};
 
 	onClose = () => {
@@ -82,13 +81,13 @@ export default class CompressMpq extends React.Component<IProps, IState> {
 		if (started) {
 			return (
 				<div className="loading">
-					{(progress && progress.text) || "Processing..."}
-					{progress != null && progress.total != null && (
+					{progress?.text || "Processing..."}
+					{progress && progress.total && (
 						<span className="progressBar">
 							<span>
 								<span
 									style={{
-										width: `${Math.round((100 * (progress.loaded || 0)) / progress.total)}%`,
+										width: `${Math.round((100 * progress.loaded) / progress.total)}%`,
 									}}
 								/>
 							</span>
