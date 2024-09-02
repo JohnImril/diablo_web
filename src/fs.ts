@@ -61,17 +61,17 @@ export default async function create_fs(): Promise<IFileSystem> {
 			throw new Error("IndexedDB is not supported in this browser.");
 		}
 
-		const db = await openDB("diablo_fs", 1, {
-			upgrade(db) {
-				if (!db.objectStoreNames.contains("files")) {
+		const db = await openDB("diablo_fs", 2, {
+			upgrade(db, oldVersion) {
+				if (oldVersion < 1) {
 					db.createObjectStore("files");
+				} else if (oldVersion === 1) {
+					if (!db.objectStoreNames.contains("files")) {
+						db.createObjectStore("files");
+					}
 				}
 			},
 		});
-
-		if (!db.objectStoreNames.contains("files")) {
-			throw new Error("Object store 'files' was not found in the database.");
-		}
 
 		const files = new Map<string, Uint8Array>();
 
