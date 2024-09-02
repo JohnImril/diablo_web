@@ -20,7 +20,8 @@ const DApi: IDApi = {
 
 	get_file_contents(array: Uint8Array, offset: number) {
 		if (input_file) {
-			array.set(input_file.subarray(offset - input_offset, offset - input_offset + array.byteLength));
+			const start = offset - input_offset;
+			array.set(input_file.subarray(start, start + array.byteLength));
 		}
 	},
 
@@ -35,9 +36,10 @@ const DApi: IDApi = {
 	},
 
 	progress(done: number, total: number) {
-		if (done === total || performance.now() > last_progress + 100) {
+		const now = performance.now();
+		if (done === total || now > last_progress + 100) {
 			progress(done);
-			last_progress = performance.now();
+			last_progress = now;
 		}
 	},
 };
@@ -60,23 +62,21 @@ async function run({ binary, mpq, input, offset, blockSize }: IWorkerMessageData
 
 	const dst = wasm._DApi_Compress(offset + input_file.length, blockSize, count, ptr) >> 2;
 
-	return [output_file!.buffer, wasm.HEAPU32.slice(dst, dst + count * 4)];
+	worker.postMessage(
+		{ action: "result", buffer: output_file!.buffer, blocks: wasm.HEAPU32.slice(dst, dst + count * 4) },
+		[output_file!.buffer, wasm.HEAPU32.slice(dst, dst + count * 4).buffer]
+	);
 }
 
 worker.addEventListener("message", ({ data }: { data: IWorkerMessageData }) => {
-	switch (data.action) {
-		case "run":
-			run(data).then(
-				([buffer, blocks]) => worker.postMessage({ action: "result", buffer, blocks }, [buffer, blocks.buffer]),
-				(err) =>
-					worker.postMessage({
-						action: "error",
-						error: err.toString(),
-						stack: err.stack,
-					})
-			);
-			break;
-		default:
+	if (data.action === "run") {
+		run(data).catch((err) =>
+			worker.postMessage({
+				action: "error",
+				error: err.toString(),
+				stack: err.stack,
+			})
+		);
 	}
 });
 

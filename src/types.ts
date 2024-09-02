@@ -40,7 +40,7 @@ export interface IError {
 
 export interface IProgress {
 	text: string;
-	loaded?: number;
+	loaded: number;
 	total?: number;
 }
 

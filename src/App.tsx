@@ -304,23 +304,25 @@ class App extends Component<object, IState> {
 	}
 
 	start(file: File | null = null) {
-		if (file && file.name.match(/\.sv$/i)) {
-			this.fs
-				.then((fs) => fs.upload(file))
-				.then(() => {
-					this.updateSaves();
-				});
-			return;
+		const { show_saves } = this.state;
+
+		if (file) {
+			const fileName = file.name.toLowerCase();
+
+			if (fileName.endsWith(".sv")) {
+				this.fs.then((fs) => fs.upload(file)).then(() => this.updateSaves());
+				return;
+			}
+
+			if (!fileName.endsWith(".mpq")) {
+				window.alert(
+					"Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder."
+				);
+				return;
+			}
 		}
-		if (this.state.show_saves) {
-			return;
-		}
-		if (file && !file.name.match(/\.mpq$/i)) {
-			window.alert(
-				"Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder."
-			);
-			return;
-		}
+
+		if (show_saves) return;
 
 		document.removeEventListener("drop", this.onDrop, true);
 		document.removeEventListener("dragover", this.onDragOver, true);
@@ -328,54 +330,52 @@ class App extends Component<object, IState> {
 		document.removeEventListener("dragleave", this.onDragLeave, true);
 		this.setState({ dropping: 0 });
 
-		const retail = !!(file && !file.name.match(/^spawn\.mpq$/i));
+		const isRetail = !!(file && !file.name.match(/^spawn\.mpq$/i));
+		this.setState({ loading: true, retail: isRetail });
 
-		this.setState({ loading: true, retail });
-
-		load_game(this, file, !retail).then(
-			(game: unknown) => {
+		load_game(this, file, !isRetail).then(
+			(game) => {
 				this.game = game;
 
-				document.addEventListener("mousemove", this.onMouseMove, true);
-				document.addEventListener("mousedown", this.onMouseDown, true);
-				document.addEventListener("mouseup", this.onMouseUp, true);
-				document.addEventListener("keydown", this.onKeyDown, true);
-				document.addEventListener("keyup", this.onKeyUp, true);
-				document.addEventListener("contextmenu", this.onMenu, true);
-
-				document.addEventListener("touchstart", this.onTouchStart, {
-					passive: false,
-					capture: true,
-				});
-				document.addEventListener("touchmove", this.onTouchMove, {
-					passive: false,
-					capture: true,
-				});
-				document.addEventListener("touchend", this.onTouchEnd, {
-					passive: false,
-					capture: true,
-				});
-
-				document.addEventListener("pointerlockchange", this.onPointerLockChange);
-				window.addEventListener("resize", this.onResize);
-
+				this.addEventListeners();
 				this.setState({ started: true });
 			},
-			(e: IError) => this.onError(e.message, e.stack)
+			(e) => this.onError(e.message, e.stack)
 		);
+	}
+
+	addEventListeners() {
+		document.addEventListener("mousemove", this.onMouseMove, true);
+		document.addEventListener("mousedown", this.onMouseDown, true);
+		document.addEventListener("mouseup", this.onMouseUp, true);
+		document.addEventListener("keydown", this.onKeyDown, true);
+		document.addEventListener("keyup", this.onKeyUp, true);
+		document.addEventListener("contextmenu", this.onMenu, true);
+
+		document.addEventListener("touchstart", this.onTouchStart, {
+			passive: false,
+			capture: true,
+		});
+		document.addEventListener("touchmove", this.onTouchMove, {
+			passive: false,
+			capture: true,
+		});
+		document.addEventListener("touchend", this.onTouchEnd, {
+			passive: false,
+			capture: true,
+		});
+
+		document.addEventListener("pointerlockchange", this.onPointerLockChange);
+		window.addEventListener("resize", this.onResize);
 	}
 
 	pointerLocked() {
 		return document.pointerLockElement === this.canvas || document.pointerLockElement === this.canvas;
 	}
 
-	mousePos(
-		e: {
-			clientX: number;
-			clientY: number;
-		} | null
-	) {
+	mousePos(e: { clientX: number; clientY: number } | null) {
 		const rect = this.canvas.getBoundingClientRect();
+
 		if (this.pointerLocked()) {
 			this.cursorPos.x = Math.max(
 				rect.left,
@@ -385,15 +385,17 @@ class App extends Component<object, IState> {
 				rect.top,
 				Math.min(rect.bottom, this.cursorPos.y + (e as MouseEvent).movementY)
 			);
-		} else {
-			this.cursorPos = { x: (e as MouseEvent | Touch).clientX, y: (e as MouseEvent | Touch).clientY };
+		} else if (e) {
+			this.cursorPos.x = e.clientX;
+			this.cursorPos.y = e.clientY;
 		}
+
+		const x = Math.round(((this.cursorPos.x - rect.left) / (rect.right - rect.left)) * 640);
+		const y = Math.round(((this.cursorPos.y - rect.top) / (rect.bottom - rect.top)) * 480);
+
 		return {
-			x: Math.max(
-				0,
-				Math.min(Math.round(((this.cursorPos.x - rect.left) / (rect.right - rect.left)) * 640), 639)
-			),
-			y: Math.max(0, Math.min(Math.round(((this.cursorPos.y - rect.top) / (rect.bottom - rect.top)) * 480), 479)),
+			x: Math.max(0, Math.min(x, 639)),
+			y: Math.max(0, Math.min(y, 479)),
 		};
 	}
 
@@ -504,24 +506,27 @@ class App extends Component<object, IState> {
 	}
 
 	onKeyboardInner(flags: number) {
-		if (this.showKeyboard) {
-			const text = this.keyboard.value;
-			let valid: string;
-			if (this.maxKeyboard > 0) {
-				valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, this.maxKeyboard);
-			} else {
-				const maxValue = -this.maxKeyboard;
-				if (text.match(/^\d*$/)) {
-					this.keyboardNum = Math.min(text.length ? parseInt(text) : 0, maxValue);
-				}
-				valid = this.keyboardNum ? this.keyboardNum.toString() : "";
+		if (!this.showKeyboard) return;
+
+		const text = this.keyboard.value;
+		let valid = "";
+
+		if (this.maxKeyboard > 0) {
+			valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, this.maxKeyboard);
+		} else {
+			const maxValue = -this.maxKeyboard;
+			if (text.match(/^\d*$/)) {
+				this.keyboardNum = Math.min(text.length ? parseInt(text) : 0, maxValue);
 			}
-			if (text !== valid) {
-				this.keyboard.value = valid;
-			}
-			this.clearKeySel();
-			this.game("text", valid, flags);
+			valid = this.keyboardNum ? this.keyboardNum.toString() : "";
 		}
+
+		if (text !== valid) {
+			this.keyboard.value = valid;
+		}
+
+		this.clearKeySel();
+		this.game("text", valid, flags);
 	}
 
 	onKeyboard = () => {
@@ -699,15 +704,16 @@ class App extends Component<object, IState> {
 
 	onTouchEnd = (e: TouchEvent) => {
 		if (!this.canvas) return;
-		if (e.target === this.keyboard) {
-			//return;
-		} else {
+
+		if (e.target !== this.keyboard) {
 			e.preventDefault();
 		}
-		const prevTc = this.touchCanvas;
+
+		const prevTouchCanvas = this.touchCanvas;
 		this.updateTouchButton(e.touches, true);
-		if (prevTc && !this.touchCanvas) {
-			const { x, y } = this.mousePos(prevTc);
+
+		if (prevTouchCanvas && !this.touchCanvas) {
+			const { x, y } = this.mousePos(prevTouchCanvas);
 			this.game("DApi_Mouse", 2, 1, this.eventMods(e), x, y);
 			this.game("DApi_Mouse", 2, 2, this.eventMods(e), x, y);
 
@@ -715,6 +721,7 @@ class App extends Component<object, IState> {
 				this.setTouchMod(TOUCH_RMB, false);
 			}
 		}
+
 		if (!document.fullscreenElement) {
 			this.element.requestFullscreen();
 		}

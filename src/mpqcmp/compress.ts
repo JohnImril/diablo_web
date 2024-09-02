@@ -1,20 +1,18 @@
+import axios, { AxiosProgressEvent } from "axios";
+
+import { decrypt, encrypt, hash, path_name } from "../api/savefile";
 import Worker from "./mpqcmp.worker.js?worker";
 import MpqBinary from "./MpqCmp.wasm?url";
 import ListFile from "./ListFile.txt";
-import axios, { AxiosProgressEvent, AxiosResponse } from "axios";
-
-import { decrypt, encrypt, hash, path_name } from "../api/savefile";
 
 const MpqSize = 156977;
 const ListSize = 75542;
 
-const readFile = (file: File, progress?: (e: ProgressEvent) => void): Promise<ArrayBuffer> =>
-	new Promise((resolve, reject) => {
+const readFile = (file: File, progress?: (e: ProgressEvent) => void) =>
+	new Promise<ArrayBuffer>((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onload = () => {
-			if (progress) {
-				progress({ loaded: file.size } as ProgressEvent);
-			}
+			progress?.({ loaded: file.size } as ProgressEvent);
 			resolve(reader.result as ArrayBuffer);
 		};
 		reader.onerror = () => reject(reader.error);
@@ -30,16 +28,16 @@ async function loadFile(
 	progress?: (e: ProgressEvent) => void,
 	responseType: "arraybuffer" | "text" = "arraybuffer"
 ) {
-	const binary: AxiosResponse<ArrayBuffer | string> = await axios.request({
+	const { data } = await axios.request<ArrayBuffer | string>({
 		url,
 		responseType,
 		onDownloadProgress: progress as unknown as (e: AxiosProgressEvent) => void,
 	});
-	return binary.data;
+	return data;
 }
 
-function runWorker(data: unknown, transfer: Transferable[], progress: (value: number) => void): Promise<IWorkerResult> {
-	return new Promise((resolve, reject) => {
+function runWorker(data: unknown, transfer: Transferable[], progress: (value: number) => void) {
+	return new Promise<IWorkerResult>((resolve, reject) => {
 		try {
 			const worker = new Worker();
 
@@ -68,13 +66,12 @@ export default async function compress(mpq: File, progress: (text: string, loade
 	progress("Loading...");
 	const files: IFileLoad[] = [];
 
-	function updateProgress() {
+	const updateProgress = () =>
 		progress(
 			"Loading...",
 			files.reduce((sum, { loaded, weight }) => sum + loaded * weight, 0),
 			files.reduce((sum, { total, weight }) => sum + total * weight, 0)
 		);
-	}
 
 	const loader = (file: IFileLoad) => (e: ProgressEvent) => {
 		file.loaded = e.loaded;
@@ -134,27 +131,23 @@ export default async function compress(mpq: File, progress: (text: string, loade
 	const listMap: Record<string, string> = {};
 	const hashStr = (h1: number, h2: number) => h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
 
-	for (const name of list) {
+	list.forEach((name) => {
 		listMap[hashStr(hash(name, 1), hash(name, 2))] = name;
-	}
+	});
 
 	const NUM_TASKS = 4;
-	const tasks: ITask[] = [];
-
-	for (let i = 0; i < NUM_TASKS; ++i) {
-		tasks.push({
+	const tasks: ITask[] = Array(NUM_TASKS)
+		.fill(0)
+		.map(() => ({
 			entries: [],
 			min: mpqsize,
 			max: 0,
 			progress: 0,
-		});
-	}
+		}));
 
 	for (let i = 0; i < hashTable.length / 4; ++i) {
 		const index = hashTable[i * 4 + 3];
-		if (index === 0xffffffff || index === 0xfffffffe) {
-			continue;
-		}
+		if (index === 0xffffffff || index === 0xfffffffe) continue;
 		const name = listMap[hashStr(hashTable[i * 4], hashTable[i * 4 + 1])];
 		if (!name) {
 			hashTable[i * 4 + 3] = 0xfffffffe;
@@ -173,7 +166,7 @@ export default async function compress(mpq: File, progress: (text: string, loade
 	const numFiles = tasks.reduce((sum, task) => sum + task.entries.length, 0);
 
 	fHeader.total = 32;
-	for (const task of tasks) {
+	tasks.forEach((task) => {
 		if (task.min < task.max) {
 			const fLoad: IFileLoad = { loaded: 0, weight: 1, total: task.max - task.min };
 			task.ready = readFile(mpq.slice(task.min, task.max) as File, loader(fLoad)).then(
@@ -181,14 +174,14 @@ export default async function compress(mpq: File, progress: (text: string, loade
 			);
 			files.push(fLoad);
 		}
-	}
+	});
 
 	await Promise.all(tasks.map((t) => t.ready).filter(Boolean));
 	const binary = (await fBinary.ready) as ArrayBuffer;
 
 	progress("Processing...");
 
-	for (const task of tasks) {
+	tasks.forEach((task) => {
 		if (task.data) {
 			const input = new Uint32Array(task.entries.length * 6);
 			task.entries.forEach((i, pos) => {
@@ -211,7 +204,7 @@ export default async function compress(mpq: File, progress: (text: string, loade
 				}
 			).then((res) => (task.result = res));
 		}
-	}
+	});
 
 	await Promise.all(tasks.map((t) => t.run).filter(Boolean));
 
@@ -221,20 +214,19 @@ export default async function compress(mpq: File, progress: (text: string, loade
 
 	blockTable.fill(0);
 	let blockPos = 0;
-	for (const task of tasks) {
+	tasks.forEach((task) => {
 		if (task.result) {
 			const { buffer, blocks } = task.result;
-			for (let pos = 0; pos < task.entries.length; ++pos) {
-				const i = task.entries[pos];
+			task.entries.forEach((i, pos) => {
 				hashTable[i * 4 + 3] = blockPos + pos;
 				blocks[pos * 4] += outputPos;
-			}
+			});
 			blockTable.set(blocks, blockPos * 4);
 			blockPos += task.entries.length;
 			output.push(buffer);
 			outputPos += buffer.byteLength;
 		}
-	}
+	});
 
 	header[1] = 32;
 	header[2] = outputSize;
