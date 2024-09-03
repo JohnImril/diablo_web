@@ -33,26 +33,6 @@ export default defineConfig({
 			devOptions: {
 				enabled: true,
 			},
-			includeAssets: ["/diablo_web/favicon.ico", "/diablo_web/robots.txt"],
-			manifest: {
-				name: "Diablo Web",
-				short_name: "DiabloWeb",
-				description: "Diablo Web App",
-				background_color: "#000000",
-				theme_color: "#000000",
-				icons: [
-					{
-						src: "/diablo_web/icons/icon-192x192.png",
-						sizes: "192x192",
-						type: "image/png",
-					},
-					{
-						src: "/diablo_web/icons/icon-512x512.png",
-						sizes: "512x512",
-						type: "image/png",
-					},
-				],
-			},
 		}),
 	],
 	define: {
