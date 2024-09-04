@@ -36,10 +36,7 @@ function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderin
 				ctx.clip();
 			}
 			for (const { x, y, text: str, color } of batch.text) {
-				const r = (color >> 16) & 0xff;
-				const g = (color >> 8) & 0xff;
-				const b = color & 0xff;
-				ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+				ctx.fillStyle = `rgb(${(color >> 16) & 0xff}, ${(color >> 8) & 0xff}, ${color & 0xff})`;
 				ctx.fillText(str, x, y + 22);
 			}
 			ctx.restore();
@@ -64,12 +61,7 @@ function testOffscreen() {
   }*/
 }
 
-async function do_load_game(
-	api: IApi,
-	audio: IAudioApi,
-	mpq: File | null,
-	spawn: boolean
-): Promise<(func: string, ...params: unknown[]) => void> {
+async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn: boolean) {
 	const fs = await api.fs;
 	if (spawn && !mpq) {
 		await load_spawn(api, fs);
@@ -87,21 +79,14 @@ async function do_load_game(
 	return await new Promise((resolve, reject) => {
 		try {
 			const worker = new Worker();
-
 			const packetQueue: ArrayBuffer[] = [];
-			const webrtc = webrtc_open((data: ArrayBuffer) => {
-				packetQueue.push(data);
-			});
+			const webrtc = webrtc_open((data: ArrayBuffer) => packetQueue.push(data));
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
 					case "loaded":
 						resolve((func: string, ...params: unknown[]) =>
-							worker.postMessage({
-								action: "event",
-								func,
-								params,
-							})
+							worker.postMessage({ action: "event", func, params })
 						);
 						break;
 					case "render":
@@ -133,11 +118,7 @@ async function do_load_game(
 						reject({ message: data.error, stack: data.stack });
 						break;
 					case "progress":
-						api.onProgress({
-							text: data.text,
-							loaded: data.loaded,
-							total: data.total,
-						});
+						api.onProgress({ text: data.text, loaded: data.loaded, total: data.total });
 						break;
 					case "exit":
 						api.onExit();
@@ -168,10 +149,9 @@ async function do_load_game(
 					packetQueue.length = 0;
 				}
 			}, 20);
-			// TODO: check the work
 			fs.files.clear();
-		} catch (e) {
-			reject(e);
+		} catch (error) {
+			reject(error);
 		}
 	});
 }

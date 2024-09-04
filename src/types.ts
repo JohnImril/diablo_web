@@ -59,3 +59,27 @@ export interface IGameOptions {
 	password: string;
 	difficulty?: number;
 }
+
+export interface IDisconnectPacket {
+	id: number;
+	reason: number;
+}
+
+export interface IMessagePacket {
+	id: number;
+	payload: Uint8Array;
+}
+
+export interface ITurnPacket {
+	id: number;
+	turn: number;
+}
+
+export interface IJoinPacket {
+	cookie: number;
+	reason: number;
+}
+
+export interface IInfoPacket {
+	version: number;
+}
