@@ -10,7 +10,6 @@ export default async function load_spawn(api: IApi, fs: IFileSystem) {
 	if (file && !SpawnSizes.includes(file.byteLength)) {
 		fs.files.delete("spawn.mpq");
 		await fs.delete("spawn.mpq");
-		// TODO: check the work
 		file = undefined;
 	}
 	if (!file) {

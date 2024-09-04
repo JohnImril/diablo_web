@@ -1,6 +1,6 @@
 import Peer, { DataConnection } from "peerjs";
 import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
-import { IGameOptions } from "../types";
+import { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
 
 /*function log_packet(data, type) {
   const reader = new buffer_reader(data);
@@ -30,7 +30,7 @@ const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
 const Options: PeerOptions = { port: 443, secure: true };
 const MAX_PLRS = 4;
 
-class webrtc_server {
+class WebRTCServer {
 	version: number;
 	name: string;
 	password: string;
@@ -38,12 +38,9 @@ class webrtc_server {
 	onMessage: MessageHandler;
 	onClose: CloseHandler;
 	peer: Peer;
-	players: {
-		id?: number | null;
-		conn: DataConnection;
-	}[] = [];
+	players: PeerData[] = [];
 	seed: number;
-	myplr: number;
+	myplr = 0;
 
 	constructor(
 		version: number,
@@ -57,13 +54,10 @@ class webrtc_server {
 		this.difficulty = difficulty;
 		this.onMessage = onMessage;
 		this.onClose = onClose;
-
+		this.seed = Math.floor(Math.random() * 2 ** 32);
 		this.peer = new Peer(PeerID(name), Options);
-		this.peer.on("connection", (conn) => this.onConnect(conn));
-		this.players = [];
-		this.myplr = 0;
 
-		this.seed = Math.floor(Math.random() * Math.pow(2, 32));
+		this.peer.on("connection", (conn) => this.onConnect(conn));
 
 		const onError = () => {
 			onMessage(
@@ -73,8 +67,7 @@ class webrtc_server {
 				})
 			);
 			onClose();
-			this.peer.off("error", onError);
-			this.peer.off("open", onOpen);
+			this.cleanupPeer(onError, onOpen);
 		};
 
 		const onOpen = () => {
@@ -89,8 +82,7 @@ class webrtc_server {
 				);
 				onMessage(write_packet(server_packet.connect, { id: 0 }));
 			}, 0);
-			this.peer.off("error", onError);
-			this.peer.off("open", onOpen);
+			this.cleanupPeer(onError, onOpen);
 		};
 
 		this.peer.on("error", onError);
@@ -103,69 +95,10 @@ class webrtc_server {
 			const reader = new buffer_reader(packet as ArrayBuffer | Uint8Array);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
 
-			switch (type.code) {
-				case client_packet.info.code:
-					peer.version = pkt.version;
-					break;
-				case client_packet.join_game.code:
-					if (peer.version !== this.version) {
-						conn.send(
-							write_packet(server_packet.join_reject, {
-								cookie: pkt.cookie,
-								reason: RejectionReason.JOIN_VERSION_MISMATCH,
-							})
-						);
-					} else if (pkt.name !== this.name) {
-						conn.send(
-							write_packet(server_packet.join_reject, {
-								cookie: pkt.cookie,
-								reason: RejectionReason.JOIN_GAME_NOT_FOUND,
-							})
-						);
-					} else if (pkt.password !== this.password) {
-						conn.send(
-							write_packet(server_packet.join_reject, {
-								cookie: pkt.cookie,
-								reason: RejectionReason.JOIN_INCORRECT_PASSWORD,
-							})
-						);
-					} else {
-						let i = 1;
-						while (i < MAX_PLRS && this.players[i]) {
-							++i;
-						}
-						if (i >= MAX_PLRS) {
-							conn.send(
-								write_packet(server_packet.join_reject, {
-									cookie: pkt.cookie,
-									reason: RejectionReason.JOIN_GAME_FULL,
-								})
-							);
-						} else {
-							this.players[i] = peer;
-							peer.id = i;
-							conn.send(
-								write_packet(server_packet.join_accept, {
-									cookie: pkt.cookie,
-									index: i,
-									seed: this.seed,
-									difficulty: this.difficulty,
-								})
-							);
-							this.send(0xff, write_packet(server_packet.connect, { id: i }));
-						}
-					}
-					break;
-				default:
-					if (peer.id != null) {
-						this.handle(peer.id, type.code, pkt);
-					} else {
-						return;
-					}
-			}
+			this.handleConnection(peer, conn, type, pkt);
 
 			if (!reader.done()) {
-				throw Error("packet too large");
+				throw new Error("packet too large");
 			}
 		});
 
@@ -176,12 +109,92 @@ class webrtc_server {
 		});
 	}
 
+	handleConnection(
+		peer: PeerData,
+		conn: DataConnection,
+		type: { code: number },
+		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IJoinPacket | IInfoPacket
+	) {
+		switch (type.code) {
+			case client_packet.info.code:
+				peer.version = (pkt as IInfoPacket).version;
+				break;
+			case client_packet.join_game.code:
+				this.processJoinRequest(peer, conn, pkt);
+				break;
+			default:
+				if (peer.id != null) {
+					this.handle(peer.id, type.code, pkt);
+				}
+		}
+	}
+
+	processJoinRequest(
+		peer: PeerData,
+		conn: DataConnection,
+		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IJoinPacket | IGameOptions | IInfoPacket
+	) {
+		if (peer.version !== this.version) {
+			conn.send(
+				write_packet(server_packet.join_reject, {
+					cookie: (pkt as IGameOptions).cookie,
+					reason: RejectionReason.JOIN_VERSION_MISMATCH,
+				})
+			);
+		} else if ((pkt as IGameOptions).name !== this.name) {
+			conn.send(
+				write_packet(server_packet.join_reject, {
+					cookie: (pkt as IGameOptions).cookie,
+					reason: RejectionReason.JOIN_GAME_NOT_FOUND,
+				})
+			);
+		} else if ((pkt as IGameOptions).password !== this.password) {
+			conn.send(
+				write_packet(server_packet.join_reject, {
+					cookie: (pkt as IGameOptions).cookie,
+					reason: RejectionReason.JOIN_INCORRECT_PASSWORD,
+				})
+			);
+		} else {
+			this.addPlayer(peer, conn, pkt);
+		}
+	}
+
+	addPlayer(
+		peer: PeerData,
+		conn: DataConnection,
+		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IJoinPacket | IGameOptions | IInfoPacket
+	) {
+		let i = 1;
+		while (i < MAX_PLRS && this.players[i]) {
+			++i;
+		}
+		if (i >= MAX_PLRS) {
+			conn.send(
+				write_packet(server_packet.join_reject, {
+					cookie: (pkt as IJoinPacket).cookie,
+					reason: RejectionReason.JOIN_GAME_FULL,
+				})
+			);
+		} else {
+			this.players[i] = peer;
+			peer.id = i;
+			conn.send(
+				write_packet(server_packet.join_accept, {
+					cookie: (pkt as IJoinPacket).cookie,
+					index: i,
+					seed: this.seed,
+					difficulty: this.difficulty,
+				})
+			);
+			this.send(0xff, write_packet(server_packet.connect, { id: i }));
+		}
+	}
+
 	send(mask: number, pkt: ArrayBuffer | Uint8Array) {
 		for (let i = 1; i < MAX_PLRS; ++i) {
 			if (mask & (1 << i) && this.players[i]) {
-				if (this.players[i].conn) {
-					this.players[i].conn.send(pkt);
-				}
+				this.players[i].conn?.send(pkt);
 			}
 		}
 		if (mask & 1) {
@@ -199,49 +212,55 @@ class webrtc_server {
 			this.onClose();
 		} else if (this.players[id]) {
 			this.send(0xff, write_packet(server_packet.disconnect, { id, reason }));
-			this.players[id].id = null;
-			if (this.players[id].conn) {
-				this.players[id].conn.close();
-			}
-			this.players[id] = null as unknown as {
-				id?: number | null;
-				conn: DataConnection;
-			};
+			this.players[id].conn?.close();
+			this.players[id] = null as unknown as PeerData;
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handle(id: number, code: number, pkt: any) {
+	handle(
+		id: number,
+		code: number,
+		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IInfoPacket | IJoinPacket
+	) {
 		switch (code) {
 			case client_packet.leave_game.code:
 				this.drop(id, 3);
 				break;
 			case client_packet.drop_player.code:
-				this.drop(pkt.id, pkt.reason);
+				this.drop((pkt as IDisconnectPacket).id, (pkt as IDisconnectPacket).reason);
 				break;
 			case client_packet.message.code:
-				this.send(
-					pkt.id === 0xff ? ~(1 << id) : 1 << pkt.id,
-					write_packet(server_packet.message, {
-						id,
-						payload: pkt.payload,
-					})
-				);
+				this.sendMessage(id, pkt as IMessagePacket);
 				break;
 			case client_packet.turn.code:
-				this.send(~(1 << id), write_packet(server_packet.turn, { id, turn: pkt.turn }));
+				this.send(~(1 << id), write_packet(server_packet.turn, { id, turn: (pkt as ITurnPacket).turn }));
 				break;
 			default:
-				throw Error(`invalid packet ${code}`);
+				throw new Error(`invalid packet ${code}`);
 		}
+	}
+
+	sendMessage(id: number, pkt: IMessagePacket) {
+		this.send(
+			pkt.id === 0xff ? ~(1 << id) : 1 << pkt.id,
+			write_packet(server_packet.message, {
+				id,
+				payload: pkt.payload,
+			})
+		);
+	}
+
+	cleanupPeer(onError: () => void, onOpen: () => void) {
+		this.peer.off("error", onError);
+		this.peer.off("open", onOpen);
 	}
 }
 
-class webrtc_client {
+class WebRTCClient {
 	peer: Peer;
 	conn: DataConnection;
 	pending: (ArrayBuffer | Uint8Array)[] | null = [];
-	myplr: unknown;
+	myplr?: number;
 
 	constructor(
 		version: number,
@@ -330,8 +349,8 @@ class webrtc_client {
 }
 
 export default function webrtc_open(onMessage: MessageHandler) {
-	let server: webrtc_server | null = null,
-		client: webrtc_client | null = null;
+	let server: WebRTCServer | null = null,
+		client: WebRTCClient | null = null;
 
 	let version = 0;
 
@@ -339,6 +358,7 @@ export default function webrtc_open(onMessage: MessageHandler) {
 		send: function (packet: ArrayBuffer | Uint8Array) {
 			const reader = new buffer_reader(packet);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
+
 			switch (type.code) {
 				case client_packet.info.code:
 					version = pkt.version;
@@ -352,7 +372,7 @@ export default function webrtc_open(onMessage: MessageHandler) {
 							})
 						);
 					} else {
-						server = new webrtc_server(version, pkt, onMessage, () => (server = null));
+						server = new WebRTCServer(version, pkt, onMessage, () => (server = null));
 					}
 					break;
 				case client_packet.join_game.code:
@@ -364,7 +384,7 @@ export default function webrtc_open(onMessage: MessageHandler) {
 							})
 						);
 					} else {
-						client = new webrtc_client(version, pkt, onMessage, () => (client = null));
+						client = new WebRTCClient(version, pkt, onMessage, () => (client = null));
 					}
 					break;
 				default:
@@ -380,11 +400,12 @@ export default function webrtc_open(onMessage: MessageHandler) {
 						}
 						return;
 					} else if (type.code !== client_packet.leave_game.code) {
-						throw Error(`invalid packet ${type.code}`);
+						throw new Error(`invalid packet ${type.code}`);
 					}
 			}
+
 			if (!reader.done()) {
-				throw Error("packet too large");
+				throw new Error("packet too large");
 			}
 		},
 	};

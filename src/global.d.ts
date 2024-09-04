@@ -9,6 +9,7 @@ declare global {
 
 declare global {
 	interface Window {
+		webkitAudioContext?: typeof AudioContext;
 		DownloadFile: (name: string) => void;
 		DownloadSaves: () => void;
 	}
