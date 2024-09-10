@@ -131,26 +131,32 @@ body, #root, .App {
         padding: 0 6px;
         display: flex;
         gap: 4px;
+        justify-content: space-between;
 
         .info {
           color: #888;
           margin-left: 6px;
           overflow-wrap: break-word;
         }
-        .btnRemove {
-          color: #800;
-          cursor: pointer;
-          &:hover {
-            color: #f00;
+
+        .btn {
+          display: flex;
+          .btnRemove {
+            color: #800;
+            cursor: pointer;
+            &:hover {
+              color: #f00;
+            }
+          }
+          .btnDownload {
+            color: #888;
+            cursor: pointer;
+            &:hover {
+              color: #fff;
+            }
           }
         }
-        .btnDownload {
-          color: #888;
-          cursor: pointer;
-          &:hover {
-            color: #fff;
-          }
-        }
+        
         &:hover {
           background-color: #444;
         }
