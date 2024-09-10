@@ -1,6 +1,6 @@
 const W = new Uint32Array(80);
 
-const SHA1CircularShift = (shift: number, value: number) => (value << shift) | (value >>> (32 - shift));
+const SHA1CircularShift = (shift: number, value: number) => (value << shift) | (value >> (32 - shift));
 
 class SHA1 {
 	digest: Uint32Array;
@@ -61,7 +61,7 @@ class Random {
 
 	next() {
 		this.seed = (((this.seed * 3) << 16) + ((this.seed * 67) << 8) + this.seed * 253 + 2531011) | 0;
-		return (this.seed >>> 16) & 0x7fff;
+		return (this.seed >> 16) & 0x7fff;
 	}
 }
 
@@ -97,7 +97,7 @@ export default function codec_decode(data: Uint8Array, password: string) {
 	const result = new Uint8Array(result_size);
 
 	const sha = codec_init_key(password);
-	const size32 = size >>> 2;
+	const size32 = size >> 2;
 	const data32 = new Uint32Array(data.buffer, data.byteOffset, size32 + 1);
 	const buf32 = new Uint32Array(16);
 	const buf = new Uint8Array(buf32.buffer);
