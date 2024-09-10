@@ -119,15 +119,17 @@ class App extends Component<object, IState> {
 	}
 
 	onDrop = (e: DragEvent) => {
+		e.preventDefault();
 		const file = getDropFile(e);
-		if (file) {
-			e.preventDefault();
-			if (this.compressMpq) {
-				this.compressMpq.start(file);
-			} else {
-				this.start(file);
-			}
+
+		if (!file) return;
+
+		if (this.compressMpq) {
+			this.compressMpq.start(file);
+		} else {
+			this.start(file);
 		}
+
 		this.setState({ dropping: 0 });
 	};
 
@@ -152,35 +154,33 @@ class App extends Component<object, IState> {
 		}));
 	}
 
-	onError(message: string, stack?: string) {
-		(async () => {
-			const errorObject: IError = { message };
-			if (this.saveName) {
-				errorObject.save = await (await this.fs).fileUrl(this.saveName);
-			}
-			if (stack) {
-				mapStackTrace(stack, (stack) => {
-					this.setState(({ error }) => {
-						if (!error) {
-							return {
-								error: {
-									...errorObject,
-									stack: stack.join("\n"),
-								},
-							};
-						}
-						return null;
-					});
-				});
-			} else {
-				this.setState(({ error }) => {
-					if (!error) {
-						return { error: errorObject };
-					}
-					return null;
-				});
-			}
-		})();
+	async onError(message: string, stack?: string) {
+		const errorObject: IError = { message };
+
+		if (this.saveName) {
+			const fs = await this.fs;
+			errorObject.save = await fs.fileUrl(this.saveName);
+		}
+
+		const updateErrorState = (stack?: string[]) => {
+			this.setState(({ error }) => {
+				if (!error) {
+					return {
+						error: {
+							...errorObject,
+							stack: stack?.join("\n"),
+						},
+					};
+				}
+				return null;
+			});
+		};
+
+		if (stack) {
+			mapStackTrace(stack, (stack) => updateErrorState(stack));
+		} else {
+			updateErrorState();
+		}
 	}
 
 	openKeyboard(rect: number[] | null) {
@@ -575,25 +575,32 @@ class App extends Component<object, IState> {
 		}
 
 		const btn = this.touchButton;
-		for (let i = 0; i < touches.length; i++) {
-			const { target, identifier, clientX, clientY } = touches[i];
+		const findTouchCanvas = (touches: TouchList, identifier: number) =>
+			[...touches].find((t) => t.identifier !== identifier) || null;
+
+		for (const touch of touches) {
+			const { target, identifier, clientX, clientY } = touch;
+			const idx = this.touchButtons.indexOf(target as HTMLDivElement);
+
 			if (btn && btn.id === identifier && this.touchButtons[btn.index] === target) {
 				if (touches.length > 1) {
 					btn.stick = false;
 				}
 				btn.clientX = clientX;
 				btn.clientY = clientY;
-				this.touchCanvas = [...touches].find((t) => t.identifier !== identifier) || null;
+				this.touchCanvas = findTouchCanvas(touches, identifier);
+
 				if (this.touchCanvas) {
 					this.touchCanvas = {
 						clientX: this.touchCanvas.clientX,
 						clientY: this.touchCanvas.clientY,
 					};
 				}
+
 				delete this.panPos;
 				return this.touchCanvas != null;
 			}
-			const idx = this.touchButtons.indexOf(target as HTMLDivElement);
+
 			if (idx >= 0 && !touchOther) {
 				touchOther = {
 					id: identifier,
@@ -621,32 +628,31 @@ class App extends Component<object, IState> {
 		this.touchButton = touchOther;
 
 		if (touchOther) {
-			if (touchOther.index < 6) {
-				this.setTouchMod(touchOther.index, true);
-				if (touchOther.index === TOUCH_MOVE) {
+			const { index } = touchOther;
+
+			if (index < 6) {
+				this.setTouchMod(index, true);
+				if (index === TOUCH_MOVE) {
 					this.setTouchMod(TOUCH_RMB, false);
-				} else if (touchOther.index === TOUCH_RMB) {
+				} else if (index === TOUCH_RMB) {
 					this.setTouchMod(TOUCH_MOVE, false);
 				}
 				delete this.panPos;
 			} else {
 				// touching F key
-				this.game("DApi_Key", 0, 0, 110 + touchOther.index);
+				this.game("DApi_Key", 0, 0, 110 + index);
 			}
 		} else if (touches.length === 2) {
 			const x = (touches[1].clientX + touches[0].clientX) / 2;
 			const y = (touches[1].clientY + touches[0].clientY) / 2;
+
 			if (this.panPos) {
 				const dx = x - this.panPos.x;
 				const dy = y - this.panPos.y;
 				const step = this.canvas.offsetHeight / 12;
+
 				if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
-					let key;
-					if (Math.abs(dx) > Math.abs(dy)) {
-						key = dx > 0 ? 0x25 : 0x27;
-					} else {
-						key = dy > 0 ? 0x26 : 0x28;
-					}
+					const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0x25 : 0x27) : dy > 0 ? 0x26 : 0x28;
 					this.game("DApi_Key", 0, 0, key);
 					// key up is ignored anyway
 					this.panPos = { x, y };
@@ -662,7 +668,8 @@ class App extends Component<object, IState> {
 			delete this.panPos;
 		}
 
-		this.touchCanvas = [...touches].find((t) => !touchOther || t.identifier !== touchOther.id) || null;
+		this.touchCanvas = findTouchCanvas(touches, touchOther?.id || -1);
+
 		if (this.touchCanvas) {
 			this.touchCanvas = {
 				clientX: this.touchCanvas.clientX,
