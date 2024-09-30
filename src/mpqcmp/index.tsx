@@ -3,10 +3,8 @@ import compress from "./compress";
 import { IProgress } from "../types";
 
 interface IProps {
-	api: {
-		setState: (state: { compress: boolean }) => void;
-		onError: (message: string, stack: string) => void;
-	};
+	setState: (state: { compress: boolean }) => void;
+	onError: (message: string, stack: string) => void;
 }
 
 interface IState {
@@ -42,15 +40,15 @@ export default class CompressMpq extends React.Component<IProps, IState> {
 	};
 
 	onError = (message: string, stack: string) => {
-		this.props.api.setState({ compress: false });
-		this.props.api.onError(message, stack);
+		this.props.setState({ compress: false });
+		this.props.onError(message, stack);
 	};
 
 	onClose = () => {
 		if (this.state.url) {
 			URL.revokeObjectURL(this.state.url);
 		}
-		this.props.api.setState({ compress: false });
+		this.props.setState({ compress: false });
 	};
 
 	start = (file: File) => {
