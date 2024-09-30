@@ -813,7 +813,7 @@ class App extends Component<object, IState> {
 				</div>
 			);
 		} else if (compress) {
-			return <CompressMpq api={this} ref={(e) => (this.compressMpq = e!)} />;
+			return <CompressMpq setState={this.setState} onError={this.onError} ref={(e) => (this.compressMpq = e!)} />;
 		} else if (error) {
 			return (
 				<Link className="error" href={reportLink(error, this.state.retail!)}>
