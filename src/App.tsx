@@ -47,8 +47,8 @@ const App: React.FC = () => {
 
 	const cursorPos = useRef({ x: 0, y: 0 });
 	const touchControls = useRef(false);
-	const touchButtons = useRef<HTMLDivElement[]>(Array(10).fill(null));
-	const touchCtx = useRef<(CanvasRenderingContext2D | null)[]>(Array(6).fill(null));
+	const touchButtons = useRef<Array<HTMLDivElement | null>>(Array(10).fill(null));
+	const touchCtx = useRef<Array<CanvasRenderingContext2D | null>>(Array(6).fill(null));
 	const touchMods = useRef<boolean[]>(Array(6).fill(false));
 	const touchBelt = useRef<number[]>(Array(6).fill(-1));
 	const maxKeyboard = useRef(0);
@@ -67,73 +67,37 @@ const App: React.FC = () => {
 	const touchButton = useRef<ITouchOther | null>(null);
 	const touchCanvas = useRef<{ clientX: number; clientY: number } | null>(null);
 
-	useEffect(() => {
-		document.addEventListener("drop", onDrop, true);
-		document.addEventListener("dragover", onDragOver, true);
-		document.addEventListener("dragenter", onDragEnter, true);
-		document.addEventListener("dragleave", onDragLeave, true);
+	const onError = useCallback(
+		async (message: string, stack?: string) => {
+			const errorObject: IError = { message };
 
-		fs.current.then((fs) => {
-			const spawn = fs.files.get("spawn.mpq");
-			if (spawn && SpawnSizes.includes(spawn.byteLength)) {
-				setHasSpawn(true);
+			if (saveNameRef.current) {
+				const fsInstance = await fs.current;
+				errorObject.save = await fsInstance.fileUrl(saveNameRef.current);
 			}
-			if ([...fs.files.keys()].filter((name) => name.match(/\.sv$/i)).length) {
-				setSaveNames(true);
+
+			const updateErrorState = (mappedStack?: string[]) => {
+				setError((prevError) => {
+					if (!prevError) {
+						return {
+							...errorObject,
+							stack: mappedStack?.join("\n"),
+						};
+					}
+					return prevError;
+				});
+			};
+
+			if (stack) {
+				mapStackTrace(stack, (mappedStack) => updateErrorState(mappedStack));
+			} else {
+				updateErrorState();
 			}
-		});
+		},
+		[setError]
+	);
 
-		return () => {
-			document.removeEventListener("drop", onDrop, true);
-			document.removeEventListener("dragover", onDragOver, true);
-			document.removeEventListener("dragenter", onDragEnter, true);
-			document.removeEventListener("dragleave", onDragLeave, true);
-		};
-	}, []);
-
-	const onDragEnter = useCallback((e: DragEvent) => {
-		e.preventDefault();
-		setDropping((prev) => Math.max(prev + 1, 0));
-	}, []);
-
-	const onDragOver = useCallback((e: DragEvent) => {
-		if (isDropFile(e)) {
-			e.preventDefault();
-		}
-	}, []);
-
-	const onDragLeave = useCallback(() => {
-		setDropping((prev) => Math.max(prev - 1, 0));
-	}, []);
-
-	const onError = useCallback(async (message: string, stack?: string) => {
-		const errorObject: IError = { message };
-
-		if (saveNameRef.current) {
-			const fsInstance = await fs.current;
-			errorObject.save = await fsInstance.fileUrl(saveNameRef.current);
-		}
-
-		const updateErrorState = (stack?: string[]) => {
-			setError((prevError) => {
-				if (!prevError) {
-					return {
-						...errorObject,
-						stack: stack?.join("\n"),
-					};
-				}
-				return prevError;
-			});
-		};
-
-		if (stack) {
-			mapStackTrace(stack, (mappedStack) => updateErrorState(mappedStack));
-		} else {
-			updateErrorState();
-		}
-	}, []);
-
-	const updateSaves = () => {
+	const updateSaves = async () => {
 		return fs.current.then((fs) => {
 			const saves: Record<string, IPlayerInfo | null> = {};
 			[...fs.files.keys()]
@@ -145,19 +109,370 @@ const App: React.FC = () => {
 		});
 	};
 
-	const drawBelt = (idx: number, slot: number) => {
-		if (!canvasRef.current) return;
-		if (!touchButtons.current[idx]) {
-			return;
-		}
-		touchBelt.current[idx] = slot;
-		if (slot >= 0) {
-			touchButtons.current[idx]!.style.display = "block";
-			touchCtx.current[idx]?.drawImage(canvasRef.current, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
-		} else {
-			touchButtons.current[idx]!.style.display = "none";
+	const drawBelt = useCallback(
+		(idx: number, slot: number) => {
+			if (!canvasRef.current || !touchButtons.current[idx]) return;
+
+			touchBelt.current[idx] = slot;
+			if (slot >= 0) {
+				touchButtons.current[idx]!.style.display = "block";
+				touchCtx.current[idx]?.drawImage(canvasRef.current, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
+			} else {
+				touchButtons.current[idx]!.style.display = "none";
+			}
+		},
+		[canvasRef, touchButtons, touchCtx]
+	);
+
+	const pointerLocked = useCallback(() => {
+		return document.pointerLockElement === canvasRef.current;
+	}, [canvasRef]);
+
+	const mousePos = useCallback(
+		(e: { clientX: number; clientY: number } | null) => {
+			const rect = canvasRef.current!.getBoundingClientRect();
+
+			if (pointerLocked()) {
+				cursorPos.current.x = Math.max(
+					rect.left,
+					Math.min(rect.right, cursorPos.current.x + (e as MouseEvent).movementX)
+				);
+				cursorPos.current.y = Math.max(
+					rect.top,
+					Math.min(rect.bottom, cursorPos.current.y + (e as MouseEvent).movementY)
+				);
+			} else if (e) {
+				cursorPos.current.x = e.clientX;
+				cursorPos.current.y = e.clientY;
+			}
+
+			const x = Math.round(((cursorPos.current.x - rect.left) / (rect.right - rect.left)) * 640);
+			const y = Math.round(((cursorPos.current.y - rect.top) / (rect.bottom - rect.top)) * 480);
+
+			return {
+				x: Math.max(0, Math.min(x, 639)),
+				y: Math.max(0, Math.min(y, 479)),
+			};
+		},
+		[canvasRef, pointerLocked]
+	);
+
+	const mouseButton = (e: MouseEvent) => {
+		const buttonMap: Record<number, number> = {
+			0: 1,
+			1: 4,
+			2: 2,
+			3: 5,
+			4: 6,
+		};
+		return buttonMap[e.button] || 1;
+	};
+
+	const eventMods = (e: MouseEvent | KeyboardEvent | TouchEvent) => {
+		return (
+			((e as KeyboardEvent).shiftKey || touchMods.current[TOUCH_SHIFT] ? 1 : 0) +
+			((e as KeyboardEvent).ctrlKey ? 2 : 0) +
+			((e as KeyboardEvent).altKey ? 4 : 0) +
+			((e as TouchEvent).touches ? 8 : 0)
+		);
+	};
+
+	const clearKeySel = () => {
+		if (showKeyboard.current && keyboardRef.current) {
+			const len = keyboardRef.current.value.length;
+			keyboardRef.current.setSelectionRange(len, len);
 		}
 	};
+
+	const onKeyboardInner = (flags: number) => {
+		if (!showKeyboard.current || !keyboardRef.current) return;
+
+		const text = keyboardRef.current.value;
+		let valid = "";
+
+		if (maxKeyboard.current > 0) {
+			valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, maxKeyboard.current);
+		} else {
+			const maxValue = -maxKeyboard.current;
+			if (text.match(/^\d*$/)) {
+				keyboardNum.current = Math.min(text.length ? parseInt(text) : 0, maxValue);
+			}
+			valid = keyboardNum.current ? keyboardNum.current.toString() : "";
+		}
+
+		if (text !== valid) {
+			keyboardRef.current.value = valid;
+		}
+
+		clearKeySel();
+		game.current("text", valid, flags);
+	};
+
+	const setTouchMod = (index: number, value: boolean, use?: boolean) => {
+		if (index < 3) {
+			touchMods.current[index] = value;
+			if (touchButtons.current[index]) {
+				touchButtons.current[index]?.classList.toggle("active", value);
+			}
+		} else if (use && touchBelt.current[index] >= 0) {
+			const now = performance.now();
+			if (!beltTime.current || now - beltTime.current > 750) {
+				game.current("DApi_Char", 49 + touchBelt.current[index]);
+				beltTime.current = now;
+			}
+		}
+	};
+
+	const updateTouchButton = (touches: TouchList, release: boolean) => {
+		let touchOther: ITouchOther | null = null;
+
+		if (!touchControls.current) {
+			touchControls.current = true;
+			elementRef.current?.classList.add("touch");
+		}
+
+		const btn = touchButton.current;
+		const findTouchCanvas = (touches: TouchList, identifier: number) =>
+			[...touches].find((t) => t.identifier !== identifier) || null;
+
+		for (const touch of touches) {
+			const { target, identifier, clientX, clientY } = touch;
+			const idx = touchButtons.current.indexOf(target as HTMLDivElement);
+
+			if (btn && btn.id === identifier && touchButtons.current[btn.index] === target) {
+				if (touches.length > 1) {
+					btn.stick = false;
+				}
+				btn.clientX = clientX;
+				btn.clientY = clientY;
+				touchCanvas.current = findTouchCanvas(touches, identifier);
+
+				if (touchCanvas.current) {
+					touchCanvas.current = {
+						clientX: touchCanvas.current.clientX,
+						clientY: touchCanvas.current.clientY,
+					};
+				}
+
+				delete panPos.current;
+				return touchCanvas.current != null;
+			}
+
+			if (idx >= 0 && !touchOther) {
+				touchOther = {
+					id: identifier,
+					index: idx,
+					stick: true,
+					original: touchMods.current[idx],
+					clientX,
+					clientY,
+				};
+			}
+		}
+
+		if (btn && !touchOther && release && btn.stick) {
+			const rect = touchButtons.current[btn.index]?.getBoundingClientRect();
+			const { clientX, clientY } = btn;
+			if (rect && clientX >= rect.left && clientX < rect.right && clientY >= rect.top && clientY < rect.bottom) {
+				setTouchMod(btn.index, !btn.original, true);
+			} else {
+				setTouchMod(btn.index, btn.original);
+			}
+		} else if (btn) {
+			setTouchMod(btn.index, false);
+		}
+
+		touchButton.current = touchOther;
+
+		if (touchOther) {
+			const { index } = touchOther;
+
+			if (index < 6) {
+				setTouchMod(index, true);
+				if (index === TOUCH_MOVE) {
+					setTouchMod(TOUCH_RMB, false);
+				} else if (index === TOUCH_RMB) {
+					setTouchMod(TOUCH_MOVE, false);
+				}
+				delete panPos.current;
+			} else {
+				game.current("DApi_Key", 0, 0, 110 + index);
+			}
+		} else if (touches.length === 2) {
+			const x = (touches[1].clientX + touches[0].clientX) / 2;
+			const y = (touches[1].clientY + touches[0].clientY) / 2;
+
+			if (panPos.current) {
+				const dx = x - panPos.current.x;
+				const dy = y - panPos.current.y;
+				const step = canvasRef.current!.offsetHeight / 12;
+
+				if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
+					const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0x25 : 0x27) : dy > 0 ? 0x26 : 0x28;
+					game.current("DApi_Key", 0, 0, key);
+					panPos.current = { x, y };
+				}
+			} else {
+				game.current("DApi_Mouse", 0, 0, 24, 320, 180);
+				game.current("DApi_Mouse", 2, 1, 24, 320, 180);
+				panPos.current = { x, y };
+			}
+			touchCanvas.current = null;
+			return false;
+		} else {
+			delete panPos.current;
+		}
+
+		touchCanvas.current = findTouchCanvas(touches, touchOther?.id || -1);
+
+		if (touchCanvas.current) {
+			touchCanvas.current = {
+				clientX: touchCanvas.current.clientX,
+				clientY: touchCanvas.current.clientY,
+			};
+		}
+
+		return touchCanvas.current != null;
+	};
+
+	const addEventListeners = useCallback(() => {
+		const handleMouseMove = (e: MouseEvent) => {
+			if (!canvasRef.current) return;
+			const { x, y } = mousePos(e);
+			game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+			e.preventDefault();
+		};
+
+		const handleMouseDown = (e: MouseEvent) => {
+			if (!canvasRef.current) return;
+			if (e.target === keyboardRef.current) return;
+
+			if (touchControls.current) {
+				touchControls.current = false;
+				elementRef.current?.classList.remove("touch");
+			}
+
+			const { x, y } = mousePos(e);
+			if (window.screen && window.innerHeight === window.screen.height) {
+				if (!pointerLocked()) {
+					canvasRef.current.requestPointerLock();
+				}
+			}
+			game.current("DApi_Mouse", 1, mouseButton(e), eventMods(e), x, y);
+			e.preventDefault();
+		};
+
+		const handleMouseUp = (e: MouseEvent) => {
+			if (!canvasRef.current) return;
+			const { x, y } = mousePos(e);
+			game.current("DApi_Mouse", 2, mouseButton(e), eventMods(e), x, y);
+			if (e.target !== keyboardRef.current) {
+				e.preventDefault();
+			}
+		};
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (!canvasRef.current) return;
+			game.current("DApi_Key", 0, eventMods(e), e.keyCode);
+			if (!showKeyboard.current && e.key.length === 1) {
+				game.current("DApi_Char", e.key.charCodeAt(0));
+			} else if (e.keyCode === 8 || e.keyCode === 13) {
+				game.current("DApi_Char", e.keyCode);
+			}
+			clearKeySel();
+			if (
+				!showKeyboard.current &&
+				[
+					8,
+					9,
+					...Array(8)
+						.fill(0)
+						.map((_, i) => 112 + i),
+				].includes(e.keyCode)
+			) {
+				e.preventDefault();
+			}
+		};
+
+		const handleKeyUp = (e: KeyboardEvent) => {
+			if (!canvasRef.current) return;
+			game.current("DApi_Key", 1, eventMods(e), e.keyCode);
+			clearKeySel();
+		};
+
+		const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+
+		const handleTouchStart = (e: TouchEvent) => {
+			if (!canvasRef.current) return;
+			if (e.target === keyboardRef.current) return;
+
+			keyboardRef.current?.blur();
+			e.preventDefault();
+
+			if (updateTouchButton(e.touches, false)) {
+				const { x, y } = mousePos(touchCanvas.current);
+				game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+				if (!touchMods.current[TOUCH_MOVE]) {
+					game.current("DApi_Mouse", 1, touchMods.current[TOUCH_RMB] ? 2 : 1, eventMods(e), x, y);
+				}
+			}
+		};
+
+		const handleTouchMove = (e: TouchEvent) => {
+			if (!canvasRef.current) return;
+			if (e.target === keyboardRef.current) return;
+
+			e.preventDefault();
+			if (updateTouchButton(e.touches, false)) {
+				const { x, y } = mousePos(touchCanvas.current);
+				game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+			}
+		};
+
+		const handleTouchEnd = (e: TouchEvent) => {
+			if (!canvasRef.current) return;
+
+			if (e.target !== keyboardRef.current) {
+				e.preventDefault();
+			}
+
+			const prevTouchCanvas = touchCanvas.current;
+			updateTouchButton(e.touches, true);
+
+			if (prevTouchCanvas && !touchCanvas.current) {
+				const { x, y } = mousePos(prevTouchCanvas);
+				game.current("DApi_Mouse", 2, 1, eventMods(e), x, y);
+				game.current("DApi_Mouse", 2, 2, eventMods(e), x, y);
+
+				if (touchMods.current[TOUCH_RMB] && (!touchButton.current || touchButton.current.index !== TOUCH_RMB)) {
+					setTouchMod(TOUCH_RMB, false);
+				}
+			}
+
+			if (!document.fullscreenElement) {
+				elementRef.current?.requestFullscreen();
+			}
+		};
+
+		const handlePointerLockChange = () => {
+			if (window.screen && window.innerHeight === window.screen.height && !pointerLocked()) {
+				game.current("DApi_Key", 0, 0, 27);
+				game.current("DApi_Key", 1, 0, 27);
+			}
+		};
+
+		document.addEventListener("mousemove", handleMouseMove, true);
+		document.addEventListener("mousedown", handleMouseDown, true);
+		document.addEventListener("mouseup", handleMouseUp, true);
+		document.addEventListener("keydown", handleKeyDown, true);
+		document.addEventListener("keyup", handleKeyUp, true);
+		document.addEventListener("contextmenu", handleContextMenu, true);
+		document.addEventListener("touchstart", handleTouchStart, { passive: false, capture: true });
+		document.addEventListener("touchmove", handleTouchMove, { passive: false, capture: true });
+		document.addEventListener("touchend", handleTouchEnd, { passive: false, capture: true });
+		document.addEventListener("pointerlockchange", handlePointerLockChange);
+		window.addEventListener("resize", () => document.exitPointerLock());
+	}, [canvasRef, elementRef, eventMods, game, mouseButton, mousePos, pointerLocked, updateTouchButton]);
 
 	const start = useCallback(
 		(file: File | null = null) => {
@@ -165,7 +480,7 @@ const App: React.FC = () => {
 				const fileName = file.name.toLowerCase();
 
 				if (fileName.endsWith(".sv")) {
-					fs.current.then((fsInstance) => fsInstance.upload(file)).then(() => updateSaves());
+					fs.current.then((fsInstance) => fsInstance.upload(file)).then(updateSaves);
 					return;
 				}
 
@@ -179,10 +494,6 @@ const App: React.FC = () => {
 
 			if (showSaves) return;
 
-			document.removeEventListener("drop", onDrop, true);
-			document.removeEventListener("dragover", onDragOver, true);
-			document.removeEventListener("dragenter", onDragEnter, true);
-			document.removeEventListener("dragleave", onDragLeave, true);
 			setDropping(0);
 
 			const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
@@ -249,9 +560,7 @@ const App: React.FC = () => {
 						}
 					},
 					onError,
-					onProgress: (progress: IProgress) => {
-						setProgress(progress);
-					},
+					onProgress: setProgress,
 					onExit: () => {
 						if (!error) {
 							window.location.reload();
@@ -266,18 +575,17 @@ const App: React.FC = () => {
 			).then(
 				(loadedGame) => {
 					game.current = loadedGame;
-
 					addEventListeners();
 					setStarted(true);
 				},
 				(e) => onError(e.message, e.stack)
 			);
 		},
-		[onError, showSaves]
+		[canvasRef, drawBelt, error, fs, onError, showSaves, addEventListeners]
 	);
 
-	const onDrop = useCallback(
-		(e: DragEvent) => {
+	useEffect(() => {
+		const handleDrop = (e: DragEvent) => {
 			e.preventDefault();
 			const file = getDropFile(e);
 
@@ -290,384 +598,44 @@ const App: React.FC = () => {
 			}
 
 			setDropping(0);
-		},
-		[compress, start]
-	);
-
-	const pointerLocked = () => {
-		return document.pointerLockElement === canvasRef.current || document.pointerLockElement === canvasRef.current;
-	};
-
-	const mousePos = (e: { clientX: number; clientY: number } | null) => {
-		const rect = canvasRef.current!.getBoundingClientRect();
-
-		if (pointerLocked()) {
-			cursorPos.current.x = Math.max(
-				rect.left,
-				Math.min(rect.right, cursorPos.current.x + (e as MouseEvent).movementX)
-			);
-			cursorPos.current.y = Math.max(
-				rect.top,
-				Math.min(rect.bottom, cursorPos.current.y + (e as MouseEvent).movementY)
-			);
-		} else if (e) {
-			cursorPos.current.x = e.clientX;
-			cursorPos.current.y = e.clientY;
-		}
-
-		const x = Math.round(((cursorPos.current.x - rect.left) / (rect.right - rect.left)) * 640);
-		const y = Math.round(((cursorPos.current.y - rect.top) / (rect.bottom - rect.top)) * 480);
-
-		return {
-			x: Math.max(0, Math.min(x, 639)),
-			y: Math.max(0, Math.min(y, 479)),
 		};
-	};
 
-	const mouseButton = (e: MouseEvent) => {
-		switch (e.button) {
-			case 0:
-				return 1;
-			case 1:
-				return 4;
-			case 2:
-				return 2;
-			case 3:
-				return 5;
-			case 4:
-				return 6;
-			default:
-				return 1;
-		}
-	};
-
-	const eventMods = (e: MouseEvent | KeyboardEvent | TouchEvent) => {
-		return (
-			((e as KeyboardEvent).shiftKey || touchMods.current[TOUCH_SHIFT] ? 1 : 0) +
-			((e as KeyboardEvent).ctrlKey ? 2 : 0) +
-			((e as KeyboardEvent).altKey ? 4 : 0) +
-			((e as TouchEvent).touches ? 8 : 0)
-		);
-	};
-
-	const clearKeySel = () => {
-		if (showKeyboard.current) {
-			const len = keyboardRef.current!.value.length;
-			keyboardRef.current!.setSelectionRange(len, len);
-		}
-	};
-
-	const onKeyboardInner = (flags: number) => {
-		if (!showKeyboard.current) return;
-
-		const text = keyboardRef.current!.value;
-		let valid = "";
-
-		if (maxKeyboard.current > 0) {
-			valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, maxKeyboard.current);
-		} else {
-			const maxValue = -maxKeyboard.current;
-			if (text.match(/^\d*$/)) {
-				keyboardNum.current = Math.min(text.length ? parseInt(text) : 0, maxValue);
-			}
-			valid = keyboardNum.current ? keyboardNum.current.toString() : "";
-		}
-
-		if (text !== valid) {
-			keyboardRef.current!.value = valid;
-		}
-
-		clearKeySel();
-		game.current("text", valid, flags);
-	};
-
-	const setTouchMod = (index: number, value: boolean, use?: boolean) => {
-		if (index < 3) {
-			touchMods.current[index] = value;
-			if (touchButtons.current[index]) {
-				touchButtons.current[index].classList.toggle("active", value);
-			}
-		} else if (use && touchBelt.current[index] >= 0) {
-			const now = performance.now();
-			if (!beltTime.current || now - beltTime.current > 750) {
-				game.current("DApi_Char", 49 + touchBelt.current[index]);
-				beltTime.current = now;
-			}
-		}
-	};
-
-	const updateTouchButton = (touches: TouchList, release: boolean) => {
-		let touchOther: ITouchOther | null = null;
-
-		if (!touchControls.current) {
-			touchControls.current = true;
-			elementRef.current!.classList.add("touch");
-		}
-
-		const btn = touchButton.current;
-		const findTouchCanvas = (touches: TouchList, identifier: number) =>
-			[...touches].find((t) => t.identifier !== identifier) || null;
-
-		for (const touch of touches) {
-			const { target, identifier, clientX, clientY } = touch;
-			const idx = touchButtons.current.indexOf(target as HTMLDivElement);
-
-			if (btn && btn.id === identifier && touchButtons.current[btn.index] === target) {
-				if (touches.length > 1) {
-					btn.stick = false;
-				}
-				btn.clientX = clientX;
-				btn.clientY = clientY;
-				touchCanvas.current = findTouchCanvas(touches, identifier);
-
-				if (touchCanvas.current) {
-					touchCanvas.current = {
-						clientX: touchCanvas.current.clientX,
-						clientY: touchCanvas.current.clientY,
-					};
-				}
-
-				delete panPos.current;
-				return touchCanvas.current != null;
-			}
-
-			if (idx >= 0 && !touchOther) {
-				touchOther = {
-					id: identifier,
-					index: idx,
-					stick: true,
-					original: touchMods.current[idx],
-					clientX,
-					clientY,
-				};
-			}
-		}
-
-		if (btn && !touchOther && release && btn.stick) {
-			const rect = touchButtons.current[btn.index].getBoundingClientRect();
-			const { clientX, clientY } = btn;
-			if (clientX >= rect.left && clientX < rect.right && clientY >= rect.top && clientY < rect.bottom) {
-				setTouchMod(btn.index, !btn.original, true);
-			} else {
-				setTouchMod(btn.index, btn.original);
-			}
-		} else if (btn) {
-			setTouchMod(btn.index, false);
-		}
-
-		touchButton.current = touchOther;
-
-		if (touchOther) {
-			const { index } = touchOther;
-
-			if (index < 6) {
-				setTouchMod(index, true);
-				if (index === TOUCH_MOVE) {
-					setTouchMod(TOUCH_RMB, false);
-				} else if (index === TOUCH_RMB) {
-					setTouchMod(TOUCH_MOVE, false);
-				}
-				delete panPos.current;
-			} else {
-				// touching F key
-				game.current("DApi_Key", 0, 0, 110 + index);
-			}
-		} else if (touches.length === 2) {
-			const x = (touches[1].clientX + touches[0].clientX) / 2;
-			const y = (touches[1].clientY + touches[0].clientY) / 2;
-
-			if (panPos.current) {
-				const dx = x - panPos.current.x;
-				const dy = y - panPos.current.y;
-				const step = canvasRef.current!.offsetHeight / 12;
-
-				if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
-					const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0x25 : 0x27) : dy > 0 ? 0x26 : 0x28;
-					game.current("DApi_Key", 0, 0, key);
-					// key up is ignored anyway
-					panPos.current = { x, y };
-				}
-			} else {
-				game.current("DApi_Mouse", 0, 0, 24, 320, 180);
-				game.current("DApi_Mouse", 2, 1, 24, 320, 180);
-				panPos.current = { x, y };
-			}
-			touchCanvas.current = null;
-			return false;
-		} else {
-			delete panPos.current;
-		}
-
-		touchCanvas.current = findTouchCanvas(touches, touchOther?.id || -1);
-
-		if (touchCanvas.current) {
-			touchCanvas.current = {
-				clientX: touchCanvas.current.clientX,
-				clientY: touchCanvas.current.clientY,
-			};
-		}
-
-		return touchCanvas.current != null;
-	};
-
-	const addEventListeners = useCallback(() => {
-		document.addEventListener(
-			"mousemove",
-			(e) => {
-				if (!canvasRef.current) return;
-				const { x, y } = mousePos(e);
-				game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+		const handleDragOver = (e: DragEvent) => {
+			if (isDropFile(e)) {
 				e.preventDefault();
-			},
-			true
-		);
-		document.addEventListener(
-			"mousedown",
-			(e) => {
-				if (!canvasRef.current) return;
-				if (e.target === keyboardRef.current) {
-					return;
-				}
-				if (touchControls.current) {
-					touchControls.current = false;
-					elementRef.current!.classList.remove("touch");
-				}
-				const { x, y } = mousePos(e);
-				if (window.screen && window.innerHeight === window.screen.height) {
-					if (!pointerLocked()) {
-						canvasRef.current.requestPointerLock();
-					}
-				}
-				game.current("DApi_Mouse", 1, mouseButton(e), eventMods(e), x, y);
-				e.preventDefault();
-			},
-			true
-		);
-		document.addEventListener(
-			"mouseup",
-			(e) => {
-				if (!canvasRef.current) return;
-				const { x, y } = mousePos(e);
-				game.current("DApi_Mouse", 2, mouseButton(e), eventMods(e), x, y);
-				if (e.target !== keyboardRef.current) {
-					e.preventDefault();
-				}
-			},
-			true
-		);
-		document.addEventListener(
-			"keydown",
-			(e) => {
-				if (!canvasRef.current) return;
-				game.current("DApi_Key", 0, eventMods(e), e.keyCode);
-				if (!showKeyboard.current && e.keyCode >= 32 && e.key.length === 1) {
-					game.current("DApi_Char", e.key.charCodeAt(0));
-				} else if (e.keyCode === 8 || e.keyCode === 13) {
-					game.current("DApi_Char", e.keyCode);
-				}
-				clearKeySel();
-				if (!showKeyboard.current) {
-					if (e.keyCode === 8 || e.keyCode === 9 || (e.keyCode >= 112 && e.keyCode <= 119)) {
-						e.preventDefault();
-					}
-				}
-			},
-			true
-		);
-		document.addEventListener(
-			"keyup",
-			(e) => {
-				if (!canvasRef.current) return;
-				game.current("DApi_Key", 1, eventMods(e), e.keyCode);
-				clearKeySel();
-			},
-			true
-		);
-		document.addEventListener("contextmenu", (e) => e.preventDefault(), true);
-
-		document.addEventListener(
-			"touchstart",
-			(e) => {
-				if (!canvasRef.current) return;
-				if (e.target === keyboardRef.current) {
-					return;
-				} else {
-					keyboardRef.current!.blur();
-				}
-				e.preventDefault();
-				if (updateTouchButton(e.touches, false)) {
-					const { x, y } = mousePos(touchCanvas.current);
-					game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
-					if (!touchMods.current[TOUCH_MOVE]) {
-						game.current("DApi_Mouse", 1, touchMods.current[TOUCH_RMB] ? 2 : 1, eventMods(e), x, y);
-					}
-				}
-			},
-			{
-				passive: false,
-				capture: true,
 			}
-		);
-		document.addEventListener(
-			"touchmove",
-			(e) => {
-				if (!canvasRef.current) return;
-				if (e.target === keyboardRef.current) {
-					return;
-				}
-				e.preventDefault();
-				if (updateTouchButton(e.touches, false)) {
-					const { x, y } = mousePos(touchCanvas.current);
-					game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
-				}
-			},
-			{
-				passive: false,
-				capture: true,
+		};
+
+		const handleDragEnter = (e: DragEvent) => {
+			e.preventDefault();
+			setDropping((prev) => Math.max(prev + 1, 0));
+		};
+
+		const handleDragLeave = () => {
+			setDropping((prev) => Math.max(prev - 1, 0));
+		};
+
+		document.addEventListener("drop", handleDrop, true);
+		document.addEventListener("dragover", handleDragOver, true);
+		document.addEventListener("dragenter", handleDragEnter, true);
+		document.addEventListener("dragleave", handleDragLeave, true);
+
+		fs.current.then((fsInstance) => {
+			const spawn = fsInstance.files.get("spawn.mpq");
+			if (spawn && SpawnSizes.includes(spawn.byteLength)) {
+				setHasSpawn(true);
 			}
-		);
-		document.addEventListener(
-			"touchend",
-			(e) => {
-				if (!canvasRef.current) return;
-
-				if (e.target !== keyboardRef.current) {
-					e.preventDefault();
-				}
-
-				const prevTouchCanvas = touchCanvas.current;
-				updateTouchButton(e.touches, true);
-
-				if (prevTouchCanvas && !touchCanvas.current) {
-					const { x, y } = mousePos(prevTouchCanvas);
-					game.current("DApi_Mouse", 2, 1, eventMods(e), x, y);
-					game.current("DApi_Mouse", 2, 2, eventMods(e), x, y);
-
-					if (
-						touchMods.current[TOUCH_RMB] &&
-						(!touchButton.current || touchButton.current.index !== TOUCH_RMB)
-					) {
-						setTouchMod(TOUCH_RMB, false);
-					}
-				}
-
-				if (!document.fullscreenElement) {
-					elementRef.current!.requestFullscreen();
-				}
-			},
-			{
-				passive: false,
-				capture: true,
-			}
-		);
-
-		document.addEventListener("pointerlockchange", () => {
-			if (window.screen && window.innerHeight === window.screen.height && !pointerLocked()) {
-				game.current("DApi_Key", 0, 0, 27);
-				game.current("DApi_Key", 1, 0, 27);
+			if ([...fsInstance.files.keys()].some((name) => /\.sv$/i.test(name))) {
+				setSaveNames(true);
 			}
 		});
-		window.addEventListener("resize", () => document.exitPointerLock());
+
+		return () => {
+			document.removeEventListener("drop", handleDrop, true);
+			document.removeEventListener("dragover", handleDragOver, true);
+			document.removeEventListener("dragenter", handleDragEnter, true);
+			document.removeEventListener("dragleave", handleDragLeave, true);
+		};
 	}, []);
 
 	const renderUi = () => {
