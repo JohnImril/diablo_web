@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, ChangeEvent } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import classNames from "classnames";
 import { mapStackTrace } from "sourcemapped-stacktrace";
 import Peer from "peerjs";
@@ -54,14 +54,13 @@ const App: React.FC = () => {
 	const maxKeyboard = useRef(0);
 
 	const fs = useRef(create_fs());
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const game = useRef<any>(null);
 	const elementRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const keyboardRef = useRef<HTMLInputElement>(null);
 	const saveNameRef = useRef<string | undefined>(undefined);
 
-	const showKeyboard = useRef<boolean | {}>(false);
+	const showKeyboard = useRef<boolean | React.CSSProperties>(false);
 	const keyboardNum = useRef(0);
 	const beltTime = useRef<number | undefined>(undefined);
 	const panPos = useRef<{ x: number; y: number } | undefined>(undefined);
@@ -134,65 +133,6 @@ const App: React.FC = () => {
 		}
 	}, []);
 
-	const openKeyboard = useCallback((rect: number[] | null) => {
-		if (rect && elementRef.current && keyboardRef.current) {
-			showKeyboard.current = {
-				left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
-				top: `${((100 * (rect[1] - 10)) / 480).toFixed(2)}%`,
-				width: `${((100 * (rect[2] - rect[0] + 20)) / 640).toFixed(2)}%`,
-				height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
-			};
-			maxKeyboard.current = rect[4];
-			elementRef.current.classList.add("keyboard");
-			Object.assign(keyboardRef.current.style, showKeyboard.current);
-			keyboardRef.current.focus();
-			if (keyboardRule) {
-				keyboardRule.style.transform = `translate(-50%, ${((-(rect[1] + rect[3]) * 56.25) / 960).toFixed(
-					2
-				)}vw)`;
-			}
-		} else {
-			showKeyboard.current = false;
-			elementRef.current!.classList.remove("keyboard");
-			keyboardRef.current!.blur();
-			keyboardRef.current!.value = "";
-			keyboardNum.current = 0;
-		}
-	}, []);
-
-	const setCursorPos = (x: number, y: number) => {
-		const rect = canvasRef.current!.getBoundingClientRect();
-		cursorPos.current = {
-			x: rect.left + ((rect.right - rect.left) * x) / 640,
-			y: rect.top + ((rect.bottom - rect.top) * y) / 480,
-		};
-		setTimeout(() => {
-			game.current("DApi_Mouse", 0, 0, 0, x, y);
-		});
-	};
-
-	const onProgress = (progress: IProgress) => {
-		setProgress(progress);
-	};
-
-	const onExit = () => {
-		if (!error) {
-			window.location.reload();
-		}
-	};
-
-	const setCurrentSave = (name: string) => {
-		saveNameRef.current = name;
-	};
-
-	const updateShowSaves = () => {
-		if (saveNames === true) {
-			updateSaves().then(() => setShowSaves(!showSaves));
-		} else {
-			setShowSaves(!showSaves);
-		}
-	};
-
 	const updateSaves = () => {
 		return fs.current.then((fs) => {
 			const saves: Record<string, IPlayerInfo | null> = {};
@@ -203,21 +143,6 @@ const App: React.FC = () => {
 				});
 			setSaveNames(saves);
 		});
-	};
-
-	const removeSave = (name: string) => {
-		if (window.confirm(`Are you sure you want to delete ${name}?`)) {
-			(async () => {
-				const fsInstance = await fs.current;
-				await fsInstance.delete(name.toLowerCase());
-				fsInstance.files.delete(name.toLowerCase());
-				updateSaves();
-			})();
-		}
-	};
-
-	const downloadSave = (name: string) => {
-		fs.current.then((fs) => fs.download(name));
 	};
 
 	const drawBelt = (idx: number, slot: number) => {
@@ -231,26 +156,6 @@ const App: React.FC = () => {
 			touchCtx.current[idx]?.drawImage(canvasRef.current, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
 		} else {
 			touchButtons.current[idx]!.style.display = "none";
-		}
-	};
-
-	const updateBelt = (belt: number[]) => {
-		if (belt) {
-			const used = new Set<number>();
-			let pos = 3;
-			for (let i = 0; i < belt.length && pos < 6; ++i) {
-				if (belt[i] >= 0 && !used.has(belt[i])) {
-					drawBelt(pos++, i);
-					used.add(belt[i]);
-				}
-			}
-			for (; pos < 6; ++pos) {
-				drawBelt(pos, -1);
-			}
-		} else {
-			drawBelt(3, -1);
-			drawBelt(4, -1);
-			drawBelt(5, -1);
 		}
 	};
 
@@ -280,21 +185,81 @@ const App: React.FC = () => {
 			document.removeEventListener("dragleave", onDragLeave, true);
 			setDropping(0);
 
-			const isRetail = !!(file && !file.name.match(/^spawn\.mpq$/i));
+			const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
 			setLoading(true);
 			setRetail(isRetail);
 
 			load_game(
 				{
-					updateBelt,
+					updateBelt: (belt) => {
+						if (belt) {
+							const used = new Set<number>();
+							let pos = 3;
+							for (let i = 0; i < belt.length && pos < 6; ++i) {
+								if (belt[i] >= 0 && !used.has(belt[i])) {
+									drawBelt(pos++, i);
+									used.add(belt[i]);
+								}
+							}
+							for (; pos < 6; ++pos) {
+								drawBelt(pos, -1);
+							}
+						} else {
+							drawBelt(3, -1);
+							drawBelt(4, -1);
+							drawBelt(5, -1);
+						}
+					},
 					canvas: canvasRef.current!,
 					fs: fs.current,
-					setCursorPos,
-					openKeyboard,
+					setCursorPos: (x: number, y: number) => {
+						const rect = canvasRef.current!.getBoundingClientRect();
+						cursorPos.current = {
+							x: rect.left + ((rect.right - rect.left) * x) / 640,
+							y: rect.top + ((rect.bottom - rect.top) * y) / 480,
+						};
+						setTimeout(() => {
+							game.current("DApi_Mouse", 0, 0, 0, x, y);
+						});
+					},
+					openKeyboard: (rect) => {
+						if (rect && elementRef.current && keyboardRef.current) {
+							showKeyboard.current = {
+								left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
+								top: `${((100 * (rect[1] - 10)) / 480).toFixed(2)}%`,
+								width: `${((100 * (rect[2] - rect[0] + 20)) / 640).toFixed(2)}%`,
+								height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
+							};
+							maxKeyboard.current = rect[4];
+							elementRef.current.classList.add("keyboard");
+							Object.assign(keyboardRef.current.style, showKeyboard.current);
+							keyboardRef.current.focus();
+							if (keyboardRule) {
+								keyboardRule.style.transform = `translate(-50%, ${(
+									(-(rect[1] + rect[3]) * 56.25) /
+									960
+								).toFixed(2)}vw)`;
+							}
+						} else {
+							showKeyboard.current = false;
+							elementRef.current!.classList.remove("keyboard");
+							keyboardRef.current!.blur();
+							keyboardRef.current!.value = "";
+							keyboardNum.current = 0;
+						}
+					},
 					onError,
-					onProgress,
-					onExit,
-					setCurrentSave,
+					onProgress: (progress: IProgress) => {
+						setProgress(progress);
+					},
+					onExit: () => {
+						if (!error) {
+							window.location.reload();
+						}
+					},
+					setCurrentSave: (name: string) => {
+						saveNameRef.current = name;
+					},
 				},
 				file,
 				!isRetail
@@ -308,7 +273,7 @@ const App: React.FC = () => {
 				(e) => onError(e.message, e.stack)
 			);
 		},
-		[onError, onProgress, showSaves]
+		[onError, showSaves]
 	);
 
 	const onDrop = useCallback(
@@ -385,79 +350,6 @@ const App: React.FC = () => {
 		);
 	};
 
-	const onResize = () => {
-		document.exitPointerLock();
-	};
-
-	const onPointerLockChange = () => {
-		if (window.screen && window.innerHeight === window.screen.height && !pointerLocked()) {
-			game.current("DApi_Key", 0, 0, 27);
-			game.current("DApi_Key", 1, 0, 27);
-		}
-	};
-
-	const onMouseMove = (e: MouseEvent) => {
-		if (!canvasRef.current) return;
-		const { x, y } = mousePos(e);
-		game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
-		e.preventDefault();
-	};
-
-	const onMouseDown = (e: MouseEvent) => {
-		if (!canvasRef.current) return;
-		if (e.target === keyboardRef.current) {
-			return;
-		}
-		if (touchControls.current) {
-			touchControls.current = false;
-			elementRef.current!.classList.remove("touch");
-		}
-		const { x, y } = mousePos(e);
-		if (window.screen && window.innerHeight === window.screen.height) {
-			// we're in fullscreen, let's get pointer lock!
-			if (!pointerLocked()) {
-				canvasRef.current.requestPointerLock();
-			}
-		}
-		game.current("DApi_Mouse", 1, mouseButton(e), eventMods(e), x, y);
-		e.preventDefault();
-	};
-
-	const onMouseUp = (e: MouseEvent) => {
-		if (!canvasRef.current) return;
-		const { x, y } = mousePos(e);
-		game.current("DApi_Mouse", 2, mouseButton(e), eventMods(e), x, y);
-		if (e.target !== keyboardRef.current) {
-			e.preventDefault();
-		}
-	};
-
-	const onKeyDown = (e: KeyboardEvent) => {
-		if (!canvasRef.current) return;
-		game.current("DApi_Key", 0, eventMods(e), e.keyCode);
-		if (!showKeyboard.current && e.keyCode >= 32 && e.key.length === 1) {
-			game.current("DApi_Char", e.key.charCodeAt(0));
-		} else if (e.keyCode === 8 || e.keyCode === 13) {
-			game.current("DApi_Char", e.keyCode);
-		}
-		clearKeySel();
-		if (!showKeyboard.current) {
-			if (e.keyCode === 8 || e.keyCode === 9 || (e.keyCode >= 112 && e.keyCode <= 119)) {
-				e.preventDefault();
-			}
-		}
-	};
-
-	const onMenu = (e: MouseEvent) => {
-		e.preventDefault();
-	};
-
-	const onKeyUp = (e: KeyboardEvent) => {
-		if (!canvasRef.current) return;
-		game.current("DApi_Key", 1, eventMods(e), e.keyCode);
-		clearKeySel();
-	};
-
 	const clearKeySel = () => {
 		if (showKeyboard.current) {
 			const len = keyboardRef.current!.value.length;
@@ -487,28 +379,6 @@ const App: React.FC = () => {
 
 		clearKeySel();
 		game.current("text", valid, flags);
-	};
-
-	const onKeyboard = () => {
-		onKeyboardInner(0);
-	};
-
-	const onKeyboardBlur = () => {
-		onKeyboardInner(1);
-	};
-
-	const parseFile = (e: ChangeEvent<HTMLInputElement>) => {
-		const files = e.target.files;
-		if (files && files.length > 0) {
-			start(files[0]);
-		}
-	};
-
-	const parseSave = (e: ChangeEvent<HTMLInputElement>) => {
-		const files = e.target.files;
-		if (files && files.length > 0) {
-			start(files[0]);
-		}
 	};
 
 	const setTouchMod = (index: number, value: boolean, use?: boolean) => {
@@ -640,96 +510,165 @@ const App: React.FC = () => {
 		return touchCanvas.current != null;
 	};
 
-	const onTouchStart = (e: TouchEvent) => {
-		if (!canvasRef.current) return;
-		if (e.target === keyboardRef.current) {
-			return;
-		} else {
-			keyboardRef.current!.blur();
-		}
-		e.preventDefault();
-		if (updateTouchButton(e.touches, false)) {
-			const { x, y } = mousePos(touchCanvas.current);
-			game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
-			if (!touchMods.current[TOUCH_MOVE]) {
-				game.current("DApi_Mouse", 1, touchMods.current[TOUCH_RMB] ? 2 : 1, eventMods(e), x, y);
-			}
-		}
-	};
-
-	const onTouchMove = (e: TouchEvent) => {
-		if (!canvasRef.current) return;
-		if (e.target === keyboardRef.current) {
-			return;
-		}
-		e.preventDefault();
-		if (updateTouchButton(e.touches, false)) {
-			const { x, y } = mousePos(touchCanvas.current);
-			game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
-		}
-	};
-
-	const onTouchEnd = (e: TouchEvent) => {
-		if (!canvasRef.current) return;
-
-		if (e.target !== keyboardRef.current) {
-			e.preventDefault();
-		}
-
-		const prevTouchCanvas = touchCanvas.current;
-		updateTouchButton(e.touches, true);
-
-		if (prevTouchCanvas && !touchCanvas.current) {
-			const { x, y } = mousePos(prevTouchCanvas);
-			game.current("DApi_Mouse", 2, 1, eventMods(e), x, y);
-			game.current("DApi_Mouse", 2, 2, eventMods(e), x, y);
-
-			if (touchMods.current[TOUCH_RMB] && (!touchButton.current || touchButton.current.index !== TOUCH_RMB)) {
-				setTouchMod(TOUCH_RMB, false);
-			}
-		}
-
-		if (!document.fullscreenElement) {
-			elementRef.current!.requestFullscreen();
-		}
-	};
-
 	const addEventListeners = useCallback(() => {
-		document.addEventListener("mousemove", onMouseMove, true);
-		document.addEventListener("mousedown", onMouseDown, true);
-		document.addEventListener("mouseup", onMouseUp, true);
-		document.addEventListener("keydown", onKeyDown, true);
-		document.addEventListener("keyup", onKeyUp, true);
-		document.addEventListener("contextmenu", onMenu, true);
+		document.addEventListener(
+			"mousemove",
+			(e) => {
+				if (!canvasRef.current) return;
+				const { x, y } = mousePos(e);
+				game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+				e.preventDefault();
+			},
+			true
+		);
+		document.addEventListener(
+			"mousedown",
+			(e) => {
+				if (!canvasRef.current) return;
+				if (e.target === keyboardRef.current) {
+					return;
+				}
+				if (touchControls.current) {
+					touchControls.current = false;
+					elementRef.current!.classList.remove("touch");
+				}
+				const { x, y } = mousePos(e);
+				if (window.screen && window.innerHeight === window.screen.height) {
+					if (!pointerLocked()) {
+						canvasRef.current.requestPointerLock();
+					}
+				}
+				game.current("DApi_Mouse", 1, mouseButton(e), eventMods(e), x, y);
+				e.preventDefault();
+			},
+			true
+		);
+		document.addEventListener(
+			"mouseup",
+			(e) => {
+				if (!canvasRef.current) return;
+				const { x, y } = mousePos(e);
+				game.current("DApi_Mouse", 2, mouseButton(e), eventMods(e), x, y);
+				if (e.target !== keyboardRef.current) {
+					e.preventDefault();
+				}
+			},
+			true
+		);
+		document.addEventListener(
+			"keydown",
+			(e) => {
+				if (!canvasRef.current) return;
+				game.current("DApi_Key", 0, eventMods(e), e.keyCode);
+				if (!showKeyboard.current && e.keyCode >= 32 && e.key.length === 1) {
+					game.current("DApi_Char", e.key.charCodeAt(0));
+				} else if (e.keyCode === 8 || e.keyCode === 13) {
+					game.current("DApi_Char", e.keyCode);
+				}
+				clearKeySel();
+				if (!showKeyboard.current) {
+					if (e.keyCode === 8 || e.keyCode === 9 || (e.keyCode >= 112 && e.keyCode <= 119)) {
+						e.preventDefault();
+					}
+				}
+			},
+			true
+		);
+		document.addEventListener(
+			"keyup",
+			(e) => {
+				if (!canvasRef.current) return;
+				game.current("DApi_Key", 1, eventMods(e), e.keyCode);
+				clearKeySel();
+			},
+			true
+		);
+		document.addEventListener("contextmenu", (e) => e.preventDefault(), true);
 
-		document.addEventListener("touchstart", onTouchStart, {
-			passive: false,
-			capture: true,
-		});
-		document.addEventListener("touchmove", onTouchMove, {
-			passive: false,
-			capture: true,
-		});
-		document.addEventListener("touchend", onTouchEnd, {
-			passive: false,
-			capture: true,
-		});
+		document.addEventListener(
+			"touchstart",
+			(e) => {
+				if (!canvasRef.current) return;
+				if (e.target === keyboardRef.current) {
+					return;
+				} else {
+					keyboardRef.current!.blur();
+				}
+				e.preventDefault();
+				if (updateTouchButton(e.touches, false)) {
+					const { x, y } = mousePos(touchCanvas.current);
+					game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+					if (!touchMods.current[TOUCH_MOVE]) {
+						game.current("DApi_Mouse", 1, touchMods.current[TOUCH_RMB] ? 2 : 1, eventMods(e), x, y);
+					}
+				}
+			},
+			{
+				passive: false,
+				capture: true,
+			}
+		);
+		document.addEventListener(
+			"touchmove",
+			(e) => {
+				if (!canvasRef.current) return;
+				if (e.target === keyboardRef.current) {
+					return;
+				}
+				e.preventDefault();
+				if (updateTouchButton(e.touches, false)) {
+					const { x, y } = mousePos(touchCanvas.current);
+					game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+				}
+			},
+			{
+				passive: false,
+				capture: true,
+			}
+		);
+		document.addEventListener(
+			"touchend",
+			(e) => {
+				if (!canvasRef.current) return;
 
-		document.addEventListener("pointerlockchange", onPointerLockChange);
-		window.addEventListener("resize", onResize);
-	}, [
-		onMouseMove,
-		onMouseDown,
-		onMouseUp,
-		onKeyDown,
-		onKeyUp,
-		onMenu,
-		onTouchStart,
-		onTouchMove,
-		onTouchEnd,
-		onPointerLockChange,
-		onResize,
-	]);
+				if (e.target !== keyboardRef.current) {
+					e.preventDefault();
+				}
+
+				const prevTouchCanvas = touchCanvas.current;
+				updateTouchButton(e.touches, true);
+
+				if (prevTouchCanvas && !touchCanvas.current) {
+					const { x, y } = mousePos(prevTouchCanvas);
+					game.current("DApi_Mouse", 2, 1, eventMods(e), x, y);
+					game.current("DApi_Mouse", 2, 2, eventMods(e), x, y);
+
+					if (
+						touchMods.current[TOUCH_RMB] &&
+						(!touchButton.current || touchButton.current.index !== TOUCH_RMB)
+					) {
+						setTouchMod(TOUCH_RMB, false);
+					}
+				}
+
+				if (!document.fullscreenElement) {
+					elementRef.current!.requestFullscreen();
+				}
+			},
+			{
+				passive: false,
+				capture: true,
+			}
+		);
+
+		document.addEventListener("pointerlockchange", () => {
+			if (window.screen && window.innerHeight === window.screen.height && !pointerLocked()) {
+				game.current("DApi_Key", 0, 0, 27);
+				game.current("DApi_Key", 1, 0, 27);
+			}
+		});
+		window.addEventListener("resize", () => document.exitPointerLock());
+	}, []);
 
 	const renderUi = () => {
 		if (showSaves && typeof saveNames === "object") {
@@ -748,7 +687,10 @@ const App: React.FC = () => {
 									) : null}
 								</div>
 								<div className="btn">
-									<div className="btnDownload" onClick={() => downloadSave(name)}>
+									<div
+										className="btnDownload"
+										onClick={() => fs.current.then((fs) => fs.download(name))}
+									>
 										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											viewBox="0 0 24 24"
@@ -759,7 +701,19 @@ const App: React.FC = () => {
 											<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
 										</svg>
 									</div>
-									<div className="btnRemove" onClick={() => removeSave(name)}>
+									<div
+										className="btnRemove"
+										onClick={() => {
+											if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+												(async () => {
+													const fsInstance = await fs.current;
+													await fsInstance.delete(name.toLowerCase());
+													fsInstance.files.delete(name.toLowerCase());
+													updateSaves();
+												})();
+											}
+										}}
+									>
 										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											viewBox="0 0 24 24"
@@ -783,7 +737,12 @@ const App: React.FC = () => {
 							type="file"
 							id="loadFile"
 							style={{ display: "none" }}
-							onChange={parseSave}
+							onChange={(e) => {
+								const files = e.target.files;
+								if (files && files.length > 0) {
+									start(files[0]);
+								}
+							}}
 						/>
 					</form>
 					<div className="startButton" onClick={() => setShowSaves(false)}>
@@ -858,14 +817,28 @@ const App: React.FC = () => {
 							type="file"
 							id="loadFile"
 							style={{ display: "none" }}
-							onChange={parseFile}
+							onChange={(e) => {
+								const files = e.target.files;
+								if (files && files.length > 0) {
+									start(files[0]);
+								}
+							}}
 						/>
 					</form>
 					<div className="startButton" onClick={() => start()}>
 						Play Shareware
 					</div>
 					{!!saveNames && (
-						<div className="startButton" onClick={updateShowSaves}>
+						<div
+							className="startButton"
+							onClick={() => {
+								if (saveNames === true) {
+									updateSaves().then(() => setShowSaves(!showSaves));
+								} else {
+									setShowSaves(!showSaves);
+								}
+							}}
+						>
 							Manage Saves
 						</div>
 					)}
@@ -886,92 +859,62 @@ const App: React.FC = () => {
 			ref={elementRef}
 		>
 			<div className="touch-ui touch-mods">
-				<div
-					className={classNames("touch-button", "touch-button-0", {
-						active: touchMods.current[0],
-					})}
-					ref={(el) => (touchButtons.current[0] = el!)}
-				/>
-				<div
-					className={classNames("touch-button", "touch-button-1", {
-						active: touchMods.current[1],
-					})}
-					ref={(el) => (touchButtons.current[1] = el!)}
-				/>
-				<div
-					className={classNames("touch-button", "touch-button-2", {
-						active: touchMods.current[2],
-					})}
-					ref={(el) => (touchButtons.current[2] = el!)}
-				/>
+				{Array.from({ length: 3 }).map((_, i) => (
+					<div
+						key={`touch-mod-${i}`}
+						className={classNames("touch-button", `touch-button-${i}`, {
+							active: touchMods.current[i],
+						})}
+						ref={(el) => (touchButtons.current[i] = el!)}
+					/>
+				))}
 			</div>
 			<div className="touch-ui touch-belt">
-				<div
-					className={classNames("touch-button", "touch-button-0")}
-					ref={(el) => {
-						touchButtons.current[3] = el!;
-
-						if (el) {
-							const canvas = document.createElement("canvas");
-							canvas.width = 28;
-							canvas.height = 28;
-							el.appendChild(canvas);
-							touchCtx.current[3] = canvas.getContext("2d");
-						} else {
-							touchCtx.current[3] = null;
-						}
-					}}
-				/>
-				<div
-					className={classNames("touch-button", "touch-button-1")}
-					ref={(el) => {
-						touchButtons.current[4] = el!;
-						if (el) {
-							const canvas = document.createElement("canvas");
-							canvas.width = 28;
-							canvas.height = 28;
-							el.appendChild(canvas);
-							touchCtx.current[4] = canvas.getContext("2d");
-						} else {
-							touchCtx.current[4] = null;
-						}
-					}}
-				/>
-				<div
-					className={classNames("touch-button", "touch-button-2")}
-					ref={(el) => {
-						touchButtons.current[5] = el!;
-						if (el) {
-							const canvas = document.createElement("canvas");
-							canvas.width = 28;
-							canvas.height = 28;
-							el.appendChild(canvas);
-							touchCtx.current[5] = canvas.getContext("2d");
-						} else {
-							touchCtx.current[5] = null;
-						}
-					}}
-				/>
+				{Array.from({ length: 3 }).map((_, i) => {
+					const idx = i + 3;
+					return (
+						<div
+							key={`touch-belt-${idx}`}
+							className={classNames("touch-button", `touch-button-${i}`)}
+							ref={(el) => {
+								touchButtons.current[idx] = el!;
+								if (el) {
+									const canvas = document.createElement("canvas");
+									canvas.width = 28;
+									canvas.height = 28;
+									el.appendChild(canvas);
+									touchCtx.current[idx] = canvas.getContext("2d");
+								} else {
+									touchCtx.current[idx] = null;
+								}
+							}}
+						/>
+					);
+				})}
 			</div>
 			<div className="touch-ui fkeys-left">
-				<div
-					className={classNames("touch-button", "touch-button-3")}
-					ref={(el) => (touchButtons.current[6] = el!)}
-				/>
-				<div
-					className={classNames("touch-button", "touch-button-4")}
-					ref={(el) => (touchButtons.current[7] = el!)}
-				/>
+				{Array.from({ length: 2 }).map((_, i) => {
+					const idx = i + 6;
+					return (
+						<div
+							key={`fkeys-left-${idx}`}
+							className={classNames("touch-button", `touch-button-${idx - 3}`)}
+							ref={(el) => (touchButtons.current[idx] = el!)}
+						/>
+					);
+				})}
 			</div>
 			<div className="touch-ui fkeys-right">
-				<div
-					className={classNames("touch-button", "touch-button-5")}
-					ref={(el) => (touchButtons.current[8] = el!)}
-				/>
-				<div
-					className={classNames("touch-button", "touch-button-6")}
-					ref={(el) => (touchButtons.current[9] = el!)}
-				/>
+				{Array.from({ length: 2 }).map((_, i) => {
+					const idx = i + 8;
+					return (
+						<div
+							key={`fkeys-right-${idx}`}
+							className={classNames("touch-button", `touch-button-${idx - 3}`)}
+							ref={(el) => (touchButtons.current[idx] = el!)}
+						/>
+					);
+				})}
 			</div>
 			<div className="Body">
 				<div className="inner">
@@ -980,11 +923,11 @@ const App: React.FC = () => {
 						type="text"
 						className="keyboard"
 						id="virtual-keyboard-input"
-						onChange={onKeyboard}
-						onBlur={onKeyboardBlur}
+						onChange={() => onKeyboardInner(0)}
+						onBlur={() => onKeyboardInner(1)}
 						ref={keyboardRef}
 						spellCheck={false}
-						style={showKeyboard.current || {}}
+						style={(showKeyboard.current as React.CSSProperties) || {}}
 					/>
 				</div>
 			</div>
