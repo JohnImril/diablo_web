@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import classNames from "classnames";
 import { mapStackTrace } from "sourcemapped-stacktrace";
 import Peer from "peerjs";
@@ -67,35 +67,32 @@ const App: React.FC = () => {
 	const touchButton = useRef<ITouchOther | null>(null);
 	const touchCanvas = useRef<{ clientX: number; clientY: number } | null>(null);
 
-	const onError = useCallback(
-		async (message: string, stack?: string) => {
-			const errorObject: IError = { message };
+	const onError = async (message: string, stack?: string) => {
+		const errorObject: IError = { message };
 
-			if (saveNameRef.current) {
-				const fsInstance = await fs.current;
-				errorObject.save = await fsInstance.fileUrl(saveNameRef.current);
-			}
+		if (saveNameRef.current) {
+			const fsInstance = await fs.current;
+			errorObject.save = await fsInstance.fileUrl(saveNameRef.current);
+		}
 
-			const updateErrorState = (mappedStack?: string[]) => {
-				setError((prevError) => {
-					if (!prevError) {
-						return {
-							...errorObject,
-							stack: mappedStack?.join("\n"),
-						};
-					}
-					return prevError;
-				});
-			};
+		const updateErrorState = (mappedStack?: string[]) => {
+			setError((prevError) => {
+				if (!prevError) {
+					return {
+						...errorObject,
+						stack: mappedStack?.join("\n"),
+					};
+				}
+				return prevError;
+			});
+		};
 
-			if (stack) {
-				mapStackTrace(stack, (mappedStack) => updateErrorState(mappedStack));
-			} else {
-				updateErrorState();
-			}
-		},
-		[setError]
-	);
+		if (stack) {
+			mapStackTrace(stack, (mappedStack) => updateErrorState(mappedStack));
+		} else {
+			updateErrorState();
+		}
+	};
 
 	const updateSaves = async () => {
 		return fs.current.then((fs) => {
@@ -109,53 +106,47 @@ const App: React.FC = () => {
 		});
 	};
 
-	const drawBelt = useCallback(
-		(idx: number, slot: number) => {
-			if (!canvasRef.current || !touchButtons.current[idx]) return;
+	const drawBelt = (idx: number, slot: number) => {
+		if (!canvasRef.current || !touchButtons.current[idx]) return;
 
-			touchBelt.current[idx] = slot;
-			if (slot >= 0) {
-				touchButtons.current[idx]!.style.display = "block";
-				touchCtx.current[idx]?.drawImage(canvasRef.current, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
-			} else {
-				touchButtons.current[idx]!.style.display = "none";
-			}
-		},
-		[canvasRef, touchButtons, touchCtx]
-	);
+		touchBelt.current[idx] = slot;
+		if (slot >= 0) {
+			touchButtons.current[idx]!.style.display = "block";
+			touchCtx.current[idx]?.drawImage(canvasRef.current, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
+		} else {
+			touchButtons.current[idx]!.style.display = "none";
+		}
+	};
 
-	const pointerLocked = useCallback(() => {
+	const pointerLocked = () => {
 		return document.pointerLockElement === canvasRef.current;
-	}, [canvasRef]);
+	};
 
-	const mousePos = useCallback(
-		(e: { clientX: number; clientY: number } | null) => {
-			const rect = canvasRef.current!.getBoundingClientRect();
+	const mousePos = (e: { clientX: number; clientY: number } | null) => {
+		const rect = canvasRef.current!.getBoundingClientRect();
 
-			if (pointerLocked()) {
-				cursorPos.current.x = Math.max(
-					rect.left,
-					Math.min(rect.right, cursorPos.current.x + (e as MouseEvent).movementX)
-				);
-				cursorPos.current.y = Math.max(
-					rect.top,
-					Math.min(rect.bottom, cursorPos.current.y + (e as MouseEvent).movementY)
-				);
-			} else if (e) {
-				cursorPos.current.x = e.clientX;
-				cursorPos.current.y = e.clientY;
-			}
+		if (pointerLocked()) {
+			cursorPos.current.x = Math.max(
+				rect.left,
+				Math.min(rect.right, cursorPos.current.x + (e as MouseEvent).movementX)
+			);
+			cursorPos.current.y = Math.max(
+				rect.top,
+				Math.min(rect.bottom, cursorPos.current.y + (e as MouseEvent).movementY)
+			);
+		} else if (e) {
+			cursorPos.current.x = e.clientX;
+			cursorPos.current.y = e.clientY;
+		}
 
-			const x = Math.round(((cursorPos.current.x - rect.left) / (rect.right - rect.left)) * 640);
-			const y = Math.round(((cursorPos.current.y - rect.top) / (rect.bottom - rect.top)) * 480);
+		const x = Math.round(((cursorPos.current.x - rect.left) / (rect.right - rect.left)) * 640);
+		const y = Math.round(((cursorPos.current.y - rect.top) / (rect.bottom - rect.top)) * 480);
 
-			return {
-				x: Math.max(0, Math.min(x, 639)),
-				y: Math.max(0, Math.min(y, 479)),
-			};
-		},
-		[canvasRef, pointerLocked]
-	);
+		return {
+			x: Math.max(0, Math.min(x, 639)),
+			y: Math.max(0, Math.min(y, 479)),
+		};
+	};
 
 	const mouseButton = (e: MouseEvent) => {
 		const buttonMap: Record<number, number> = {
@@ -335,7 +326,7 @@ const App: React.FC = () => {
 		return touchCanvas.current != null;
 	};
 
-	const addEventListeners = useCallback(() => {
+	const addEventListeners = () => {
 		const handleMouseMove = (e: MouseEvent) => {
 			if (!canvasRef.current) return;
 			const { x, y } = mousePos(e);
@@ -472,117 +463,114 @@ const App: React.FC = () => {
 		document.addEventListener("touchend", handleTouchEnd, { passive: false, capture: true });
 		document.addEventListener("pointerlockchange", handlePointerLockChange);
 		window.addEventListener("resize", () => document.exitPointerLock());
-	}, [canvasRef, elementRef, eventMods, game, mouseButton, mousePos, pointerLocked, updateTouchButton]);
+	};
 
-	const start = useCallback(
-		(file: File | null = null) => {
-			if (file) {
-				const fileName = file.name.toLowerCase();
+	const start = (file: File | null = null) => {
+		if (file) {
+			const fileName = file.name.toLowerCase();
 
-				if (fileName.endsWith(".sv")) {
-					fs.current.then((fsInstance) => fsInstance.upload(file)).then(updateSaves);
-					return;
-				}
-
-				if (!fileName.endsWith(".mpq")) {
-					window.alert(
-						"Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder."
-					);
-					return;
-				}
+			if (fileName.endsWith(".sv")) {
+				fs.current.then((fsInstance) => fsInstance.upload(file)).then(updateSaves);
+				return;
 			}
 
-			if (showSaves) return;
+			if (!fileName.endsWith(".mpq")) {
+				window.alert(
+					"Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder."
+				);
+				return;
+			}
+		}
 
-			setDropping(0);
+		if (showSaves) return;
 
-			const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
-			setLoading(true);
-			setRetail(isRetail);
+		setDropping(0);
 
-			load_game(
-				{
-					updateBelt: (belt) => {
-						if (belt) {
-							const used = new Set<number>();
-							let pos = 3;
-							for (let i = 0; i < belt.length && pos < 6; ++i) {
-								if (belt[i] >= 0 && !used.has(belt[i])) {
-									drawBelt(pos++, i);
-									used.add(belt[i]);
-								}
+		const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
+		setLoading(true);
+		setRetail(isRetail);
+
+		load_game(
+			{
+				updateBelt: (belt) => {
+					if (belt) {
+						const used = new Set<number>();
+						let pos = 3;
+						for (let i = 0; i < belt.length && pos < 6; ++i) {
+							if (belt[i] >= 0 && !used.has(belt[i])) {
+								drawBelt(pos++, i);
+								used.add(belt[i]);
 							}
-							for (; pos < 6; ++pos) {
-								drawBelt(pos, -1);
-							}
-						} else {
-							drawBelt(3, -1);
-							drawBelt(4, -1);
-							drawBelt(5, -1);
 						}
-					},
-					canvas: canvasRef.current!,
-					fs: fs.current,
-					setCursorPos: (x: number, y: number) => {
-						const rect = canvasRef.current!.getBoundingClientRect();
-						cursorPos.current = {
-							x: rect.left + ((rect.right - rect.left) * x) / 640,
-							y: rect.top + ((rect.bottom - rect.top) * y) / 480,
+						for (; pos < 6; ++pos) {
+							drawBelt(pos, -1);
+						}
+					} else {
+						drawBelt(3, -1);
+						drawBelt(4, -1);
+						drawBelt(5, -1);
+					}
+				},
+				canvas: canvasRef.current!,
+				fs: fs.current,
+				setCursorPos: (x: number, y: number) => {
+					const rect = canvasRef.current!.getBoundingClientRect();
+					cursorPos.current = {
+						x: rect.left + ((rect.right - rect.left) * x) / 640,
+						y: rect.top + ((rect.bottom - rect.top) * y) / 480,
+					};
+					setTimeout(() => {
+						game.current("DApi_Mouse", 0, 0, 0, x, y);
+					});
+				},
+				openKeyboard: (rect) => {
+					if (rect && elementRef.current && keyboardRef.current) {
+						showKeyboard.current = {
+							left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
+							top: `${((100 * (rect[1] - 10)) / 480).toFixed(2)}%`,
+							width: `${((100 * (rect[2] - rect[0] + 20)) / 640).toFixed(2)}%`,
+							height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
 						};
-						setTimeout(() => {
-							game.current("DApi_Mouse", 0, 0, 0, x, y);
-						});
-					},
-					openKeyboard: (rect) => {
-						if (rect && elementRef.current && keyboardRef.current) {
-							showKeyboard.current = {
-								left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
-								top: `${((100 * (rect[1] - 10)) / 480).toFixed(2)}%`,
-								width: `${((100 * (rect[2] - rect[0] + 20)) / 640).toFixed(2)}%`,
-								height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
-							};
-							maxKeyboard.current = rect[4];
-							elementRef.current.classList.add("keyboard");
-							Object.assign(keyboardRef.current.style, showKeyboard.current);
-							keyboardRef.current.focus();
-							if (keyboardRule) {
-								keyboardRule.style.transform = `translate(-50%, ${(
-									(-(rect[1] + rect[3]) * 56.25) /
-									960
-								).toFixed(2)}vw)`;
-							}
-						} else {
-							showKeyboard.current = false;
-							elementRef.current!.classList.remove("keyboard");
-							keyboardRef.current!.blur();
-							keyboardRef.current!.value = "";
-							keyboardNum.current = 0;
+						maxKeyboard.current = rect[4];
+						elementRef.current.classList.add("keyboard");
+						Object.assign(keyboardRef.current.style, showKeyboard.current);
+						keyboardRef.current.focus();
+						if (keyboardRule) {
+							keyboardRule.style.transform = `translate(-50%, ${(
+								(-(rect[1] + rect[3]) * 56.25) /
+								960
+							).toFixed(2)}vw)`;
 						}
-					},
-					onError,
-					onProgress: setProgress,
-					onExit: () => {
-						if (!error) {
-							window.location.reload();
-						}
-					},
-					setCurrentSave: (name: string) => {
-						saveNameRef.current = name;
-					},
+					} else {
+						showKeyboard.current = false;
+						elementRef.current!.classList.remove("keyboard");
+						keyboardRef.current!.blur();
+						keyboardRef.current!.value = "";
+						keyboardNum.current = 0;
+					}
 				},
-				file,
-				!isRetail
-			).then(
-				(loadedGame) => {
-					game.current = loadedGame;
-					addEventListeners();
-					setStarted(true);
+				onError,
+				onProgress: setProgress,
+				onExit: () => {
+					if (!error) {
+						window.location.reload();
+					}
 				},
-				(e) => onError(e.message, e.stack)
-			);
-		},
-		[canvasRef, drawBelt, error, fs, onError, showSaves, addEventListeners]
-	);
+				setCurrentSave: (name: string) => {
+					saveNameRef.current = name;
+				},
+			},
+			file,
+			!isRetail
+		).then(
+			(loadedGame) => {
+				game.current = loadedGame;
+				addEventListeners();
+				setStarted(true);
+			},
+			(e) => onError(e.message, e.stack)
+		);
+	};
 
 	useEffect(() => {
 		const handleDrop = (e: DragEvent) => {
