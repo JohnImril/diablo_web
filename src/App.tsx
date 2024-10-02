@@ -7,8 +7,12 @@ import getPlayerName from "./api/savefile";
 import load_game from "./api/loader";
 import { SpawnSizes } from "./api/load_spawn";
 import create_fs from "./fs";
-import CompressMpq from "./mpqcmp";
 import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
+import CompressMpq from "./mpqcmp";
+import SaveList from "./components/SaveList/SaveList";
+import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
+import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
+import StartScreen from "./components/StartScreen/StartScreen";
 import { IError, IPlayerInfo, IProgress, ITouchOther } from "./types";
 
 import "./App.scss";
@@ -25,12 +29,6 @@ try {
 } catch (e) {
 	console.error(e);
 }
-
-const Link: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({ children, ...props }) => (
-	<a target="_blank" rel="noopener noreferrer" {...props}>
-		{children}
-	</a>
-);
 
 const App: React.FC = () => {
 	const [started, setStarted] = useState(false);
@@ -626,184 +624,6 @@ const App: React.FC = () => {
 		};
 	}, []);
 
-	const renderUi = () => {
-		if (showSaves && typeof saveNames === "object") {
-			const plrClass = ["Warrior", "Rogue", "Sorcerer"];
-			return (
-				<div className="start">
-					<ul className="saveList">
-						{Object.entries(saveNames).map(([name, info]) => (
-							<li key={name}>
-								<div>
-									<div>{name}</div>
-									{info ? (
-										<div className="info">
-											{info.name} (lv. {info.level} {plrClass[info.cls]})
-										</div>
-									) : null}
-								</div>
-								<div className="btn">
-									<div
-										className="btnDownload"
-										onClick={() => fs.current.then((fs) => fs.download(name))}
-									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											viewBox="0 0 24 24"
-											fill="currentColor"
-											width="16px"
-											height="16px"
-										>
-											<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-										</svg>
-									</div>
-									<div
-										className="btnRemove"
-										onClick={() => {
-											if (window.confirm(`Are you sure you want to delete ${name}?`)) {
-												(async () => {
-													const fsInstance = await fs.current;
-													await fsInstance.delete(name.toLowerCase());
-													fsInstance.files.delete(name.toLowerCase());
-													updateSaves();
-												})();
-											}
-										}}
-									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											viewBox="0 0 24 24"
-											fill="currentColor"
-											width="16px"
-											height="16px"
-										>
-											<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-										</svg>
-									</div>
-								</div>
-							</li>
-						))}
-					</ul>
-					<form>
-						<label htmlFor="loadFile" className="startButton">
-							Upload Save
-						</label>
-						<input
-							accept=".sv"
-							type="file"
-							id="loadFile"
-							style={{ display: "none" }}
-							onChange={(e) => {
-								const files = e.target.files;
-								if (files && files.length > 0) {
-									start(files[0]);
-								}
-							}}
-						/>
-					</form>
-					<div className="startButton" onClick={() => setShowSaves(false)}>
-						Back
-					</div>
-				</div>
-			);
-		} else if (compress) {
-			return (
-				<CompressMpq
-					file={compressFile}
-					setCompressFile={setCompressFile}
-					setCompress={setCompress}
-					onError={onError}
-				/>
-			);
-		} else if (error) {
-			return (
-				<Link className="error" href={reportLink(error, retail!)}>
-					<p className="header">The following error has occurred:</p>
-					<p className="body">{error.message}</p>
-					<p className="footer">Click to create an issue on GitHub</p>
-					{error.save != null && (
-						<a href={error.save} download={saveNameRef.current}>
-							Download save file
-						</a>
-					)}
-				</Link>
-			);
-		} else if (loading && !started) {
-			return (
-				<div className="loading">
-					{(progress && progress.text) || "Loading..."}
-					{progress != null && !!progress.total && (
-						<span className="progressBar">
-							<span>
-								<span
-									style={{
-										width: `${Math.round((100 * progress.loaded!) / progress.total)}%`,
-									}}
-								/>
-							</span>
-						</span>
-					)}
-				</div>
-			);
-		} else if (!started) {
-			return (
-				<div className="start">
-					<p>
-						This is a web port of the original Diablo game, based on source code reconstructed by GalaXyHaXz
-						and devilution team. The project page with information and links can be found over here{" "}
-						<Link href="https://github.com/JohnImril/diablo_web">
-							https://github.com/JohnImril/diablo_web
-						</Link>
-					</p>
-					<p>
-						If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the
-						button below to start playing. The game can be purchased from{" "}
-						<Link href="https://www.gog.com/game/diablo">GoG</Link>.{" "}
-						<span className="link" onClick={() => setCompress(true)}>
-							Click here to compress the MPQ, greatly reducing its size.
-						</span>
-					</p>
-					{!hasSpawn && <p>Or you can play the shareware version for free (50MB download).</p>}
-					<form>
-						<label htmlFor="loadFile" className="startButton">
-							Select MPQ
-						</label>
-						<input
-							accept=".mpq"
-							type="file"
-							id="loadFile"
-							style={{ display: "none" }}
-							onChange={(e) => {
-								const files = e.target.files;
-								if (files && files.length > 0) {
-									start(files[0]);
-								}
-							}}
-						/>
-					</form>
-					<div className="startButton" onClick={() => start()}>
-						Play Shareware
-					</div>
-					{!!saveNames && (
-						<div
-							className="startButton"
-							onClick={() => {
-								if (saveNames === true) {
-									updateSaves().then(() => setShowSaves(!showSaves));
-								} else {
-									setShowSaves(!showSaves);
-								}
-							}}
-						>
-							Manage Saves
-						</div>
-					)}
-				</div>
-			);
-		}
-		return null;
-	};
-
 	return (
 		<div
 			className={classNames("App", {
@@ -887,7 +707,44 @@ const App: React.FC = () => {
 					/>
 				</div>
 			</div>
-			<div className="BodyV">{renderUi()}</div>
+			<div className="BodyV">
+				{showSaves && typeof saveNames === "object" && (
+					<SaveList
+						saveNames={saveNames as Record<string, IPlayerInfo | null>}
+						fs={fs.current}
+						updateSaves={updateSaves}
+						setShowSaves={setShowSaves}
+						start={start}
+					/>
+				)}
+				{compress && (
+					<CompressMpq
+						file={compressFile}
+						setCompressFile={setCompressFile}
+						setCompress={setCompress}
+						onError={onError}
+					/>
+				)}
+				{error && (
+					<ErrorComponent
+						error={error}
+						reportLink={reportLink(error, retail!)}
+						saveUrl={error.save}
+						saveName={saveNameRef.current}
+					/>
+				)}
+				{loading && !started && <LoadingComponent progress={progress} />}
+				{!started && !compress && !loading && !error && !showSaves && (
+					<StartScreen
+						hasSpawn={hasSpawn}
+						start={start}
+						saveNames={saveNames}
+						setCompress={setCompress}
+						setShowSaves={setShowSaves}
+						updateSaves={updateSaves}
+					/>
+				)}
+			</div>
 		</div>
 	);
 };

@@ -1,14 +1,5 @@
 import { openDB, IDBPDatabase } from "idb";
-
-interface IFileSystem {
-	files: Map<string, Uint8Array>;
-	update: (name: string, data: Uint8Array) => Promise<unknown>;
-	delete: (name: string) => Promise<void>;
-	clear: () => Promise<void>;
-	download: (name: string) => Promise<void>;
-	upload: (file: File) => Promise<void>;
-	fileUrl: (name: string) => Promise<string | undefined>;
-}
+import { IFileSystem } from "./types";
 
 export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());
