@@ -1,22 +1,14 @@
+import React from "react";
 import { IProgress } from "../../types";
 
 const LoadingComponent: React.FC<{
+	title: string;
 	progress?: IProgress;
-}> = ({ progress }) => {
+}> = ({ title, progress }) => {
 	return (
 		<div className="loading">
-			{progress?.text || "Loading..."}
-			{progress != null && !!progress.total && (
-				<span className="progressBar">
-					<span>
-						<span
-							style={{
-								width: `${Math.round((100 * progress.loaded!) / progress.total)}%`,
-							}}
-						/>
-					</span>
-				</span>
-			)}
+			{progress?.text || title}
+			{progress?.total && <progress value={progress.loaded} max={progress.total} />}
 		</div>
 	);
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
 import compress from "./compress";
 import { IProgress } from "../types";
+import LoadingComponent from "../components/LoadingComponent/LoadingComponent";
 
 interface IProps {
 	file: File | null;
@@ -78,22 +79,7 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 	}
 
 	if (started) {
-		return (
-			<div className="loading">
-				{progress?.text || "Processing..."}
-				{progress?.total && (
-					<span className="progressBar">
-						<span>
-							<span
-								style={{
-									width: `${Math.round((100 * progress.loaded) / progress.total)}%`,
-								}}
-							/>
-						</span>
-					</span>
-				)}
-			</div>
-		);
+		return <LoadingComponent title="Processing..." progress={progress} />;
 	}
 
 	return (
