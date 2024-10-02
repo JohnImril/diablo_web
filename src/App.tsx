@@ -8,7 +8,7 @@ import load_game from "./api/loader";
 import { SpawnSizes } from "./api/load_spawn";
 import create_fs from "./fs";
 import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
-import CompressMpq from "./mpqcmp";
+import CompressMpq from "./mpqcmp/CompressMpq";
 import SaveList from "./components/SaveList/SaveList";
 import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
 import LoadingComponent from "./components/LoadingComponent/LoadingComponent";

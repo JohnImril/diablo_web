@@ -15,21 +15,6 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 	const [started, setStarted] = useState<boolean>(false);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
 
-	useEffect(() => {
-		if (file) {
-			setStarted(true);
-			compress(file, (text, loaded, total) => setProgress({ text, loaded: loaded || 0, total }))
-				.then(onDone)
-				.catch((e) => onErrorHandler(e.message, e.stack));
-		}
-		return () => {
-			if (url) {
-				URL.revokeObjectURL(url);
-				setUrl(null);
-			}
-		};
-	}, [file]);
-
 	const onDone = (blob: Blob) => {
 		const fileUrl = URL.createObjectURL(blob);
 		setUrl(fileUrl);
@@ -62,6 +47,22 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 			setCompressFile(selectedFile);
 		}
 	};
+
+	useEffect(() => {
+		if (file) {
+			setStarted(true);
+			compress(file, (text, loaded, total) => setProgress({ text, loaded: loaded || 0, total }))
+				.then(onDone)
+				.catch((e) => onErrorHandler(e.message, e.stack));
+		}
+
+		return () => {
+			if (url) {
+				URL.revokeObjectURL(url);
+				setUrl(null);
+			}
+		};
+	}, [file]);
 
 	if (url) {
 		return (
