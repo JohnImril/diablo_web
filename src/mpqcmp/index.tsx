@@ -81,7 +81,7 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 		return (
 			<div className="loading">
 				{progress?.text || "Processing..."}
-				{progress && progress.total && (
+				{progress?.total && (
 					<span className="progressBar">
 						<span>
 							<span

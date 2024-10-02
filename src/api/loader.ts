@@ -13,7 +13,6 @@ interface IRenderBatch {
 }
 
 interface IAudioApi {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	[func: string]: (...params: any) => void;
 }
 
@@ -101,7 +100,6 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 						}
 						break;
 					case "fs":
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						(fs as any)[data.func](...data.params);
 						break;
 					case "cursor":

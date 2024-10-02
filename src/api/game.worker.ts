@@ -287,7 +287,6 @@ let maxSoundId = 0;
 let maxBatchId = 0;
 
 ["create_sound_raw", "create_sound", "duplicate_sound"].forEach((func) => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	DApi[func] = function (...params: any[]) {
 		if (audioBatch) {
 			maxBatchId = params[0] + 1;
@@ -307,7 +306,6 @@ let maxBatchId = 0;
 });
 
 ["play_sound", "set_volume", "stop_sound", "delete_sound"].forEach((func) => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	DApi[func as keyof typeof DApi] = function (...params: any[]) {
 		if (audioBatch && params[0] >= maxSoundId) {
 			audioBatch.push({ func, params });
@@ -331,7 +329,6 @@ DApi.websocket_send = function (data: Uint8Array) {
 
 worker.DApi = DApi as typeof DApi;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let wasm: any | null = null;
 
 function try_api(func: () => void) {
@@ -342,7 +339,6 @@ function try_api(func: () => void) {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function call_api(func: string, ...params: any[]) {
 	try_api(() => {
 		const nested = audioBatch != null;

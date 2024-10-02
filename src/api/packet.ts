@@ -121,7 +121,6 @@ export const RejectionReason = {
 	CREATE_GAME_EXISTS: 0x06,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function read_packet<T extends Record<string, any>>(reader: buffer_reader, types: T) {
 	const code = reader.read8();
 	const packetType = Object.values(types).find((cls) => cls.code === code);
@@ -188,7 +187,6 @@ export function make_batch<T>(
 	};
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const server_packet: any = {
 	info: {
 		code: 0x32,
