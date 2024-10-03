@@ -1,5 +1,7 @@
 # Diablo Web
 
+![App Screenshot](./public/screenshot.png)
+
 This project is a web-based port of the original Diablo game. The goal of this project is to bring the classic experience of Diablo to the browser with a modern tech stack, including Vite and TypeScript.
 
 ## Playing Diablo
