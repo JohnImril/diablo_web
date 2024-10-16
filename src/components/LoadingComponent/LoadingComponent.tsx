@@ -1,6 +1,8 @@
 import React from "react";
 import { IProgress } from "../../types";
 
+import "./LoadingComponent.css";
+
 const LoadingComponent: React.FC<{
 	title: string;
 	progress?: IProgress;

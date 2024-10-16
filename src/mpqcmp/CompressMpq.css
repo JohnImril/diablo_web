@@ -1,0 +1,43 @@
+.start {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.start {
+	max-width: 90%;
+	max-height: 90%;
+	overflow-y: auto;
+	pointer-events: auto;
+}
+
+.start {
+	border: 1px solid #888;
+	padding: 12px;
+	color: #fff;
+	font-size: 18px;
+	text-align: center;
+	background: #000;
+}
+
+.start p {
+	margin: 10px 0;
+}
+
+.start .startButton {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	border: 1px solid #fff;
+	background: #000;
+	font-size: 2em;
+	padding: 4px 18px;
+	cursor: pointer;
+	margin-top: 6px;
+	width: 8em;
+}
+
+.start .startButton:hover {
+	background-color: #111;
+}

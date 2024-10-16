@@ -1,0 +1,82 @@
+.start {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.start {
+	max-width: 90%;
+	max-height: 90%;
+	overflow-y: auto;
+	pointer-events: auto;
+}
+
+.start {
+	border: 1px solid #888;
+	padding: 12px;
+	color: #fff;
+	font-size: 18px;
+	text-align: center;
+	background: #000;
+}
+
+.start .startButton {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	border: 1px solid #fff;
+	background: #000;
+	font-size: 2em;
+	padding: 4px 18px;
+	cursor: pointer;
+	margin-top: 6px;
+	width: 8em;
+}
+
+.start .startButton:hover {
+	background-color: #111;
+}
+
+.start .saveList {
+	border: 1px solid #fff;
+	text-align: left;
+}
+
+.start .saveList li {
+	padding: 0 6px;
+	display: flex;
+	gap: 4px;
+	justify-content: space-between;
+}
+
+.start .saveList li .info {
+	color: #888;
+	overflow-wrap: break-word;
+}
+
+.start .saveList li .btn {
+	display: flex;
+}
+
+.start .saveList li .btn .btnRemove {
+	color: #800;
+	cursor: pointer;
+}
+
+.start .saveList li .btn .btnRemove:hover {
+	color: #f00;
+}
+
+.start .saveList li .btn .btnDownload {
+	color: #888;
+	cursor: pointer;
+}
+
+.start .saveList li .btn .btnDownload:hover {
+	color: #fff;
+}
+
+.start .saveList li:hover {
+	background-color: #444;
+}

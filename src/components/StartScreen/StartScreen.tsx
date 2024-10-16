@@ -1,5 +1,7 @@
 import { IPlayerInfo } from "../../types";
 
+import "./StartScreen.css";
+
 const StartScreen: React.FC<{
 	hasSpawn: boolean;
 	start: (file?: File | null) => void;

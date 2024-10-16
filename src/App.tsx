@@ -15,7 +15,7 @@ import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
 import { IError, IPlayerInfo, IProgress, ITouchOther } from "./types";
 
-import "./App.scss";
+import "./App.css";
 
 window.Peer = Peer;
 
