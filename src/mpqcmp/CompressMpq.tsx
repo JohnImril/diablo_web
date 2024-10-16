@@ -3,6 +3,8 @@ import compress from "./compress";
 import { IProgress } from "../types";
 import LoadingComponent from "../components/LoadingComponent/LoadingComponent";
 
+import "./CompressMpq.css";
+
 interface IProps {
 	file: File | null;
 	setCompressFile: (file: File | null) => void;

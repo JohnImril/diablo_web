@@ -1,5 +1,7 @@
 import { IFileSystem, IPlayerInfo } from "../../types";
 
+import "./SaveList.css";
+
 const SaveList: React.FC<{
 	saveNames: Record<string, IPlayerInfo | null>;
 	fs: Promise<IFileSystem>;

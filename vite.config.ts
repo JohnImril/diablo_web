@@ -6,13 +6,6 @@ import packageJson from "./package.json";
 
 export default defineConfig({
 	base: "/diablo_web/",
-	css: {
-		preprocessorOptions: {
-			scss: {
-				api: 'modern',
-			},
-		},
-	},
 	plugins: [
 		react(),
 		wasm(),

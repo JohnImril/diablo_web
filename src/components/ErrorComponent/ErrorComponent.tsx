@@ -1,5 +1,7 @@
 import { IError } from "../../types";
 
+import "./ErrorComponent.css";
+
 const ErrorComponent: React.FC<{
 	error: IError;
 	reportLink: string;
