@@ -1,6 +1,6 @@
 body,
 #root,
-.app {
+.App {
 	overflow: hidden;
 	position: absolute;
 	left: 0;
@@ -9,16 +9,16 @@ body,
 	bottom: 0;
 }
 
-.app {
+.App {
 	background-color: #000;
 }
 
-.app--dropping {
+.App.dropping {
 	background-color: #111;
 }
 
-.app__body,
-.app__body-v {
+.Body,
+.BodyV {
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -27,7 +27,7 @@ body,
 	width: calc(400vh / 3);
 }
 
-.app__body .app__inner {
+.Body .inner {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -36,7 +36,7 @@ body,
 }
 
 @media (max-aspect-ratio: 640/480) {
-	.app__body {
+	.Body {
 		left: 0;
 		right: 0;
 		width: auto;
@@ -44,19 +44,19 @@ body,
 		height: 75vw;
 	}
 
-	.app__body-v {
+	.BodyV {
 		left: 0;
 		right: 0;
 		width: auto;
 	}
 }
 
-.app__body-v {
+.BodyV {
 	pointer-events: none;
 }
 
 @media (min-aspect-ratio: 3/1) {
-	.app--keyboard .app__body .app__inner {
+	.App.keyboard .Body .inner {
 		position: absolute;
 		left: 50%;
 		top: 50%;
@@ -66,18 +66,18 @@ body,
 	}
 }
 
-.app canvas {
+.App canvas {
 	width: 100%;
 	height: 100%;
 	cursor: none;
 	visibility: hidden;
 }
 
-.app--started canvas {
+.App.started canvas {
 	visibility: visible;
 }
 
-.app__keyboard {
+.App .keyboard {
 	position: absolute;
 	pointer-events: auto;
 	background: rgba(0, 0, 0, 0);
@@ -89,29 +89,29 @@ body,
 	cursor: none;
 }
 
-.app__keyboard::selection {
+.App .keyboard::selection {
 	background: rgba(0, 0, 0, 0);
 	color: rgba(0, 0, 0, 0);
 }
 
-.app--keyboard .app__keyboard {
+.App.keyboard .keyboard {
 	display: block;
 }
 
-.app a,
-.app .link {
+.App a,
+.App .link {
 	display: inline-block;
 	color: rgb(112, 112, 255);
 	text-decoration: none;
 	cursor: pointer;
 }
 
-.app a:hover,
-.app .link:hover {
+.App a:hover,
+.App .link:hover {
 	text-decoration: underline;
 }
 
-.app__touch-ui {
+.App .touch-ui {
 	display: none;
 	pointer-events: none;
 	position: absolute;
@@ -120,7 +120,7 @@ body,
 	width: 25vh;
 }
 
-.app__touch-ui .app__touch-button {
+.App .touch-ui .touch-button {
 	position: absolute;
 	left: 50%;
 	background-color: #444;
@@ -129,77 +129,77 @@ body,
 	mask-size: 100% 100%;
 }
 
-.app__touch-ui .app__touch-button--active {
+.App .touch-ui .touch-button.active {
 	background-color: #fff;
 }
 
-.app__touch-ui .app__touch-button--0 {
+.App .touch-ui .touch-button-0 {
 	top: 15vh;
 }
 
-.app__touch-ui .app__touch-button--1 {
+.App .touch-ui .touch-button-1 {
 	top: 35vh;
 }
 
-.app__touch-ui .app__touch-button--2 {
+.App .touch-ui .touch-button-2 {
 	top: 55vh;
 }
 
-.app__touch-ui .app__touch-button--3 {
+.App .touch-ui .touch-button-3 {
 	top: 70vh;
 	left: 5vw;
 }
 
-.app__touch-ui .app__touch-button--4 {
+.App .touch-ui .touch-button-4 {
 	top: 70vh;
 	left: 11vw;
 }
 
-.app__touch-ui .app__touch-button--5 {
+.App .touch-ui .touch-button-5 {
 	top: 85vh;
 	left: 5vw;
 }
 
-.app__touch-ui .app__touch-button--6 {
+.App .touch-ui .touch-button-6 {
 	top: 85vh;
 	left: 11vw;
 }
 
-.app__touch-ui--mods {
+.App .touch-ui.touch-mods {
 	left: 0;
 }
 
-.app__touch-ui--mods .app__touch-button {
+.App .touch-ui.touch-mods .touch-button {
 	width: 15vh;
 	height: 15vh;
 	border-radius: 10vh;
 }
 
-.app__touch-ui--mods .app__touch-button--0 {
+.App .touch-ui.touch-mods .touch-button-0 {
 	mask-image: url(./icons/move.svg);
 }
 
-.app__touch-ui--mods .app__touch-button--1 {
+.App .touch-ui.touch-mods .touch-button-1 {
 	mask-image: url(./icons/rmb.svg);
 }
 
-.app__touch-ui--mods .app__touch-button--2 {
+.App .touch-ui.touch-mods .touch-button-2 {
 	mask-image: url(./icons/shift.svg);
 }
 
-.app__touch-ui--mods .app__touch-button--3 {
+.App .touch-ui.touch-mods .touch-button-3 {
 	mask-image: url(./icons/f5.svg);
 }
 
-.app__touch-ui--mods .app__touch-button--4 {
+.App .touch-ui.touch-mods .touch-button-4 {
 	mask-image: url(./icons/f6.svg);
 }
 
-.app__touch-ui--belt {
+.App .touch-ui.touch-belt {
 	right: 0;
 }
 
-.app__touch-ui--belt .app__touch-button {
+.App .touch-ui.touch-belt .touch-button {
 	width: 12vh;
 	height: 12vh;
 	font-size: 1vh;
@@ -209,7 +209,7 @@ body,
 	border: 2px solid #444;
 }
 
-.app__touch-ui--belt .app__touch-button canvas {
+.App .touch-ui.touch-belt .touch-button canvas {
 	position: absolute;
 	left: 5%;
 	top: 5%;
@@ -217,7 +217,7 @@ body,
 	height: 90%;
 }
 
-.app__touch-ui--belt .app__touch-button::after {
+.App .touch-ui.touch-belt .touch-button::after {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -228,14 +228,14 @@ body,
 	box-shadow: inset 0 0 1em 1.5em #000;
 }
 
-.app__touch-ui--fkeys-left {
+.App .touch-ui.fkeys-left {
 	left: 0;
 	top: auto;
 	bottom: 0;
 	height: 35vh;
 }
 
-.app__touch-ui--fkeys-left .app__touch-button {
+.App .touch-ui.fkeys-left .touch-button {
 	width: 15vh;
 	height: 15vh;
 	position: absolute;
@@ -246,22 +246,22 @@ body,
 	mask-size: 100% 100%;
 }
 
-.app__touch-ui--fkeys-left .app__touch-button--active {
+.App .touch-ui.fkeys-left .touch-button.active {
 	background-color: #fff;
 }
 
-.app__touch-ui--fkeys-left .app__touch-button--3 {
+.App .touch-ui.fkeys-left .touch-button-3 {
 	top: 0;
 	transform: translate(-50%, 0);
 	mask-image: url(./icons/f5.svg);
 }
 
-.app__touch-ui--fkeys-left .app__touch-button--4 {
+.App .touch-ui.fkeys-left .touch-button-4 {
 	top: 60%;
 	mask-image: url(./icons/f6.svg);
 }
 
-.app__touch-ui--fkeys-right {
+.App .touch-ui.fkeys-right {
 	left: auto;
 	top: auto;
 	right: 0;
@@ -269,7 +269,7 @@ body,
 	height: 35vh;
 }
 
-.app__touch-ui--fkeys-right .app__touch-button {
+.App .touch-ui.fkeys-right .touch-button {
 	width: 15vh;
 	height: 15vh;
 	position: absolute;
@@ -280,107 +280,107 @@ body,
 	mask-size: 100% 100%;
 }
 
-.app__touch-ui--fkeys-right .app__touch-button--active {
+.App .touch-ui.fkeys-right .touch-button.active {
 	background-color: #fff;
 }
 
-.app__touch-ui--fkeys-right .app__touch-button--5 {
+.App .touch-ui.fkeys-right .touch-button-5 {
 	top: 0;
 	transform: translate(-50%, 0);
 	mask-image: url(./icons/f7.svg);
 }
 
-.app__touch-ui--fkeys-right .app__touch-button--6 {
+.App .touch-ui.fkeys-right .touch-button-6 {
 	top: 60%;
 	mask-image: url(./icons/f8.svg);
 }
 
-.app--touch .app__touch-ui {
+.App.touch .touch-ui {
 	display: block;
 }
 
-.app--touch.app--keyboard .app__touch-ui {
+.App.touch.keyboard .touch-ui {
 	display: none;
 }
 
 @media (max-aspect-ratio: 880/480) {
-	.app__touch-ui {
+	.App .touch-ui {
 		width: calc(50vw - 200vh / 3);
 	}
 }
 
 @media (max-aspect-ratio: 832/480) {
-	.app__touch-ui {
+	.App .touch-ui {
 		width: 20vh;
 	}
 }
 
 @media (max-aspect-ratio: 640/480) {
-	.app__touch-ui {
+	.App .touch-ui {
 		width: auto;
 		height: 20vw;
 	}
 
-	.app__touch-ui .app__touch-button {
+	.App .touch-ui .touch-button {
 		top: 55%;
 	}
 
-	.app__touch-ui .app__touch-button--0 {
+	.App .touch-ui .touch-button-0 {
 		left: 16.7vw;
 	}
 
-	.app__touch-ui .app__touch-button--1 {
+	.App .touch-ui .touch-button-1 {
 		left: 50vw;
 	}
 
-	.app__touch-ui .app__touch-button--2 {
+	.App .touch-ui .touch-button-2 {
 		left: 83.3vw;
 	}
 
-	.app__touch-ui--mods {
+	.App .touch-ui.touch-mods {
 		top: auto;
 		right: 0;
 	}
 
-	.app__touch-ui--mods .app__touch-button {
+	.App .touch-ui.touch-mods .touch-button {
 		width: 20vw;
 		height: 20vw;
 		border-radius: 10vw;
 	}
 
-	.app__touch-ui--belt {
+	.App .touch-ui.touch-belt {
 		bottom: auto;
 		left: 0;
 	}
 
-	.app__touch-ui--belt .app__touch-button {
+	.App .touch-ui.touch-belt .touch-button {
 		width: 14vw;
 		height: 14vw;
 		font-size: 1vw;
 	}
 
-	.app__touch-ui--fkeys-left {
+	.App .touch-ui.fkeys-left {
 		left: 0;
 		bottom: 15vh;
 		width: 50%;
 		height: 12vh;
 	}
 
-	.app__touch-ui--fkeys-left .app__touch-button {
+	.App .touch-ui.fkeys-left .touch-button {
 		height: 12vh;
 		width: 12vh;
 	}
 
-	.app__touch-ui--fkeys-left .app__touch-button--3 {
+	.App .touch-ui.fkeys-left .touch-button-3 {
 		left: 25%;
 	}
 
-	.app__touch-ui--fkeys-left .app__touch-button--4 {
+	.App .touch-ui.fkeys-left .touch-button-4 {
 		top: 50%;
 		left: 75%;
 	}
 
-	.app__touch-ui--fkeys-right {
+	.App .touch-ui.fkeys-right {
 		left: auto;
 		right: 0;
 		bottom: 15vh;
@@ -388,29 +388,29 @@ body,
 		height: 12vh;
 	}
 
-	.app__touch-ui--fkeys-right .app__touch-button {
+	.App .touch-ui.fkeys-right .touch-button {
 		height: 12vh;
 		width: 12vh;
 	}
 
-	.app__touch-ui--fkeys-right .app__touch-button--5 {
+	.App .touch-ui.fkeys-right .touch-button-5 {
 		left: 25%;
 	}
 
-	.app__touch-ui--fkeys-right .app__touch-button--6 {
+	.App .touch-ui.fkeys-right .touch-button-6 {
 		top: 50%;
 		left: 75%;
 	}
 }
 
 @media (max-aspect-ratio: 640/736) {
-	.app__touch-ui {
+	.App .touch-ui {
 		height: calc(50vh - 75vw / 2);
 	}
 }
 
 @media (max-aspect-ratio: 640/800) {
-	.app__touch-ui {
+	.App .touch-ui {
 		height: 35vw;
 	}
 }

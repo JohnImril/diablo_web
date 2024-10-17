@@ -1,4 +1,4 @@
-.loading-component {
+.loading {
 	color: #888;
 	font-size: 32px;
 	text-align: center;
@@ -9,7 +9,7 @@
 	transform: translate(-50%, -50%);
 }
 
-.loading-component__progress {
+.loading progress {
 	display: block;
 	margin-top: 16px;
 	width: 100%;
@@ -19,16 +19,16 @@
 	position: relative;
 }
 
-.loading-component__progress::-webkit-progress-bar {
+.loading progress::-webkit-progress-bar {
 	background: transparent;
 }
 
-.loading-component__progress::-webkit-progress-value {
+.loading progress::-webkit-progress-value {
 	background: linear-gradient(to top, #ff0000, #ff4d4d);
 	border-radius: 4px;
 }
 
-.loading-component__progress::-moz-progress-bar {
+.loading progress::-moz-progress-bar {
 	background: linear-gradient(to top, #ff0000, #ff4d4d);
 	border-radius: 4px;
 }
