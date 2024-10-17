@@ -11,21 +11,21 @@ const SaveList: React.FC<{
 }> = ({ saveNames, fs, updateSaves, setShowSaves, start }) => {
 	const plrClass = ["Warrior", "Rogue", "Sorcerer"];
 	return (
-		<div className="start">
-			<ul className="saveList">
+		<div className="save-list">
+			<ul className="save-list__items">
 				{Object.entries(saveNames).map(([name, info]) => (
-					<li key={name}>
-						<div>
-							<div>{name}</div>
+					<li key={name} className="save-list__item">
+						<div className="save-list__item-info">
+							<div className="save-list__item-name">{name}</div>
 							{info ? (
-								<div className="info">
+								<div className="save-list__player-info">
 									{info.name} (lv. {info.level} {plrClass[info.cls]})
 								</div>
 							) : null}
 						</div>
-						<div className="btn">
+						<div className="save-list__buttons">
 							<div
-								className="btnDownload"
+								className="save-list__button--download"
 								onClick={() => fs.then((fsInstance: any) => fsInstance.download(name))}
 							>
 								<svg
@@ -39,7 +39,7 @@ const SaveList: React.FC<{
 								</svg>
 							</div>
 							<div
-								className="btnRemove"
+								className="save-list__button--remove"
 								onClick={() => {
 									if (window.confirm(`Are you sure you want to delete ${name}?`)) {
 										(async () => {
@@ -65,8 +65,8 @@ const SaveList: React.FC<{
 					</li>
 				))}
 			</ul>
-			<form>
-				<label htmlFor="loadFile" className="startButton">
+			<form className="save-list__form">
+				<label htmlFor="loadFile" className="save-list__button save-list__button--upload">
 					Upload Save
 				</label>
 				<input
@@ -82,7 +82,7 @@ const SaveList: React.FC<{
 					}}
 				/>
 			</form>
-			<div className="startButton" onClick={() => setShowSaves(false)}>
+			<div className="save-list__button save-list__button--back" onClick={() => setShowSaves(false)}>
 				Back
 			</div>
 		</div>
