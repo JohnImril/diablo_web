@@ -626,32 +626,32 @@ const App: React.FC = () => {
 
 	return (
 		<div
-			className={classNames("App", {
-				touch: touchControls.current,
-				started,
-				dropping,
-				keyboard: !!showKeyboard.current,
+			className={classNames("app", {
+				"app--touch": touchControls.current,
+				"app--started": started,
+				"app--dropping": dropping,
+				"app--keyboard": !!showKeyboard.current,
 			})}
 			ref={elementRef}
 		>
-			<div className="touch-ui touch-mods">
+			<div className="app__touch-ui app__touch-ui--mods">
 				{Array.from({ length: 3 }).map((_, i) => (
 					<div
 						key={`touch-mod-${i}`}
-						className={classNames("touch-button", `touch-button-${i}`, {
-							active: touchMods.current[i],
+						className={classNames("app__touch-button", `app__touch-button--${i}`, {
+							"app__touch-button--active": touchMods.current[i],
 						})}
 						ref={(el) => (touchButtons.current[i] = el!)}
 					/>
 				))}
 			</div>
-			<div className="touch-ui touch-belt">
+			<div className="app__touch-ui app__touch-ui--belt">
 				{Array.from({ length: 3 }).map((_, i) => {
 					const idx = i + 3;
 					return (
 						<div
 							key={`touch-belt-${idx}`}
-							className={classNames("touch-button", `touch-button-${i}`)}
+							className={classNames("app__touch-button", `app__touch-button--${i}`)}
 							ref={(el) => {
 								touchButtons.current[idx] = el!;
 								if (el) {
@@ -668,36 +668,36 @@ const App: React.FC = () => {
 					);
 				})}
 			</div>
-			<div className="touch-ui fkeys-left">
+			<div className="app__touch-ui app__touch-ui--fkeys-left">
 				{Array.from({ length: 2 }).map((_, i) => {
 					const idx = i + 6;
 					return (
 						<div
 							key={`fkeys-left-${idx}`}
-							className={classNames("touch-button", `touch-button-${idx - 3}`)}
+							className={classNames("app__touch-button", `app__touch-button--${idx - 3}`)}
 							ref={(el) => (touchButtons.current[idx] = el!)}
 						/>
 					);
 				})}
 			</div>
-			<div className="touch-ui fkeys-right">
+			<div className="app__touch-ui app__touch-ui--fkeys-right">
 				{Array.from({ length: 2 }).map((_, i) => {
 					const idx = i + 8;
 					return (
 						<div
 							key={`fkeys-right-${idx}`}
-							className={classNames("touch-button", `touch-button-${idx - 3}`)}
+							className={classNames("app__touch-button", `app__touch-button--${idx - 3}`)}
 							ref={(el) => (touchButtons.current[idx] = el!)}
 						/>
 					);
 				})}
 			</div>
-			<div className="Body">
-				<div className="inner">
+			<div className="app__body">
+				<div className="app__inner">
 					{!error && <canvas ref={canvasRef} width={640} height={480} />}
 					<input
 						type="text"
-						className="keyboard"
+						className="app__keyboard"
 						id="virtual-keyboard-input"
 						onChange={() => onKeyboardInner(0)}
 						onBlur={() => onKeyboardInner(1)}
@@ -707,7 +707,7 @@ const App: React.FC = () => {
 					/>
 				</div>
 			</div>
-			<div className="BodyV">
+			<div className="app__body-v">
 				{showSaves && typeof saveNames === "object" && (
 					<SaveList
 						saveNames={saveNames as Record<string, IPlayerInfo | null>}
