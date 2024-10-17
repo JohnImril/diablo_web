@@ -1,12 +1,18 @@
-.start-screen {
+.start {
 	position: absolute;
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
+}
+
+.start {
 	max-width: 90%;
 	max-height: 90%;
 	overflow-y: auto;
 	pointer-events: auto;
+}
+
+.start {
 	border: 1px solid #888;
 	padding: 12px;
 	color: #fff;
@@ -15,11 +21,11 @@
 	background: #000;
 }
 
-.start-screen__description {
+.start p {
 	margin: 10px 0;
 }
 
-.start-screen__button {
+.start .startButton {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
@@ -32,13 +38,6 @@
 	width: 8em;
 }
 
-.start-screen__button:hover {
+.start .startButton:hover {
 	background-color: #111;
-}
-
-.start-screen__compress-link {
-	display: inline-block;
-	color: rgb(112, 112, 255);
-	text-decoration: none;
-	cursor: pointer;
 }

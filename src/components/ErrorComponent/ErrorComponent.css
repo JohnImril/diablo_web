@@ -1,4 +1,4 @@
-.error-component {
+.error {
 	display: block;
 	border: 1px solid #800;
 	background: #300;
@@ -16,21 +16,21 @@
 	pointer-events: auto;
 }
 
-.error-component:hover {
+.error:hover {
 	text-decoration: none;
 }
 
-.error-component__header {
+.error .header {
 	font-weight: bold;
 	font-size: 1.2em;
 	margin-bottom: 0.3em;
 }
 
-.error-component__body {
+.error .body {
 	font-family: monospace;
 }
 
-.error-component__footer {
+.error .footer {
 	margin-top: 0.5em;
 	font-size: 0.8em;
 }

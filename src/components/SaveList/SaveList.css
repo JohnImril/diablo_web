@@ -1,12 +1,18 @@
-.save-list {
+.start {
 	position: absolute;
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
+}
+
+.start {
 	max-width: 90%;
 	max-height: 90%;
 	overflow-y: auto;
 	pointer-events: auto;
+}
+
+.start {
 	border: 1px solid #888;
 	padding: 12px;
 	color: #fff;
@@ -15,7 +21,7 @@
 	background: #000;
 }
 
-.save-list__button {
+.start .startButton {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
@@ -28,49 +34,49 @@
 	width: 8em;
 }
 
-.save-list__button:hover {
+.start .startButton:hover {
 	background-color: #111;
 }
 
-.save-list__items {
+.start .saveList {
 	border: 1px solid #fff;
 	text-align: left;
 }
 
-.save-list__item {
+.start .saveList li {
 	padding: 0 6px;
 	display: flex;
 	gap: 4px;
 	justify-content: space-between;
 }
 
-.save-list__player-info {
+.start .saveList li .info {
 	color: #888;
 	overflow-wrap: break-word;
 }
 
-.save-list__buttons {
+.start .saveList li .btn {
 	display: flex;
 }
 
-.save-list__button--remove {
+.start .saveList li .btn .btnRemove {
 	color: #800;
 	cursor: pointer;
 }
 
-.save-list__button--remove:hover {
+.start .saveList li .btn .btnRemove:hover {
 	color: #f00;
 }
 
-.save-list__button--download {
+.start .saveList li .btn .btnDownload {
 	color: #888;
 	cursor: pointer;
 }
 
-.save-list__button--download:hover {
+.start .saveList li .btn .btnDownload:hover {
 	color: #fff;
 }
 
-.save-list__item:hover {
+.start .saveList li:hover {
 	background-color: #444;
 }

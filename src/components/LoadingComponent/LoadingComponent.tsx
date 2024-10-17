@@ -8,11 +8,9 @@ const LoadingComponent: React.FC<{
 	progress?: IProgress;
 }> = ({ title, progress }) => {
 	return (
-		<div className="loading-component">
-			<span className="loading-component__text">{progress?.text || title}</span>
-			{progress?.total && (
-				<progress className="loading-component__progress" value={progress.loaded} max={progress.total} />
-			)}
+		<div className="loading">
+			{progress?.text || title}
+			{progress?.total && <progress value={progress.loaded} max={progress.total} />}
 		</div>
 	);
 };

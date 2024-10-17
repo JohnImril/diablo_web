@@ -1,12 +1,18 @@
-.compress-mpq {
+.start {
 	position: absolute;
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
+}
+
+.start {
 	max-width: 90%;
 	max-height: 90%;
 	overflow-y: auto;
 	pointer-events: auto;
+}
+
+.start {
 	border: 1px solid #888;
 	padding: 12px;
 	color: #fff;
@@ -15,12 +21,11 @@
 	background: #000;
 }
 
-.compress-mpq__description,
-.compress-mpq__message {
+.start p {
 	margin: 10px 0;
 }
 
-.compress-mpq__button {
+.start .startButton {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
@@ -33,6 +38,6 @@
 	width: 8em;
 }
 
-.compress-mpq__button:hover {
+.start .startButton:hover {
 	background-color: #111;
 }
