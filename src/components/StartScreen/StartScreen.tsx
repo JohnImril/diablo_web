@@ -11,28 +11,42 @@ const StartScreen: React.FC<{
 	updateSaves: () => Promise<void>;
 }> = ({ hasSpawn, start, saveNames, setCompress, setShowSaves, updateSaves }) => {
 	return (
-		<div className="start">
-			<p>
+		<div className="start-screen">
+			<p className="start-screen__description">
 				This is a web port of the original Diablo game, based on source code reconstructed by GalaXyHaXz and
 				devilution team. The project page with information and links can be found over here{" "}
-				<a target="_blank" rel="noopener noreferrer" href="https://github.com/JohnImril/diablo_web">
+				<a
+					className="start-screen__link"
+					target="_blank"
+					rel="noopener noreferrer"
+					href="https://github.com/JohnImril/diablo_web"
+				>
 					https://github.com/JohnImril/diablo_web
 				</a>
 			</p>
-			<p>
+			<p className="start-screen__description">
 				If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button
 				below to start playing. The game can be purchased from{" "}
-				<a target="_blank" rel="noopener noreferrer" href="https://www.gog.com/game/diablo">
+				<a
+					className="start-screen__link"
+					target="_blank"
+					rel="noopener noreferrer"
+					href="https://www.gog.com/game/diablo"
+				>
 					GoG
 				</a>
 				.{" "}
-				<span className="link" onClick={() => setCompress(true)}>
+				<span className="start-screen__compress-link" onClick={() => setCompress(true)}>
 					Click here to compress the MPQ, greatly reducing its size.
 				</span>
 			</p>
-			{!hasSpawn && <p>Or you can play the shareware version for free (50MB download).</p>}
-			<form>
-				<label htmlFor="loadFile" className="startButton">
+			{!hasSpawn && (
+				<p className="start-screen__description">
+					Or you can play the shareware version for free (50MB download).
+				</p>
+			)}
+			<form className="start-screen__form">
+				<label htmlFor="loadFile" className="start-screen__button">
 					Select MPQ
 				</label>
 				<input
@@ -48,12 +62,12 @@ const StartScreen: React.FC<{
 					}}
 				/>
 			</form>
-			<div className="startButton" onClick={() => start()}>
+			<div className="start-screen__button" onClick={() => start()}>
 				Play Shareware
 			</div>
 			{!!saveNames && (
 				<div
-					className="startButton"
+					className="start-screen__button"
 					onClick={() => {
 						if (saveNames === true) {
 							updateSaves().then(() => setShowSaves((prev) => !prev));
