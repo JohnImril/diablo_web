@@ -201,7 +201,7 @@ const App: React.FC = () => {
 		if (index < 3) {
 			touchMods.current[index] = value;
 			if (touchButtons.current[index]) {
-				touchButtons.current[index]?.classList.toggle("active", value);
+				touchButtons.current[index]?.classList.toggle("app__touch-button--active", value);
 			}
 		} else if (use && touchBelt.current[index] >= 0) {
 			const now = performance.now();
@@ -217,7 +217,7 @@ const App: React.FC = () => {
 
 		if (!touchControls.current) {
 			touchControls.current = true;
-			elementRef.current?.classList.add("touch");
+			elementRef.current?.classList.add("app--touch");
 		}
 
 		const btn = touchButton.current;
@@ -338,7 +338,7 @@ const App: React.FC = () => {
 
 			if (touchControls.current) {
 				touchControls.current = false;
-				elementRef.current?.classList.remove("touch");
+				elementRef.current?.classList.remove("app--touch");
 			}
 
 			const { x, y } = mousePos(e);
@@ -530,7 +530,7 @@ const App: React.FC = () => {
 							height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
 						};
 						maxKeyboard.current = rect[4];
-						elementRef.current.classList.add("keyboard");
+						elementRef.current.classList.add("app--keyboard");
 						Object.assign(keyboardRef.current.style, showKeyboard.current);
 						keyboardRef.current.focus();
 						if (keyboardRule) {
@@ -541,7 +541,7 @@ const App: React.FC = () => {
 						}
 					} else {
 						showKeyboard.current = false;
-						elementRef.current!.classList.remove("keyboard");
+						elementRef.current!.classList.remove("app--keyboard");
 						keyboardRef.current!.blur();
 						keyboardRef.current!.value = "";
 						keyboardNum.current = 0;
