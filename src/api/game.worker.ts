@@ -425,7 +425,10 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 		const name = spawn ? "spawn.mpq" : "diabdat.mpq";
 		if (!files!.has(name)) {
 			// This should never happen, but we do support remote loading
-			files!.set(name, new RemoteFile(`${import.meta.env.PUBLIC_URL}/${name}`));
+			files!.set(
+				name,
+				new RemoteFile(import.meta.env.BASE_URL === "/" ? `/${name}` : `${import.meta.env.BASE_URL}/${name}`)
+			);
 		}
 	}
 

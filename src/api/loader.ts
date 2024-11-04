@@ -1,6 +1,7 @@
 import Worker from "./game.worker.js?worker";
 import init_sound from "./sound";
 import load_spawn from "./load_spawn";
+import load_diabdat from "./load_diabdat";
 import webrtc_open from "./webrtc";
 import { IApi } from "../types";
 
@@ -64,6 +65,8 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 	const fs = await api.fs;
 	if (spawn && !mpq) {
 		await load_spawn(api, fs);
+	} else {
+		await load_diabdat(api, fs);
 	}
 
 	let context: CanvasRenderingContext2D | ImageBitmapRenderingContext | null = null;
