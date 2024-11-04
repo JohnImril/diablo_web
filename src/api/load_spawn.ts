@@ -14,7 +14,7 @@ export default async function load_spawn(api: IApi, fs: IFileSystem) {
 	}
 	if (!file) {
 		const spawn = await axios.request({
-			url: import.meta.env.BASE_URL + "/spawn.mpq",
+			url: import.meta.env.BASE_URL === "/" ? "/spawn.mpq" : import.meta.env.BASE_URL + "/spawn.mpq",
 			responseType: "arraybuffer",
 			onDownloadProgress: (e) => {
 				if (api.onProgress) {

@@ -484,7 +484,7 @@ const App: React.FC = () => {
 
 		setDropping(0);
 
-		const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
+		const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name)); // if you plan to play only from your server, then change this to true after adding your diabdat.mpq
 		setLoading(true);
 		setRetail(isRetail);
 
@@ -733,7 +733,7 @@ const App: React.FC = () => {
 						saveName={saveNameRef.current}
 					/>
 				)}
-				{loading && !started && <LoadingComponent title="Loading..." progress={progress} />}
+				{loading && !started && !error && <LoadingComponent title="Loading..." progress={progress} />}
 				{!started && !compress && !loading && !error && !showSaves && (
 					<StartScreen
 						hasSpawn={hasSpawn}
