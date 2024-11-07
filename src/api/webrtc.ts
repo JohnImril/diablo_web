@@ -56,6 +56,8 @@ class WebRTCServer {
 		this.onClose = onClose;
 		this.peer = new Peer(PeerID(name), Options);
 
+		console.log("server:", PeerID(name));
+
 		this.peer.on("connection", (conn) => this.onConnect(conn));
 		this.players = [];
 		this.myplr = 0;
@@ -238,6 +240,7 @@ class WebRTCClient {
 	) {
 		this.peer = new Peer(Options);
 		this.conn = this.peer.connect(PeerID(name));
+		console.log("client:", PeerID(name));
 
 		let needUnreg = true;
 
