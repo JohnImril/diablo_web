@@ -79,9 +79,6 @@ const StartScreen: React.FC<{
 					Manage Saves
 				</div>
 			)}
-			<div className="start-screen__button" onClick={() => start()}>
-				Beta: Play with my server
-			</div>
 		</div>
 	);
 };
