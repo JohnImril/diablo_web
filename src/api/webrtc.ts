@@ -22,7 +22,7 @@ interface PeerOptions {
 
 interface PeerData {
 	conn: DataConnection;
-	id?: number;
+	id?: number | null;
 	version?: number;
 }
 
@@ -38,9 +38,9 @@ class WebRTCServer {
 	onMessage: MessageHandler;
 	onClose: CloseHandler;
 	peer: Peer;
-	players: PeerData[] = [];
+	players: PeerData[];
 	seed: number;
-	myplr = 0;
+	myplr: number;
 
 	constructor(
 		version: number,
@@ -54,10 +54,13 @@ class WebRTCServer {
 		this.difficulty = difficulty;
 		this.onMessage = onMessage;
 		this.onClose = onClose;
-		this.seed = Math.floor(Math.random() * 2 ** 32);
 		this.peer = new Peer(PeerID(name), Options);
 
 		this.peer.on("connection", (conn) => this.onConnect(conn));
+		this.players = [];
+		this.myplr = 0;
+
+		this.seed = Math.floor(Math.random() * Math.pow(2, 32));
 
 		const onError = () => {
 			onMessage(
@@ -67,7 +70,8 @@ class WebRTCServer {
 				})
 			);
 			onClose();
-			this.cleanupPeer(onError, onOpen);
+			this.peer.off("error", onError);
+			this.peer.off("open", onOpen);
 		};
 
 		const onOpen = () => {
@@ -82,7 +86,8 @@ class WebRTCServer {
 				);
 				onMessage(write_packet(server_packet.connect, { id: 0 }));
 			}, 0);
-			this.cleanupPeer(onError, onOpen);
+			this.peer.off("error", onError);
+			this.peer.off("open", onOpen);
 		};
 
 		this.peer.on("error", onError);
@@ -94,101 +99,75 @@ class WebRTCServer {
 		conn.on("data", (packet) => {
 			const reader = new buffer_reader(packet as ArrayBuffer | Uint8Array);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
-
-			this.handleConnection(peer, conn, type, pkt);
-
+			switch (type.code) {
+				case client_packet.info.code:
+					peer.version = pkt.version;
+					break;
+				case client_packet.join_game.code:
+					if (peer.version !== this.version) {
+						conn.send(
+							write_packet(server_packet.join_reject, {
+								cookie: pkt.cookie,
+								reason: RejectionReason.JOIN_VERSION_MISMATCH,
+							})
+						);
+					} else if (pkt.name !== this.name) {
+						conn.send(
+							write_packet(server_packet.join_reject, {
+								cookie: pkt.cookie,
+								reason: RejectionReason.JOIN_GAME_NOT_FOUND,
+							})
+						);
+					} else if (pkt.password !== this.password) {
+						conn.send(
+							write_packet(server_packet.join_reject, {
+								cookie: pkt.cookie,
+								reason: RejectionReason.JOIN_INCORRECT_PASSWORD,
+							})
+						);
+					} else {
+						let i = 1;
+						while (i < MAX_PLRS && this.players[i]) {
+							++i;
+						}
+						if (i >= MAX_PLRS) {
+							conn.send(
+								write_packet(server_packet.join_reject, {
+									cookie: pkt.cookie,
+									reason: RejectionReason.JOIN_GAME_FULL,
+								})
+							);
+						} else {
+							this.players[i] = peer;
+							peer.id = i;
+							conn.send(
+								write_packet(server_packet.join_accept, {
+									cookie: pkt.cookie,
+									index: i,
+									seed: this.seed,
+									difficulty: this.difficulty,
+								})
+							);
+							this.send(0xff, write_packet(server_packet.connect, { id: i }));
+						}
+					}
+					break;
+				default:
+					if (peer.id != null) {
+						this.handle(peer.id, type.code, pkt);
+					} else {
+						return;
+					}
+			}
 			if (!reader.done()) {
-				throw new Error("packet too large");
+				throw Error("packet too large");
 			}
 		});
-
 		conn.on("close", () => {
 			if (peer.id != null) {
 				this.drop(peer.id, 0x40000006);
 			}
 		});
-	}
-
-	handleConnection(
-		peer: PeerData,
-		conn: DataConnection,
-		type: { code: number },
-		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IJoinPacket | IInfoPacket
-	) {
-		switch (type.code) {
-			case client_packet.info.code:
-				peer.version = (pkt as IInfoPacket).version;
-				break;
-			case client_packet.join_game.code:
-				this.processJoinRequest(peer, conn, pkt);
-				break;
-			default:
-				if (peer.id != null) {
-					this.handle(peer.id, type.code, pkt);
-				}
-		}
-	}
-
-	processJoinRequest(
-		peer: PeerData,
-		conn: DataConnection,
-		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IJoinPacket | IGameOptions | IInfoPacket
-	) {
-		if (peer.version !== this.version) {
-			conn.send(
-				write_packet(server_packet.join_reject, {
-					cookie: (pkt as IGameOptions).cookie,
-					reason: RejectionReason.JOIN_VERSION_MISMATCH,
-				})
-			);
-		} else if ((pkt as IGameOptions).name !== this.name) {
-			conn.send(
-				write_packet(server_packet.join_reject, {
-					cookie: (pkt as IGameOptions).cookie,
-					reason: RejectionReason.JOIN_GAME_NOT_FOUND,
-				})
-			);
-		} else if ((pkt as IGameOptions).password !== this.password) {
-			conn.send(
-				write_packet(server_packet.join_reject, {
-					cookie: (pkt as IGameOptions).cookie,
-					reason: RejectionReason.JOIN_INCORRECT_PASSWORD,
-				})
-			);
-		} else {
-			this.addPlayer(peer, conn, pkt);
-		}
-	}
-
-	addPlayer(
-		peer: PeerData,
-		conn: DataConnection,
-		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IJoinPacket | IGameOptions | IInfoPacket
-	) {
-		let i = 1;
-		while (i < MAX_PLRS && this.players[i]) {
-			++i;
-		}
-		if (i >= MAX_PLRS) {
-			conn.send(
-				write_packet(server_packet.join_reject, {
-					cookie: (pkt as IJoinPacket).cookie,
-					reason: RejectionReason.JOIN_GAME_FULL,
-				})
-			);
-		} else {
-			this.players[i] = peer;
-			peer.id = i;
-			conn.send(
-				write_packet(server_packet.join_accept, {
-					cookie: (pkt as IJoinPacket).cookie,
-					index: i,
-					seed: this.seed,
-					difficulty: this.difficulty,
-				})
-			);
-			this.send(0xff, write_packet(server_packet.connect, { id: i }));
-		}
 	}
 
 	send(mask: number, pkt: ArrayBuffer | Uint8Array) {
@@ -212,6 +191,7 @@ class WebRTCServer {
 			this.onClose();
 		} else if (this.players[id]) {
 			this.send(0xff, write_packet(server_packet.disconnect, { id, reason }));
+			this.players[id].id = null;
 			this.players[id].conn?.close();
 			this.players[id] = null as unknown as PeerData;
 		}
@@ -230,7 +210,10 @@ class WebRTCServer {
 				this.drop((pkt as IDisconnectPacket).id, (pkt as IDisconnectPacket).reason);
 				break;
 			case client_packet.message.code:
-				this.sendMessage(id, pkt as IMessagePacket);
+				this.send(
+					(pkt as IMessagePacket).id === 0xff ? ~(1 << id) : 1 << (pkt as IMessagePacket).id,
+					write_packet(server_packet.message, { id, payload: (pkt as IMessagePacket).payload })
+				);
 				break;
 			case client_packet.turn.code:
 				this.send(~(1 << id), write_packet(server_packet.turn, { id, turn: (pkt as ITurnPacket).turn }));
@@ -238,21 +221,6 @@ class WebRTCServer {
 			default:
 				throw new Error(`invalid packet ${code}`);
 		}
-	}
-
-	sendMessage(id: number, pkt: IMessagePacket) {
-		this.send(
-			pkt.id === 0xff ? ~(1 << id) : 1 << pkt.id,
-			write_packet(server_packet.message, {
-				id,
-				payload: pkt.payload,
-			})
-		);
-	}
-
-	cleanupPeer(onError: () => void, onOpen: () => void) {
-		this.peer.off("error", onError);
-		this.peer.off("open", onOpen);
 	}
 }
 

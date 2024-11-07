@@ -13,7 +13,6 @@ dist-ssr
 dev-dist/
 *.local
 *.tsbuildinfo
-public/diabdat.mpq
 
 # Editor directories and files
 .vscode/*
