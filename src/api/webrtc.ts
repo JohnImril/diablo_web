@@ -273,6 +273,7 @@ class WebRTCClient {
 		onClose: CloseHandler
 	) {
 		this.peer = new Peer(Options);
+		console.log("WebRTCClient: Created peer with ID:", this.peer.id);
 		this.conn = this.peer.connect(PeerID(name));
 		console.log("WebRTCClient: Connecting to server with ID:", PeerID(name));
 
