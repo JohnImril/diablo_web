@@ -21,6 +21,8 @@ interface PeerData {
 	version?: number;
 }
 
+const timestamp = () => `[${new Date().toISOString()}]`;
+
 const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
 const Options: PeerOptions = { port: 443, secure: true, debug: 3 };
 const MAX_PLRS = 4;
@@ -51,34 +53,19 @@ class WebRTCServer {
 		this.onClose = onClose;
 		this.peer = new Peer(PeerID(name), Options);
 
-		console.log("WebRTCServer: Created peer with ID:", this.peer.id);
-
-		console.log("server:", PeerID(name));
+		console.info(`${timestamp()} WebRTCServer: Created peer with ID: ${this.peer.id}`);
 
 		this.peer.on("connection", (conn) => this.onConnect(conn));
 		this.players = [];
 		this.myplr = 0;
 
 		this.seed = Math.floor(Math.random() * Math.pow(2, 32));
-		console.log("WebRTCServer: Generated seed:", this.seed);
+		console.debug(`${timestamp()} WebRTCServer: Generated seed: ${this.seed}`);
 
-		const onError = (err: any) => {
-			console.error("WebRTCServer: Peer error occurred", err);
-			onMessage(
-				write_packet(server_packet.join_reject, {
-					cookie,
-					reason: RejectionReason.CREATE_GAME_EXISTS,
-				})
-			);
-			onClose();
-			this.peer.off("error", onError);
-			this.peer.off("open", onOpen);
-		};
-
-		const onOpen = () => {
-			console.log("WebRTCServer: Peer opened successfully");
+		this.peer.on("open", () => {
+			console.info(`${timestamp()} WebRTCServer: Peer opened successfully with ID: ${this.peer.id}`);
 			setTimeout(() => {
-				console.log("WebRTCServer: Sending join_accept and connect packets");
+				console.debug(`${timestamp()} WebRTCServer: Sending join_accept and connect packets`);
 				onMessage(
 					write_packet(server_packet.join_accept, {
 						cookie,
@@ -89,31 +76,45 @@ class WebRTCServer {
 				);
 				onMessage(write_packet(server_packet.connect, { id: 0 }));
 			}, 0);
-			this.peer.off("error", onError);
-			this.peer.off("open", onOpen);
-		};
+		});
 
-		this.peer.on("error", onError);
-		this.peer.on("open", onOpen);
+		this.peer.on("error", (err) => {
+			console.error(`${timestamp()} WebRTCServer: Peer error occurred`, err);
+			onMessage(
+				write_packet(server_packet.join_reject, {
+					cookie,
+					reason: RejectionReason.CREATE_GAME_EXISTS,
+				})
+			);
+			onClose();
+		});
+
+		this.peer.on("disconnected", () => {
+			console.warn(`${timestamp()} WebRTCServer: Peer disconnected`);
+		});
+
+		this.peer.on("close", () => {
+			console.warn(`${timestamp()} WebRTCServer: Peer connection closed`);
+		});
 	}
 
 	onConnect(conn: DataConnection) {
-		console.log("WebRTCServer: New connection from peer:", conn.peer);
+		console.info(`${timestamp()} WebRTCServer: New connection from peer: ${conn.peer}`);
 		const peer: PeerData = { conn };
 		conn.on("data", (packet) => {
-			console.log("WebRTCServer: Received data from peer:", conn.peer);
+			console.debug(`${timestamp()} WebRTCServer: Received data from peer: ${conn.peer}`);
 			const reader = new buffer_reader(packet as ArrayBuffer | Uint8Array);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
-			console.log("WebRTCServer: Packet type:", type.code, "Packet content:", pkt);
+			console.debug(`${timestamp()} WebRTCServer: Packet type: ${type.code}, Packet content:`, pkt);
 			switch (type.code) {
 				case client_packet.info.code:
 					peer.version = pkt.version;
-					console.log("WebRTCServer: Peer version set to", peer.version);
+					console.info(`${timestamp()} WebRTCServer: Peer version set to ${peer.version}`);
 					break;
 				case client_packet.join_game.code:
-					console.log("WebRTCServer: Peer is attempting to join game");
+					console.info(`${timestamp()} WebRTCServer: Peer is attempting to join game`);
 					if (peer.version !== this.version) {
-						console.warn("WebRTCServer: Version mismatch");
+						console.warn(`${timestamp()} WebRTCServer: Version mismatch`);
 						conn.send(
 							write_packet(server_packet.join_reject, {
 								cookie: pkt.cookie,
@@ -121,7 +122,7 @@ class WebRTCServer {
 							})
 						);
 					} else if (pkt.name !== this.name) {
-						console.warn("WebRTCServer: Game name mismatch");
+						console.warn(`${timestamp()} WebRTCServer: Game name mismatch`);
 						conn.send(
 							write_packet(server_packet.join_reject, {
 								cookie: pkt.cookie,
@@ -129,7 +130,7 @@ class WebRTCServer {
 							})
 						);
 					} else if (pkt.password !== this.password) {
-						console.warn("WebRTCServer: Incorrect password");
+						console.warn(`${timestamp()} WebRTCServer: Incorrect password`);
 						conn.send(
 							write_packet(server_packet.join_reject, {
 								cookie: pkt.cookie,
@@ -142,7 +143,7 @@ class WebRTCServer {
 							++i;
 						}
 						if (i >= MAX_PLRS) {
-							console.warn("WebRTCServer: Game is full");
+							console.warn(`${timestamp()} WebRTCServer: Game is full`);
 							conn.send(
 								write_packet(server_packet.join_reject, {
 									cookie: pkt.cookie,
@@ -150,7 +151,7 @@ class WebRTCServer {
 								})
 							);
 						} else {
-							console.log("WebRTCServer: Peer accepted, assigned id:", i);
+							console.info(`${timestamp()} WebRTCServer: Peer accepted, assigned id: ${i}`);
 							this.players[i] = peer;
 							peer.id = i;
 							conn.send(
@@ -167,10 +168,10 @@ class WebRTCServer {
 					break;
 				default:
 					if (peer.id != null) {
-						console.log("WebRTCServer: Handling packet from peer");
+						console.debug(`${timestamp()} WebRTCServer: Handling packet from peer`);
 						this.handle(peer.id, type.code, pkt);
 					} else {
-						console.warn("WebRTCServer: Received data from unknown peer");
+						console.warn(`${timestamp()} WebRTCServer: Received data from unknown peer`);
 						return;
 					}
 			}
@@ -179,7 +180,7 @@ class WebRTCServer {
 			}
 		});
 		conn.on("close", () => {
-			console.log("WebRTCServer: Connection closed from peer:", conn.peer);
+			console.info(`${timestamp()} WebRTCServer: Connection closed from peer: ${conn.peer}`);
 			if (peer.id != null) {
 				this.drop(peer.id, 0x40000006);
 			}
@@ -187,23 +188,23 @@ class WebRTCServer {
 	}
 
 	send(mask: number, pkt: ArrayBuffer | Uint8Array) {
-		console.log("WebRTCServer: Sending packet with mask:", mask);
+		console.debug(`${timestamp()} WebRTCServer: Sending packet with mask: ${mask}`);
 		for (let i = 1; i < MAX_PLRS; ++i) {
 			if (mask & (1 << i) && this.players[i]) {
-				console.log("WebRTCServer: Sending to player", i);
+				console.debug(`${timestamp()} WebRTCServer: Sending to player ${i}`);
 				this.players[i].conn?.send(pkt);
 			}
 		}
 		if (mask & 1) {
-			console.log("WebRTCServer: Sending to local player");
+			console.debug(`${timestamp()} WebRTCServer: Sending to local player`);
 			this.onMessage(pkt);
 		}
 	}
 
 	drop(id: number, reason: number) {
-		console.log("WebRTCServer: Dropping player", id, "Reason:", reason);
+		console.info(`${timestamp()} WebRTCServer: Dropping player ${id}, Reason: ${reason}`);
 		if (id === 0) {
-			console.log("WebRTCServer: Dropping all players and closing server");
+			console.info(`${timestamp()} WebRTCServer: Dropping all players and closing server`);
 			for (let i = 1; i < MAX_PLRS; ++i) {
 				this.drop(i, 0x40000006);
 			}
@@ -223,18 +224,20 @@ class WebRTCServer {
 		code: number,
 		pkt: IDisconnectPacket | IMessagePacket | ITurnPacket | IInfoPacket | IJoinPacket
 	) {
-		console.log("WebRTCServer: Handling packet from player", id, "Code:", code, "Packet:", pkt);
+		console.debug(`${timestamp()} WebRTCServer: Handling packet from player ${id}, Code: ${code}, Packet:`, pkt);
 		switch (code) {
 			case client_packet.leave_game.code:
-				console.log("WebRTCServer: Player", id, "is leaving the game");
+				console.info(`${timestamp()} WebRTCServer: Player ${id} is leaving the game`);
 				this.drop(id, 3);
 				break;
 			case client_packet.drop_player.code:
-				console.log("WebRTCServer: Player", id, "requested to drop player", (pkt as IDisconnectPacket).id);
+				console.info(
+					`${timestamp()} WebRTCServer: Player ${id} requested to drop player ${(pkt as IDisconnectPacket).id}`
+				);
 				this.drop((pkt as IDisconnectPacket).id, (pkt as IDisconnectPacket).reason);
 				break;
 			case client_packet.message.code:
-				console.log("WebRTCServer: Message from player", id);
+				console.debug(`${timestamp()} WebRTCServer: Message from player ${id}`);
 				this.send(
 					(pkt as IMessagePacket).id === 0xff ? ~(1 << id) : 1 << (pkt as IMessagePacket).id,
 					write_packet(server_packet.message, {
@@ -244,7 +247,7 @@ class WebRTCServer {
 				);
 				break;
 			case client_packet.turn.code:
-				console.log("WebRTCServer: Turn update from player", id);
+				console.debug(`${timestamp()} WebRTCServer: Turn update from player ${id}`);
 				this.send(
 					~(1 << id),
 					write_packet(server_packet.turn, {
@@ -254,7 +257,7 @@ class WebRTCServer {
 				);
 				break;
 			default:
-				console.error(`WebRTCServer: Invalid packet code ${code}`);
+				console.error(`${timestamp()} WebRTCServer: Invalid packet code ${code}`);
 				throw new Error(`invalid packet ${code}`);
 		}
 	}
@@ -262,7 +265,7 @@ class WebRTCServer {
 
 class WebRTCClient {
 	peer: Peer;
-	conn: DataConnection;
+	conn: DataConnection | undefined;
 	pending: (ArrayBuffer | Uint8Array)[] | null = [];
 	myplr?: number;
 
@@ -272,25 +275,33 @@ class WebRTCClient {
 		onMessage: MessageHandler,
 		onClose: CloseHandler
 	) {
-		this.peer = new Peer(Options);
-		console.log("WebRTCClient: Created peer with ID:", this.peer.id);
-		this.conn = this.peer.connect(PeerID(name));
-		console.log("WebRTCClient: Connecting to server with ID:", PeerID(name));
+		function generateGUID() {
+			return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
+				const random = (Math.random() * 16) | 0;
+				const value = char === "x" ? random : (random & 0x3) | 0x8;
+				return value.toString(16);
+			});
+		}
+
+		const guid = generateGUID();
+		console.info(`${timestamp()} WebRTCClient: Generated GUID: ${guid}`);
+
+		this.peer = new Peer(guid, Options);
+		console.info(`${timestamp()} WebRTCClient: Created peer with ID: ${this.peer.id}`);
 
 		let needUnreg = true;
 
 		const unreg = () => {
 			if (!needUnreg) return;
 			needUnreg = false;
-			console.log("WebRTCClient: Unregistering event handlers");
+			console.info(`${timestamp()} WebRTCClient: Unregistering event handlers`);
 			this.peer.off("error", onError);
-			this.conn.off("error", onError);
-			this.conn.off("open", onOpen);
+			this.peer.off("open", onPeerOpen);
 			clearTimeout(timeout);
 		};
 
 		const onError = (err: any) => {
-			console.error("WebRTCClient: Error occurred", err);
+			console.error(`${timestamp()} WebRTCClient: Error occurred`, err);
 			onMessage(
 				write_packet(server_packet.join_reject, {
 					cookie,
@@ -302,9 +313,9 @@ class WebRTCClient {
 		};
 
 		const onOpen = () => {
-			console.log("WebRTCClient: Connection opened");
-			this.conn.send(write_packet(client_packet.info, { version }));
-			this.conn.send(
+			console.info(`${timestamp()} WebRTCClient: Connection opened`);
+			this.conn?.send(write_packet(client_packet.info, { version }));
+			this.conn?.send(
 				write_packet(client_packet.join_game, {
 					cookie,
 					name,
@@ -312,56 +323,69 @@ class WebRTCClient {
 				})
 			);
 			for (const pkt of this.pending!) {
-				this.conn.send(pkt);
+				this.conn?.send(pkt);
 			}
 			this.pending = null;
-			this.conn.off("open", onOpen);
+			this.conn?.off("open", onOpen);
 		};
 
-		const timeout = setTimeout(onError, 10000);
-		this.peer.on("error", onError);
-		this.conn.on("error", onError);
-		this.conn.on("open", onOpen);
+		const onPeerOpen = (id: string) => {
+			console.info(`${timestamp()} WebRTCClient: Peer opened with ID: ${id}`);
+			this.conn = this.peer.connect(PeerID(name));
+			console.info(`${timestamp()} WebRTCClient: Connecting to server with ID: ${PeerID(name)}`);
 
-		this.conn.on("data", (data) => {
-			console.log("WebRTCClient: Received data from server");
-			unreg();
-			const reader = new buffer_reader(data as ArrayBuffer | Uint8Array);
-			const { type, packet: pkt } = read_packet(reader, server_packet);
-			console.log("WebRTCClient: Packet type:", type.code, "Packet content:", pkt);
-			switch (type.code) {
-				case server_packet.join_accept.code:
-					console.log("WebRTCClient: Join accepted, my player index is", (pkt as any).index);
-					this.myplr = pkt.index;
-					break;
-				case server_packet.join_reject.code:
-					console.warn("WebRTCClient: Join rejected, reason:", (pkt as any).reason);
-					onClose();
-					break;
-				case server_packet.disconnect.code:
-					console.warn("WebRTCClient: Disconnected, id:", (pkt as any).id);
-					if (pkt.id === "myplr") {
+			this.conn.on("error", onError);
+			this.conn.on("open", onOpen);
+
+			this.conn.on("iceStateChanged", (e) => {
+				console.debug(`${timestamp()} WebRTCClient: iceStateChanged:`, e);
+			});
+
+			this.conn.on("data", (data) => {
+				console.debug(`${timestamp()} WebRTCClient: Received data from server`);
+				unreg();
+				const reader = new buffer_reader(data as ArrayBuffer | Uint8Array);
+				const { type, packet: pkt } = read_packet(reader, server_packet);
+				console.debug(`${timestamp()} WebRTCClient: Packet type: ${type.code}, Packet content:`, pkt);
+				switch (type.code) {
+					case server_packet.join_accept.code:
+						console.info(`${timestamp()} WebRTCClient: Join accepted, my player index is ${pkt.index}`);
+						this.myplr = pkt.index;
+						break;
+					case server_packet.join_reject.code:
+						console.warn(`${timestamp()} WebRTCClient: Join rejected, reason: ${pkt.reason}`);
 						onClose();
-					}
-					break;
-				default:
-					console.log("WebRTCClient: Received packet of type", type.code);
-			}
-			onMessage(data as ArrayBuffer | Uint8Array);
-		});
-		this.conn.on("close", () => {
-			console.log("WebRTCClient: Connection closed");
-			onClose();
-		});
+						break;
+					case server_packet.disconnect.code:
+						console.warn(`${timestamp()} WebRTCClient: Disconnected, id: ${pkt.id}`);
+						if (pkt.id === "myplr") {
+							onClose();
+						}
+						break;
+					default:
+						console.debug(`${timestamp()} WebRTCClient: Received packet of type ${type.code}`);
+				}
+				onMessage(data as ArrayBuffer | Uint8Array);
+			});
+
+			this.conn.on("close", () => {
+				console.info(`${timestamp()} WebRTCClient: Connection closed`);
+				onClose();
+			});
+		};
+
+		const timeout = setTimeout(() => onError(new Error("Connection timeout")), 20000);
+		this.peer.on("open", onPeerOpen);
+		this.peer.on("error", onError);
 	}
 
 	send(packet: ArrayBuffer | Uint8Array) {
 		if (this.pending) {
-			console.log("WebRTCClient: Storing packet in pending queue");
+			console.debug(`${timestamp()} WebRTCClient: Storing packet in pending queue`);
 			this.pending.push(packet);
 		} else {
-			console.log("WebRTCClient: Sending packet");
-			this.conn.send(packet);
+			console.debug(`${timestamp()} WebRTCClient: Sending packet`);
+			this.conn?.send(packet);
 		}
 	}
 }
@@ -374,20 +398,20 @@ export default function webrtc_open(onMessage: MessageHandler) {
 
 	return {
 		send: function (packet: ArrayBuffer | Uint8Array) {
-			console.log("webrtc_open: Received packet to send");
+			console.debug(`${timestamp()} webrtc_open: Received packet to send`);
 			const reader = new buffer_reader(packet);
 			const { type, packet: pkt } = read_packet(reader, client_packet);
-			console.log("webrtc_open: Packet type:", type.code, "Packet content:", pkt);
+			console.debug(`${timestamp()} webrtc_open: Packet type: ${type.code}, Packet content:`, pkt);
 
 			switch (type.code) {
 				case client_packet.info.code:
 					version = pkt.version;
-					console.log("webrtc_open: Version set to", version);
+					console.info(`${timestamp()} webrtc_open: Version set to ${version}`);
 					break;
 				case client_packet.create_game.code:
-					console.log("webrtc_open: Creating game");
+					console.info(`${timestamp()} webrtc_open: Creating game`);
 					if (server || client) {
-						console.warn("webrtc_open: Already in a game, rejecting");
+						console.warn(`${timestamp()} webrtc_open: Already in a game, rejecting`);
 						onMessage(
 							write_packet(server_packet.join_reject, {
 								cookie: (pkt as IJoinPacket).cookie,
@@ -396,15 +420,15 @@ export default function webrtc_open(onMessage: MessageHandler) {
 						);
 					} else {
 						server = new WebRTCServer(version, pkt as IGameOptions, onMessage, () => {
-							console.log("webrtc_open: Server closed");
+							console.info(`${timestamp()} webrtc_open: Server closed`);
 							server = null;
 						});
 					}
 					break;
 				case client_packet.join_game.code:
-					console.log("webrtc_open: Joining game");
+					console.info(`${timestamp()} webrtc_open: Joining game`);
 					if (server || client) {
-						console.warn("webrtc_open: Already in a game, rejecting");
+						console.warn(`${timestamp()} webrtc_open: Already in a game, rejecting`);
 						onMessage(
 							write_packet(server_packet.join_reject, {
 								cookie: (pkt as IJoinPacket).cookie,
@@ -413,29 +437,29 @@ export default function webrtc_open(onMessage: MessageHandler) {
 						);
 					} else {
 						client = new WebRTCClient(version, pkt as IGameOptions, onMessage, () => {
-							console.log("webrtc_open: Client closed");
+							console.info(`${timestamp()} webrtc_open: Client closed`);
 							client = null;
 						});
 					}
 					break;
 				default:
 					if (server) {
-						console.log("webrtc_open: Forwarding packet to server");
+						console.debug(`${timestamp()} webrtc_open: Forwarding packet to server`);
 						server.handle(0, type.code, pkt);
 						if (type.code === client_packet.leave_game.code) {
-							console.log("webrtc_open: Leaving game as server");
+							console.info(`${timestamp()} webrtc_open: Leaving game as server`);
 							server = null;
 						}
 					} else if (client) {
-						console.log("webrtc_open: Forwarding packet to client");
+						console.debug(`${timestamp()} webrtc_open: Forwarding packet to client`);
 						client.send(packet);
 						if (type.code === client_packet.leave_game.code) {
-							console.log("webrtc_open: Leaving game as client");
+							console.info(`${timestamp()} webrtc_open: Leaving game as client`);
 							client = null;
 						}
 						return;
 					} else if (type.code !== client_packet.leave_game.code) {
-						console.error("webrtc_open: Invalid packet code", type.code);
+						console.error(`${timestamp()} webrtc_open: Invalid packet code ${type.code}`);
 						throw new Error(`invalid packet ${type.code}`);
 					}
 			}
