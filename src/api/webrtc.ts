@@ -319,7 +319,7 @@ class WebRTCClient {
 			});
 		};
 
-		const timeout = setTimeout(() => onError(new Error("Connection timeout")), 20000);
+		const timeout = setTimeout(() => onError(), 20000);
 		this.peer.on("open", onPeerOpen);
 		this.peer.on("error", onError);
 	}
