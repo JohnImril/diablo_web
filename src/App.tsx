@@ -641,7 +641,9 @@ const App: React.FC = () => {
 						className={classNames("app__touch-button", `app__touch-button--${i}`, {
 							"app__touch-button--active": touchMods.current[i],
 						})}
-						ref={(el) => (touchButtons.current[i] = el!)}
+						ref={(el) => {
+							touchButtons.current[i] = el;
+						}}
 					/>
 				))}
 			</div>
@@ -675,7 +677,9 @@ const App: React.FC = () => {
 						<div
 							key={`fkeys-left-${idx}`}
 							className={classNames("app__touch-button", `app__touch-button--${idx - 3}`)}
-							ref={(el) => (touchButtons.current[idx] = el!)}
+							ref={(el) => {
+								touchButtons.current[idx] = el;
+							}}
 						/>
 					);
 				})}
@@ -687,7 +691,9 @@ const App: React.FC = () => {
 						<div
 							key={`fkeys-right-${idx}`}
 							className={classNames("app__touch-button", `app__touch-button--${idx - 3}`)}
-							ref={(el) => (touchButtons.current[idx] = el!)}
+							ref={(el) => {
+								touchButtons.current[idx] = el;
+							}}
 						/>
 					);
 				})}
