@@ -18,10 +18,10 @@ I've modified the code to remove all dependencies and exposed the minimal requir
 
 ## Features
 
--   **Vite Build System**: Fast and efficient development with Vite.
--   **TypeScript**: Strongly typed code for better maintainability and error checking.
--   **Modernized Codebase**: Updated dependencies and refactored code for better performance and reliability.
--   **Compatible with Node 22**: Fixed the issues preventing the project from running on Node 22.
+- **Vite Build System**: Fast and efficient development with Vite.
+- **TypeScript**: Strongly typed code for better maintainability and error checking.
+- **Modernized Codebase**: Updated dependencies and refactored code for better performance and reliability.
+- **Compatible with Node 22**: Fixed the issues preventing the project from running on Node 22.
 
 ## Getting Started
 
@@ -60,6 +60,10 @@ The application should now be running on `http://localhost:5173/diablo_web/`.
 To build the project for production, run: `npm run build`
 
 The build artifacts will be stored in the `dist/` directory.
+
+## Deploying on Your Own Server
+
+If you want to deploy the project on your own server or hosting environment, consider using the [**diablo_web_simple**](https://github.com/JohnImril/diablo_web_simple) repository. This simplified version makes it easy to host the game without complex configurations.
 
 ## Contributing
 
