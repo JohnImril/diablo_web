@@ -2,32 +2,40 @@
 
 ![App Screenshot](./public/screenshot.png)
 
-This project is a web-based port of the original Diablo game. The goal of this project is to bring the classic experience of Diablo to the browser with a modern tech stack, including Vite and TypeScript.
+**Diablo Web** is a web-based port of the classic Diablo game, bringing the original atmosphere directly into your browser. The goal is to recreate the authentic Diablo experience using modern tools and technologies such as Vite and TypeScript.
 
-## Playing Diablo
+## Online Demo
 
-This project is hosted on [https://johnimril.github.io/diablo_web/](https://johnimril.github.io/diablo_web/) along with `spawn.mpq` from the shareware version (place it in the public folder to run locally). This allows the shareware version to be played anywhere, even on mobile phones. To play the full game, you must use your own `DIABDAT.MPQ` that you can obtain with the original copy of the game from [GoG](url=https://www.gog.com/game/diablo).
+A live demo of the project is available at: [https://johnimril.github.io/diablo_web/](https://johnimril.github.io/diablo_web/).
+
+To run the shareware version locally, place the `spawn.mpq` file (from the free shareware edition) into the `public` folder. This allows you to play the demo version of Diablo in your browser, even on mobile devices.
+
+For the full game experience, you’ll need your own `DIABDAT.MPQ` file obtained from a legitimate copy of the game, such as the one available on [GOG](https://www.gog.com/game/diablo). Simply place it in the appropriate directory before launching, and you’ll be able to enjoy the complete version directly in your browser.
 
 ## About the Project
 
-This project was initially based on the [DiabloWeb](https://github.com/d07RiV/diabloweb) repository by d07RiV. Due to compatibility issues with Node 22, I decided to fork and fix the original project, which can be found [here](https://github.com/JohnImril/diabloweb-beta). After successfully fixing the build and updating the packages, I chose to take it a step further by rewriting the project using Vite and TypeScript, which led to the creation of this repository.
+This project started as a fork of [DiabloWeb](https://github.com/d07RiV/diabloweb) by d07RiV. After encountering compatibility issues with Node.js 22, I fixed and updated the original code, resulting in a working fork that you can find [here](https://github.com/JohnImril/diabloweb-beta).
 
-This project also draws heavily from the work done on [devilution](https://github.com/diasurgical/devilution), which was instrumental in making Diablo 1 playable on web browsers through WebAssembly. The source code to build the WebAssembly modules is available [here](https://github.com/d07RiV/devilution).
+Following the successful update, I decided to rebuild the project from the ground up using Vite and TypeScript, which led to the creation of **Diablo Web**.
 
-I've modified the code to remove all dependencies and exposed the minimal required interface with JavaScript, allowing the game to be compiled into WebAssembly. Significant changes were made to event handling, particularly in the menus, to adapt to the JS model.
+The project also relies on the work done by the [devilution](https://github.com/diasurgical/devilution) community. Their efforts made it possible to run Diablo 1 in a browser via WebAssembly. The source code used to build the WebAssembly modules can be found [here](https://github.com/d07RiV/devilution).
 
-## Features
+During the development process, I removed unnecessary dependencies and streamlined the interface to enable successful compilation into WebAssembly. Significant changes were made to event handling—especially in the menus—to ensure seamless integration into the JavaScript environment.
 
-- **Vite Build System**: Fast and efficient development with Vite.
-- **TypeScript**: Strongly typed code for better maintainability and error checking.
-- **Modernized Codebase**: Updated dependencies and refactored code for better performance and reliability.
-- **Compatible with Node 22**: Fixed the issues preventing the project from running on Node 22.
+## Key Features
+
+- **Vite Integration**: Enjoy faster development and a simplified configuration process.
+- **TypeScript Support**: Benefit from static typing for better maintainability and fewer errors.
+- **Modernized Codebase**: Updated dependencies and improved performance and reliability.
+- **Node.js 22 Compatibility**: Issues preventing the project from running on modern Node versions have been resolved.
+- **Shareware and Full Game Support**: Quickly launch the demo version or load your full game files for the complete Diablo experience in the browser.
 
 ## Getting Started
 
 ### Prerequisites
 
-Ensure that you have Node.js (v22 or later) and npm installed on your machine.
+- Node.js (v22 or later)
+- npm (or your preferred package manager)
 
 ### Installation
 
@@ -37,7 +45,7 @@ Ensure that you have Node.js (v22 or later) and npm installed on your machine.
     git clone https://github.com/JohnImril/diablo_web.git
     ```
 
-2. Navigate to the project directory:
+2. Move into the project directory:
 
     ```bash
     cd diablo_web
@@ -49,26 +57,34 @@ Ensure that you have Node.js (v22 or later) and npm installed on your machine.
     npm install
     ```
 
-### Running the Project
+### Running in Development Mode
 
-Start the development server: `npm run dev`
+Start the development server with:
 
-The application should now be running on `http://localhost:5173/diablo_web/`.
+```bash
+npm run dev
+```
+
+The application will be available at: [http://localhost:5173/diablo_web/](http://localhost:5173/diablo_web/).
 
 ### Building for Production
 
-To build the project for production, run: `npm run build`
+To create a production-ready build, run:
 
-The build artifacts will be stored in the `dist/` directory.
+```bash
+npm run build
+```
+
+The compiled files will be located in the `dist/` directory.
 
 ## Deploying on Your Own Server
 
-If you want to deploy the project on your own server or hosting environment, consider using the [**diablo_web_simple**](https://github.com/JohnImril/diablo_web_simple) repository. This simplified version makes it easy to host the game without complex configurations.
+If you need a simpler configuration for hosting the game, check out the [**diablo_web_simple**](https://github.com/JohnImril/diablo_web_simple) repository. This streamlined version makes it easier to deploy without complex setups.
 
 ## Contributing
 
-Contributions are welcome! If you encounter any issues, feel free to open an issue or submit a pull request.
+Contributions are welcome! If you find a bug or have an idea for a new feature, feel free to open an issue or submit a pull request.
 
 ## Acknowledgements
 
-A special thanks to [d07RiV](https://github.com/d07RiV) for the original DiabloWeb project, which served as the foundation for this work. Without their effort, this project wouldn't have been possible. Additionally, thanks to the [devilution](https://github.com/diasurgical/devilution) team for their incredible work in making Diablo 1 accessible on modern platforms.
+Special thanks to [d07RiV](https://github.com/d07RiV) for the original DiabloWeb project, which laid the groundwork for this endeavor. Additional gratitude goes to the [devilution](https://github.com/diasurgical/devilution) team for their invaluable efforts in making Diablo 1 accessible on modern platforms.
