@@ -46,12 +46,12 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 		};
 	});
 
-	const vers = import.meta.env.VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
+	const vers = __APP_VERSION__.match(/(\d+)\.(\d+)\.(\d+)/);
 	const clientInfo = new Uint8Array(5);
 	clientInfo[0] = 0x31;
-	clientInfo[1] = parseInt(vers[3]);
-	clientInfo[2] = parseInt(vers[2]);
-	clientInfo[3] = parseInt(vers[1]);
+	clientInfo[1] = parseInt(vers![3]);
+	clientInfo[2] = parseInt(vers![2]);
+	clientInfo[3] = parseInt(vers![1]);
 	clientInfo[4] = 0;
 	socket.send(clientInfo);
 	return socket;

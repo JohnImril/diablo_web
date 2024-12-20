@@ -36,6 +36,6 @@ export default defineConfig({
 		}),
 	],
 	define: {
-		"import.meta.env.VERSION": JSON.stringify(packageJson.version),
+		__APP_VERSION__: JSON.stringify(packageJson.version),
 	},
 });
