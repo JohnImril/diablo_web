@@ -10,7 +10,7 @@ export function reportLink(e: IError, retail?: boolean) {
 [Please describe what you were doing before the error occurred]
 
 **App version:**
-DiabloWeb ${import.meta.env.VERSION} (${retail ? "Retail" : "Shareware"})
+DiabloWeb ${__APP_VERSION__} (${retail ? "Retail" : "Shareware"})
 
 **Error message:**
 

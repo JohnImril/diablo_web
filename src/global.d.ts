@@ -1,6 +1,5 @@
 import Peer from "peerjs";
 
-//TODO: refuse to declare
 declare global {
 	interface Window {
 		Peer: typeof Peer;
