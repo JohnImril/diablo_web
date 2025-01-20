@@ -1,19 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import classNames from "classnames";
-import { mapStackTrace } from "sourcemapped-stacktrace";
 import Peer from "peerjs";
 
-import getPlayerName from "./api/savefile";
 import load_game from "./api/loader";
-import { SpawnSizes } from "./api/load_spawn";
-import create_fs from "./fs";
-import { reportLink, isDropFile, getDropFile, findKeyboardRule } from "./utils";
 import CompressMpq from "./mpqcmp/CompressMpq";
 import SaveList from "./components/SaveList/SaveList";
 import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
 import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
-import { IError, IPlayerInfo, IProgress, ITouchOther } from "./types";
+import { useErrorHandling, useFileDrop, useInitFSAndSaves, useKeyboardRule } from "./hooks";
+import { IPlayerInfo, IProgress, ITouchOther } from "./types";
 
 import "./App.css";
 
@@ -23,35 +19,16 @@ const TOUCH_MOVE = 0;
 const TOUCH_RMB = 1;
 const TOUCH_SHIFT = 2;
 
-let keyboardRule: CSSStyleRule | null = null;
-try {
-	keyboardRule = findKeyboardRule();
-} catch (e) {
-	console.error(e);
-}
-
 const App: React.FC = () => {
 	const [started, setStarted] = useState(false);
 	const [loading, setLoading] = useState(false);
-	const [dropping, setDropping] = useState(0);
-	const [hasSpawn, setHasSpawn] = useState(false);
-	const [error, setError] = useState<IError | undefined>(undefined);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
-	const [saveNames, setSaveNames] = useState<boolean | Record<string, IPlayerInfo | null>>(false);
 	const [showSaves, setShowSaves] = useState(false);
 	const [compress, setCompress] = useState(false);
 	const [compressFile, setCompressFile] = useState<File | null>(null);
 	const [retail, setRetail] = useState<boolean | undefined>(undefined);
 
 	const cursorPos = useRef({ x: 0, y: 0 });
-	const touchControls = useRef(false);
-	const touchButtons = useRef<Array<HTMLDivElement | null>>(Array(10).fill(null));
-	const touchCtx = useRef<Array<CanvasRenderingContext2D | null>>(Array(6).fill(null));
-	const touchMods = useRef<boolean[]>(Array(6).fill(false));
-	const touchBelt = useRef<number[]>(Array(6).fill(-1));
-	const maxKeyboard = useRef(0);
-
-	const fs = useRef(create_fs());
 	const game = useRef<any>(null);
 	const elementRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,53 +37,23 @@ const App: React.FC = () => {
 
 	const showKeyboard = useRef<boolean | React.CSSProperties>(false);
 	const keyboardNum = useRef(0);
+	const maxKeyboard = useRef(0);
+	const touchControls = useRef(false);
+	const touchButtons = useRef<Array<HTMLDivElement | null>>(Array(10).fill(null));
+	const touchCtx = useRef<Array<CanvasRenderingContext2D | null>>(Array(6).fill(null));
+	const touchMods = useRef<boolean[]>(Array(6).fill(false));
+	const touchBelt = useRef<number[]>(Array(6).fill(-1));
 	const beltTime = useRef<number | undefined>(undefined);
 	const panPos = useRef<{ x: number; y: number } | undefined>(undefined);
 	const touchButton = useRef<ITouchOther | null>(null);
 	const touchCanvas = useRef<{ clientX: number; clientY: number } | null>(null);
 
-	const onError = async (message: string, stack?: string) => {
-		const errorObject: IError = { message };
-
-		if (saveNameRef.current) {
-			const fsInstance = await fs.current;
-			errorObject.save = await fsInstance.fileUrl(saveNameRef.current);
-		}
-
-		const updateErrorState = (mappedStack?: string[]) => {
-			setError((prevError) => {
-				if (!prevError) {
-					return {
-						...errorObject,
-						stack: mappedStack?.join("\n"),
-					};
-				}
-				return prevError;
-			});
-		};
-
-		if (stack) {
-			mapStackTrace(stack, (mappedStack) => updateErrorState(mappedStack));
-		} else {
-			updateErrorState();
-		}
-	};
-
-	const updateSaves = async () => {
-		return fs.current.then((fs) => {
-			const saves: Record<string, IPlayerInfo | null> = {};
-			[...fs.files.keys()]
-				.filter((name) => name.match(/\.sv$/i))
-				.forEach((name) => {
-					saves[name] = getPlayerName(fs.files.get(name)!.buffer, name);
-				});
-			setSaveNames(saves);
-		});
-	};
+	const { fsRef, hasSpawn, saveNames, updateSaves } = useInitFSAndSaves();
+	const keyboardRule = useKeyboardRule();
+	const { error, onError } = useErrorHandling(fsRef, saveNameRef);
 
 	const drawBelt = (idx: number, slot: number) => {
 		if (!canvasRef.current || !touchButtons.current[idx]) return;
-
 		touchBelt.current[idx] = slot;
 		if (slot >= 0) {
 			touchButtons.current[idx]!.style.display = "block";
@@ -120,7 +67,7 @@ const App: React.FC = () => {
 		return document.pointerLockElement === canvasRef.current;
 	};
 
-	const mousePos = (e: { clientX: number; clientY: number } | null) => {
+	const mousePos = useCallback((e: { clientX: number; clientY: number } | null) => {
 		const rect = canvasRef.current!.getBoundingClientRect();
 
 		if (pointerLocked()) {
@@ -144,7 +91,7 @@ const App: React.FC = () => {
 			x: Math.max(0, Math.min(x, 639)),
 			y: Math.max(0, Math.min(y, 479)),
 		};
-	};
+	}, []);
 
 	const mouseButton = (e: MouseEvent) => {
 		const buttonMap: Record<number, number> = {
@@ -175,7 +122,6 @@ const App: React.FC = () => {
 
 	const onKeyboardInner = (flags: number) => {
 		if (!showKeyboard.current || !keyboardRef.current) return;
-
 		const text = keyboardRef.current.value;
 		let valid = "";
 
@@ -197,7 +143,7 @@ const App: React.FC = () => {
 		game.current("text", valid, flags);
 	};
 
-	const setTouchMod = (index: number, value: boolean, use?: boolean) => {
+	const setTouchMod = useCallback((index: number, value: boolean, use?: boolean) => {
 		if (index < 3) {
 			touchMods.current[index] = value;
 			if (touchButtons.current[index]) {
@@ -210,121 +156,125 @@ const App: React.FC = () => {
 				beltTime.current = now;
 			}
 		}
-	};
+	}, []);
 
-	const updateTouchButton = (touches: TouchList, release: boolean) => {
-		let touchOther: ITouchOther | null = null;
+	const updateTouchButton = useCallback(
+		(touches: TouchList, release: boolean) => {
+			let newTouchButton: ITouchOther | null = null;
 
-		if (!touchControls.current) {
-			touchControls.current = true;
-			elementRef.current?.classList.add("app--touch");
-		}
+			if (!touchControls.current) {
+				touchControls.current = true;
+				elementRef.current?.classList.add("app--touch");
+			}
 
-		const btn = touchButton.current;
-		const findTouchCanvas = (touches: TouchList, identifier: number) =>
-			[...touches].find((t) => t.identifier !== identifier) || null;
+			const btn = touchButton.current;
+			const findTouchCanvas = (touches: TouchList, identifier: number) =>
+				[...touches].find((t) => t.identifier !== identifier) || null;
 
-		for (const touch of touches) {
-			const { target, identifier, clientX, clientY } = touch;
-			const idx = touchButtons.current.indexOf(target as HTMLDivElement);
+			for (const touch of touches) {
+				const { target, identifier, clientX, clientY } = touch;
+				const idx = touchButtons.current.indexOf(target as HTMLDivElement);
 
-			if (btn && btn.id === identifier && touchButtons.current[btn.index] === target) {
-				if (touches.length > 1) {
-					btn.stick = false;
+				if (btn && btn.id === identifier && touchButtons.current[btn.index] === target) {
+					if (touches.length > 1) {
+						btn.stick = false;
+					}
+					btn.clientX = clientX;
+					btn.clientY = clientY;
+					touchCanvas.current = findTouchCanvas(touches, identifier);
+
+					if (touchCanvas.current) {
+						touchCanvas.current = {
+							clientX: touchCanvas.current.clientX,
+							clientY: touchCanvas.current.clientY,
+						};
+					}
+					delete panPos.current;
+					return touchCanvas.current != null;
 				}
-				btn.clientX = clientX;
-				btn.clientY = clientY;
-				touchCanvas.current = findTouchCanvas(touches, identifier);
 
-				if (touchCanvas.current) {
-					touchCanvas.current = {
-						clientX: touchCanvas.current.clientX,
-						clientY: touchCanvas.current.clientY,
+				if (idx >= 0 && !newTouchButton) {
+					newTouchButton = {
+						id: identifier,
+						index: idx,
+						stick: true,
+						original: touchMods.current[idx],
+						clientX,
+						clientY,
 					};
 				}
-
-				delete panPos.current;
-				return touchCanvas.current != null;
 			}
 
-			if (idx >= 0 && !touchOther) {
-				touchOther = {
-					id: identifier,
-					index: idx,
-					stick: true,
-					original: touchMods.current[idx],
-					clientX,
-					clientY,
-				};
-			}
-		}
-
-		if (btn && !touchOther && release && btn.stick) {
-			const rect = touchButtons.current[btn.index]?.getBoundingClientRect();
-			const { clientX, clientY } = btn;
-			if (rect && clientX >= rect.left && clientX < rect.right && clientY >= rect.top && clientY < rect.bottom) {
-				setTouchMod(btn.index, !btn.original, true);
-			} else {
-				setTouchMod(btn.index, btn.original);
-			}
-		} else if (btn) {
-			setTouchMod(btn.index, false);
-		}
-
-		touchButton.current = touchOther;
-
-		if (touchOther) {
-			const { index } = touchOther;
-
-			if (index < 6) {
-				setTouchMod(index, true);
-				if (index === TOUCH_MOVE) {
-					setTouchMod(TOUCH_RMB, false);
-				} else if (index === TOUCH_RMB) {
-					setTouchMod(TOUCH_MOVE, false);
+			if (btn && !newTouchButton && release && btn.stick) {
+				const rect = touchButtons.current[btn.index]?.getBoundingClientRect();
+				const { clientX, clientY } = btn;
+				if (
+					rect &&
+					clientX >= rect.left &&
+					clientX < rect.right &&
+					clientY >= rect.top &&
+					clientY < rect.bottom
+				) {
+					setTouchMod(btn.index, !btn.original, true);
+				} else {
+					setTouchMod(btn.index, btn.original);
 				}
-				delete panPos.current;
-			} else {
-				game.current("DApi_Key", 0, 0, 110 + index);
+			} else if (btn) {
+				setTouchMod(btn.index, false);
 			}
-		} else if (touches.length === 2) {
-			const x = (touches[1].clientX + touches[0].clientX) / 2;
-			const y = (touches[1].clientY + touches[0].clientY) / 2;
 
-			if (panPos.current) {
-				const dx = x - panPos.current.x;
-				const dy = y - panPos.current.y;
-				const step = canvasRef.current!.offsetHeight / 12;
+			touchButton.current = newTouchButton;
+			if (newTouchButton) {
+				const { index } = newTouchButton;
+				if (index < 6) {
+					setTouchMod(index, true);
+					if (index === TOUCH_MOVE) {
+						setTouchMod(TOUCH_RMB, false);
+					} else if (index === TOUCH_RMB) {
+						setTouchMod(TOUCH_MOVE, false);
+					}
+					delete panPos.current;
+				} else {
+					game.current("DApi_Key", 0, 0, 110 + index);
+				}
+			} else if (touches.length === 2) {
+				const x = (touches[1].clientX + touches[0].clientX) / 2;
+				const y = (touches[1].clientY + touches[0].clientY) / 2;
+				if (panPos.current) {
+					const dx = x - panPos.current.x;
+					const dy = y - panPos.current.y;
+					const step = canvasRef.current!.offsetHeight / 12;
 
-				if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
-					const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0x25 : 0x27) : dy > 0 ? 0x26 : 0x28;
-					game.current("DApi_Key", 0, 0, key);
+					if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
+						const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0x25 : 0x27) : dy > 0 ? 0x26 : 0x28;
+						game.current("DApi_Key", 0, 0, key);
+						panPos.current = { x, y };
+					}
+				} else {
+					game.current("DApi_Mouse", 0, 0, 24, 320, 180);
+					game.current("DApi_Mouse", 2, 1, 24, 320, 180);
 					panPos.current = { x, y };
 				}
+				touchCanvas.current = null;
+				return false;
 			} else {
-				game.current("DApi_Mouse", 0, 0, 24, 320, 180);
-				game.current("DApi_Mouse", 2, 1, 24, 320, 180);
-				panPos.current = { x, y };
+				delete panPos.current;
 			}
-			touchCanvas.current = null;
-			return false;
-		} else {
-			delete panPos.current;
-		}
 
-		touchCanvas.current = findTouchCanvas(touches, touchOther?.id || -1);
+			touchCanvas.current = findTouchCanvas(touches, newTouchButton?.id || -1);
+			if (touchCanvas.current) {
+				touchCanvas.current = {
+					clientX: touchCanvas.current.clientX,
+					clientY: touchCanvas.current.clientY,
+				};
+			}
 
-		if (touchCanvas.current) {
-			touchCanvas.current = {
-				clientX: touchCanvas.current.clientX,
-				clientY: touchCanvas.current.clientY,
-			};
-		}
+			return touchCanvas.current != null;
+		},
+		[setTouchMod]
+	);
 
-		return touchCanvas.current != null;
-	};
-
-	const addEventListeners = () => {
+	const addEventListeners = useCallback(() => {
 		const handleMouseMove = (e: MouseEvent) => {
 			if (!canvasRef.current) return;
 			const { x, y } = mousePos(e);
@@ -420,11 +370,9 @@ const App: React.FC = () => {
 
 		const handleTouchEnd = (e: TouchEvent) => {
 			if (!canvasRef.current) return;
-
 			if (e.target !== keyboardRef.current) {
 				e.preventDefault();
 			}
-
 			const prevTouchCanvas = touchCanvas.current;
 			updateTouchButton(e.touches, true);
 
@@ -437,7 +385,6 @@ const App: React.FC = () => {
 					setTouchMod(TOUCH_RMB, false);
 				}
 			}
-
 			if (!document.fullscreenElement) {
 				elementRef.current?.requestFullscreen();
 			}
@@ -461,168 +408,128 @@ const App: React.FC = () => {
 		document.addEventListener("touchend", handleTouchEnd, { passive: false, capture: true });
 		document.addEventListener("pointerlockchange", handlePointerLockChange);
 		window.addEventListener("resize", () => document.exitPointerLock());
-	};
+	}, [mousePos, updateTouchButton, setTouchMod]);
 
-	const start = (file: File | null = null) => {
-		if (file) {
-			const fileName = file.name.toLowerCase();
+	const start = useCallback(
+		(file: File | null = null) => {
+			if (file) {
+				const fileName = file.name.toLowerCase();
 
-			if (fileName.endsWith(".sv")) {
-				fs.current.then((fsInstance) => fsInstance.upload(file)).then(updateSaves);
-				return;
+				if (fileName.endsWith(".sv")) {
+					fsRef.current.then((fsInstance) => fsInstance.upload(file)).then(updateSaves);
+					return;
+				}
+
+				if (!fileName.endsWith(".mpq")) {
+					window.alert(
+						"Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder."
+					);
+					return;
+				}
 			}
 
-			if (!fileName.endsWith(".mpq")) {
-				window.alert(
-					"Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder."
-				);
-				return;
-			}
-		}
+			if (showSaves) return;
 
-		if (showSaves) return;
+			const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
+			setRetail(isRetail);
+			setLoading(true);
 
-		setDropping(0);
-
-		const isRetail = !!(file && !/^spawn\.mpq$/i.test(file.name));
-		setLoading(true);
-		setRetail(isRetail);
-
-		load_game(
-			{
-				updateBelt: (belt) => {
-					if (belt) {
-						const used = new Set<number>();
-						let pos = 3;
-						for (let i = 0; i < belt.length && pos < 6; ++i) {
-							if (belt[i] >= 0 && !used.has(belt[i])) {
-								drawBelt(pos++, i);
-								used.add(belt[i]);
+			load_game(
+				{
+					updateBelt: (belt) => {
+						if (belt) {
+							const used = new Set<number>();
+							let pos = 3;
+							for (let i = 0; i < belt.length && pos < 6; ++i) {
+								if (belt[i] >= 0 && !used.has(belt[i])) {
+									drawBelt(pos++, i);
+									used.add(belt[i]);
+								}
 							}
+							for (; pos < 6; ++pos) {
+								drawBelt(pos, -1);
+							}
+						} else {
+							drawBelt(3, -1);
+							drawBelt(4, -1);
+							drawBelt(5, -1);
 						}
-						for (; pos < 6; ++pos) {
-							drawBelt(pos, -1);
-						}
-					} else {
-						drawBelt(3, -1);
-						drawBelt(4, -1);
-						drawBelt(5, -1);
-					}
-				},
-				canvas: canvasRef.current!,
-				fs: fs.current,
-				setCursorPos: (x: number, y: number) => {
-					const rect = canvasRef.current!.getBoundingClientRect();
-					cursorPos.current = {
-						x: rect.left + ((rect.right - rect.left) * x) / 640,
-						y: rect.top + ((rect.bottom - rect.top) * y) / 480,
-					};
-					setTimeout(() => {
-						game.current("DApi_Mouse", 0, 0, 0, x, y);
-					});
-				},
-				openKeyboard: (rect) => {
-					if (rect && elementRef.current && keyboardRef.current) {
-						showKeyboard.current = {
-							left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
-							top: `${((100 * (rect[1] - 10)) / 480).toFixed(2)}%`,
-							width: `${((100 * (rect[2] - rect[0] + 20)) / 640).toFixed(2)}%`,
-							height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
+					},
+					canvas: canvasRef.current!,
+					fs: fsRef.current,
+					setCursorPos: (x: number, y: number) => {
+						const rect = canvasRef.current!.getBoundingClientRect();
+						cursorPos.current = {
+							x: rect.left + ((rect.right - rect.left) * x) / 640,
+							y: rect.top + ((rect.bottom - rect.top) * y) / 480,
 						};
-						maxKeyboard.current = rect[4];
-						elementRef.current.classList.add("app--keyboard");
-						Object.assign(keyboardRef.current.style, showKeyboard.current);
-						keyboardRef.current.focus();
-						if (keyboardRule) {
-							keyboardRule.style.transform = `translate(-50%, ${(
-								(-(rect[1] + rect[3]) * 56.25) /
-								960
-							).toFixed(2)}vw)`;
+						setTimeout(() => {
+							game.current("DApi_Mouse", 0, 0, 0, x, y);
+						});
+					},
+					openKeyboard: (rect) => {
+						if (rect && elementRef.current && keyboardRef.current) {
+							showKeyboard.current = {
+								left: `${((100 * (rect[0] - 10)) / 640).toFixed(2)}%`,
+								top: `${((100 * (rect[1] - 10)) / 480).toFixed(2)}%`,
+								width: `${((100 * (rect[2] - rect[0] + 20)) / 640).toFixed(2)}%`,
+								height: `${((100 * (rect[3] - rect[1] + 20)) / 640).toFixed(2)}%`,
+							};
+							maxKeyboard.current = rect[4];
+							elementRef.current.classList.add("app--keyboard");
+							Object.assign(keyboardRef.current.style, showKeyboard.current);
+							keyboardRef.current.focus();
+							if (keyboardRule) {
+								keyboardRule.style.transform = `translate(-50%, ${
+									(-(rect[1] + rect[3]) * 56.25) / 960
+								}vw)`;
+							}
+						} else {
+							showKeyboard.current = false;
+							elementRef.current!.classList.remove("app--keyboard");
+							keyboardRef.current!.blur();
+							keyboardRef.current!.value = "";
+							keyboardNum.current = 0;
 						}
-					} else {
-						showKeyboard.current = false;
-						elementRef.current!.classList.remove("app--keyboard");
-						keyboardRef.current!.blur();
-						keyboardRef.current!.value = "";
-						keyboardNum.current = 0;
-					}
+					},
+					onError,
+					onProgress: setProgress,
+					onExit: () => {
+						if (!error) {
+							window.location.reload();
+						}
+					},
+					setCurrentSave: (name: string) => {
+						saveNameRef.current = name;
+					},
 				},
-				onError,
-				onProgress: setProgress,
-				onExit: () => {
-					if (!error) {
-						window.location.reload();
-					}
+				file,
+				!isRetail
+			).then(
+				(loadedGame) => {
+					game.current = loadedGame;
+					addEventListeners();
+					setLoading(false);
+					setStarted(true);
 				},
-				setCurrentSave: (name: string) => {
-					saveNameRef.current = name;
-				},
-			},
-			file,
-			!isRetail
-		).then(
-			(loadedGame) => {
-				game.current = loadedGame;
-				addEventListeners();
-				setStarted(true);
-			},
-			(e) => onError(e.message, e.stack)
-		);
-	};
+				(e) => onError(e.message, e.stack)
+			);
+		},
+		[showSaves, fsRef, onError, updateSaves, keyboardRule, error, addEventListeners]
+	);
 
-	useEffect(() => {
-		const handleDrop = (e: DragEvent) => {
-			e.preventDefault();
-			const file = getDropFile(e);
-
-			if (!file) return;
-
+	const onDropFile = useCallback(
+		(file: File) => {
 			if (compress) {
 				setCompressFile(file);
 			} else {
 				start(file);
 			}
+		},
+		[compress, start]
+	);
 
-			setDropping(0);
-		};
-
-		const handleDragOver = (e: DragEvent) => {
-			if (isDropFile(e)) {
-				e.preventDefault();
-			}
-		};
-
-		const handleDragEnter = (e: DragEvent) => {
-			e.preventDefault();
-			setDropping((prev) => Math.max(prev + 1, 0));
-		};
-
-		const handleDragLeave = () => {
-			setDropping((prev) => Math.max(prev - 1, 0));
-		};
-
-		document.addEventListener("drop", handleDrop, true);
-		document.addEventListener("dragover", handleDragOver, true);
-		document.addEventListener("dragenter", handleDragEnter, true);
-		document.addEventListener("dragleave", handleDragLeave, true);
-
-		fs.current.then((fsInstance) => {
-			const spawn = fsInstance.files.get("spawn.mpq");
-			if (spawn && SpawnSizes.includes(spawn.byteLength)) {
-				setHasSpawn(true);
-			}
-			if ([...fsInstance.files.keys()].some((name) => /\.sv$/i.test(name))) {
-				setSaveNames(true);
-			}
-		});
-
-		return () => {
-			document.removeEventListener("drop", handleDrop, true);
-			document.removeEventListener("dragover", handleDragOver, true);
-			document.removeEventListener("dragenter", handleDragEnter, true);
-			document.removeEventListener("dragleave", handleDragLeave, true);
-		};
-	}, []);
+	const { dropping } = useFileDrop(onDropFile, compress);
 
 	return (
 		<div
@@ -655,7 +562,7 @@ const App: React.FC = () => {
 							key={`touch-belt-${idx}`}
 							className={classNames("app__touch-button", `app__touch-button--${i}`)}
 							ref={(el) => {
-								touchButtons.current[idx] = el!;
+								touchButtons.current[idx] = el;
 								if (el) {
 									const canvas = document.createElement("canvas");
 									canvas.width = 28;
@@ -698,6 +605,7 @@ const App: React.FC = () => {
 					);
 				})}
 			</div>
+
 			<div className="app__body">
 				<div className="app__inner">
 					{!error && <canvas ref={canvasRef} width={640} height={480} />}
@@ -713,11 +621,12 @@ const App: React.FC = () => {
 					/>
 				</div>
 			</div>
+
 			<div className="app__body-v">
 				{showSaves && typeof saveNames === "object" && (
 					<SaveList
 						saveNames={saveNames as Record<string, IPlayerInfo | null>}
-						fs={fs.current}
+						fs={fsRef.current}
 						updateSaves={updateSaves}
 						setShowSaves={setShowSaves}
 						start={start}
@@ -732,12 +641,7 @@ const App: React.FC = () => {
 					/>
 				)}
 				{error && (
-					<ErrorComponent
-						error={error}
-						reportLink={reportLink(error, retail!)}
-						saveUrl={error.save}
-						saveName={saveNameRef.current}
-					/>
+					<ErrorComponent error={error} retail={retail} saveUrl={error.save} saveName={saveNameRef.current} />
 				)}
 				{loading && !started && !error && <LoadingComponent title="Loading..." progress={progress} />}
 				{!started && !compress && !loading && !error && !showSaves && (
