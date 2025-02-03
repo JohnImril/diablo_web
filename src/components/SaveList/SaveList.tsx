@@ -26,7 +26,7 @@ const SaveList: React.FC<{
 						<div className="save-list__buttons">
 							<div
 								className="save-list__button--download"
-								onClick={() => fs.then((fsInstance: any) => fsInstance.download(name))}
+								onClick={() => fs.then((fsInstance: IFileSystem) => fsInstance.download(name))}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"

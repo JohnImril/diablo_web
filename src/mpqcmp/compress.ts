@@ -5,8 +5,9 @@ import Worker from "./mpqcmp.worker.js?worker";
 import MpqBinary from "./MpqCmp.wasm?url";
 import ListFile from "./ListFile.txt";
 
-const MpqSize = 156977;
-const ListSize = 75542;
+const MPQ_SIZE = 156977;
+const LIST_SIZE = 75542;
+const MPQ_MAGIC_NUMBER = 0x1a51504d;
 
 const readFile = (file: File, progress?: (e: ProgressEvent) => void) =>
 	new Promise<ArrayBuffer>((resolve, reject) => {
@@ -84,18 +85,18 @@ export default async function compress(mpq: File, progress: (text: string, loade
 	fHeader.ready = readFile(mpq.slice(0, 32) as File, loader(fHeader));
 	files.push(fHeader);
 
-	const fBinary: IFileLoad = { loaded: 0, weight: 5, total: MpqSize };
+	const fBinary: IFileLoad = { loaded: 0, weight: 5, total: MPQ_SIZE };
 	fBinary.ready = loadFile(MpqBinary, loader(fBinary));
 	files.push(fBinary);
 
-	const fList: IFileLoad = { loaded: 0, weight: 5, total: ListSize };
+	const fList: IFileLoad = { loaded: 0, weight: 5, total: LIST_SIZE };
 	fList.ready = loadFile(ListFile, loader(fList), "text");
 	files.push(fList);
 
 	const header = new Uint32Array((await fHeader.ready) as ArrayBuffer);
 	const header16 = new Uint16Array(header.buffer);
 
-	if (header[0] !== 0x1a51504d) {
+	if (header[0] !== MPQ_MAGIC_NUMBER) {
 		throw new Error("invalid MPQ file");
 	}
 

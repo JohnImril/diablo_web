@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent, useCallback } from "react";
 import compress from "./compress";
 import { IProgress } from "../types";
 import LoadingComponent from "../components/LoadingComponent/LoadingComponent";
@@ -29,10 +29,13 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 		document.body.removeChild(link);
 	};
 
-	const onErrorHandler = (message: string, stack: string) => {
-		setCompress(false);
-		onError(message, stack);
-	};
+	const onErrorHandler = useCallback(
+		(message: string, stack: string) => {
+			setCompress(false);
+			onError(message, stack);
+		},
+		[onError, setCompress]
+	);
 
 	const onClose = () => {
 		if (url) {
@@ -64,7 +67,7 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 				setUrl(null);
 			}
 		};
-	}, [file]);
+	}, [file, onErrorHandler, url]);
 
 	if (url) {
 		return (

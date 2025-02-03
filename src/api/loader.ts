@@ -2,7 +2,7 @@ import Worker from "./game.worker.js?worker";
 import init_sound from "./sound";
 import load_spawn from "./load_spawn";
 import webrtc_open from "./webrtc";
-import { IApi } from "../types";
+import { IApi, IAudioApi } from "../types";
 
 interface IRenderBatch {
 	bitmap?: ImageBitmap;
@@ -12,11 +12,7 @@ interface IRenderBatch {
 	belt: number[];
 }
 
-interface IAudioApi {
-	[func: string]: (...params: any) => void;
-}
-
-function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext, batch: IRenderBatch) {
+function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext | null, batch: IRenderBatch) {
 	if (batch.bitmap) {
 		(ctx as ImageBitmapRenderingContext).transferFromImageBitmap(batch.bitmap);
 	} else if (ctx instanceof CanvasRenderingContext2D) {
@@ -89,18 +85,18 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 						);
 						break;
 					case "render":
-						onRender(api, context!, data.batch);
+						onRender(api, context, data.batch);
 						break;
 					case "audio":
-						audio[data.func](...data.params);
+						(audio[data.func as keyof IAudioApi] as (...args: unknown[]) => void)(...data.params);
 						break;
 					case "audioBatch":
-						for (const { func, params } of data.batch) {
-							audio[func](...params);
+						for (const { func, params } of data.batch as { func: keyof IAudioApi; params: unknown[] }[]) {
+							(audio[func] as (...args: unknown[]) => void)(...params);
 						}
 						break;
 					case "fs":
-						(fs as any)[data.func](...data.params);
+						(fs as unknown as Record<string, (...args: unknown[]) => void>)[data.func](...data.params);
 						break;
 					case "cursor":
 						api.setCursorPos(data.x, data.y);

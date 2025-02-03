@@ -20,6 +20,23 @@ export interface IApi {
 	setCurrentSave: (name: string) => void;
 }
 
+export interface IAudioApi {
+	create_sound_raw: (
+		id: number,
+		data: Float32Array,
+		length: number,
+		channels: number,
+		rate: number
+	) => void | undefined;
+	create_sound: (id: number, data: DataView) => number | void | undefined;
+	duplicate_sound: (id: number, srcId: number) => number | void | undefined;
+	play_sound: (id: number, volume: number, pan: number, loop: boolean) => void | undefined;
+	set_volume: (id: number, volume: number) => void | undefined;
+	stop_sound: (id: number) => void | undefined;
+	delete_sound: (id: number) => void | undefined;
+	stop_all: () => void | undefined;
+}
+
 export interface IPlayerInfo {
 	name: string;
 	cls: number;

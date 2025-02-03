@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const useFileDrop = (onDropFile: (file: File) => void, compress: boolean): { dropping: number } => {
+export const useFileDrop = (onDropFile: (file: File) => void): { dropping: number } => {
 	const [dropping, setDropping] = useState(0);
 
 	useEffect(() => {
@@ -36,7 +36,7 @@ export const useFileDrop = (onDropFile: (file: File) => void, compress: boolean)
 			document.removeEventListener("dragenter", handleDragEnter, true);
 			document.removeEventListener("dragleave", handleDragLeave, true);
 		};
-	}, [onDropFile, compress]);
+	}, [onDropFile]);
 
 	return { dropping };
 };

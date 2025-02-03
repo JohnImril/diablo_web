@@ -164,8 +164,8 @@ const DApi: IDApi = {
 					(data) => {
 						if (websocket === sock) {
 							try_api(() => {
-								const ptr = wasm._DApi_AllocPacket((data as ArrayBuffer).byteLength);
-								wasm.HEAPU8.set(new Uint8Array(data as ArrayBuffer), ptr);
+								const ptr = wasm?._DApi_AllocPacket((data as ArrayBuffer).byteLength);
+								wasm?.HEAPU8.set(new Uint8Array(data as ArrayBuffer), ptr);
 							});
 						}
 					},
@@ -287,7 +287,7 @@ let maxSoundId = 0;
 let maxBatchId = 0;
 
 ["create_sound_raw", "create_sound", "duplicate_sound"].forEach((func) => {
-	DApi[func] = function (...params: any[]) {
+	DApi[func] = function (...params: [number, Uint8Array]) {
 		if (audioBatch) {
 			maxBatchId = params[0] + 1;
 			audioBatch.push({ func, params });
@@ -306,7 +306,7 @@ let maxBatchId = 0;
 });
 
 ["play_sound", "set_volume", "stop_sound", "delete_sound"].forEach((func) => {
-	DApi[func as keyof typeof DApi] = function (...params: any[]) {
+	DApi[func as keyof typeof DApi] = function (...params: [number, ...unknown[]]) {
 		if (audioBatch && params[0] >= maxSoundId) {
 			audioBatch.push({ func, params });
 		} else {
@@ -329,7 +329,16 @@ DApi.websocket_send = function (data: Uint8Array) {
 
 worker.DApi = DApi as typeof DApi;
 
-let wasm: any | null = null;
+let wasm: {
+	[key: string]: unknown;
+	_DApi_AllocPacket(size: number): number;
+	HEAPU8: Uint8Array;
+	_DApi_SyncTextPtr(): number;
+	_DApi_SyncText(ptr: number): void;
+	_SNet_InitWebsocket(): void;
+	_DApi_Init(time: number, offscreen: number, major: number, minor: number, patch: number): void;
+	_DApi_Render(time: number): void;
+} | null = null;
 
 function try_api(func: () => void) {
 	try {
@@ -339,7 +348,7 @@ function try_api(func: () => void) {
 	}
 }
 
-function call_api(func: string, ...params: any[]) {
+function call_api(func: string, ...params: (string | number)[]) {
 	try_api(() => {
 		const nested = audioBatch != null;
 		if (!nested) {
@@ -348,17 +357,17 @@ function call_api(func: string, ...params: any[]) {
 			packetBatch = [];
 		}
 		if (func !== "text") {
-			wasm!["_" + func](...params);
+			(wasm as { [key: string]: (...args: unknown[]) => unknown })["_" + func](...params);
 		} else {
 			const ptr = wasm!._DApi_SyncTextPtr();
-			const text = params[0];
-			const length = Math.min(text.length, 255);
+			const text = params[0] as string;
+			const length = Math.min((text as string).length, 255);
 			const heap = wasm!.HEAPU8;
 			for (let i = 0; i < length; ++i) {
 				heap[ptr + i] = text.charCodeAt(i);
 			}
 			heap[ptr + length] = 0;
-			wasm!._DApi_SyncText(params[1]);
+			wasm!._DApi_SyncText(params[1] as number);
 		}
 		if (!nested) {
 			if (audioBatch!.length) {
@@ -466,14 +475,16 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 
 	const vers = __APP_VERSION__.match(/(\d+)\.(\d+)\.(\d+)/);
 
-	wasm._SNet_InitWebsocket();
-	wasm._DApi_Init(
-		Math.floor(performance.now()),
-		offscreen ? 1 : 0,
-		parseInt(vers![1]),
-		parseInt(vers![2]),
-		parseInt(vers![3])
-	);
+	if (wasm) {
+		wasm._SNet_InitWebsocket();
+		wasm._DApi_Init(
+			Math.floor(performance.now()),
+			offscreen ? 1 : 0,
+			parseInt(vers![1]),
+			parseInt(vers![2]),
+			parseInt(vers![3])
+		);
+	}
 
 	setInterval(() => {
 		call_api("DApi_Render", Math.floor(performance.now()));

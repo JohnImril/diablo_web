@@ -8,7 +8,7 @@ import { IPlayerInfo } from "../types";
 export function useInitFSAndSaves() {
 	const fsRef = useRef(create_fs());
 	const [hasSpawn, setHasSpawn] = useState(false);
-	const [saveNames, setSaveNames] = useState<boolean | Record<string, IPlayerInfo | null>>(false);
+	const [saveNames, setSaveNames] = useState<Record<string, IPlayerInfo | null> | boolean>(false);
 
 	const updateSaves = useCallback(async () => {
 		const fsInstance = await fsRef.current;
@@ -17,7 +17,10 @@ export function useInitFSAndSaves() {
 		[...fsInstance.files.keys()]
 			.filter((name) => /\.sv$/i.test(name))
 			.forEach((name) => {
-				saves[name] = getPlayerName(fsInstance.files.get(name)!.buffer, name);
+				const file = fsInstance.files.get(name);
+				if (file) {
+					saves[name] = getPlayerName(file.buffer, name);
+				}
 			});
 		setSaveNames(saves);
 	}, []);

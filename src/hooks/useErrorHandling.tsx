@@ -4,7 +4,7 @@ import { mapStackTrace } from "sourcemapped-stacktrace";
 import { IError, IFileSystem } from "../types";
 
 export const useErrorHandling = (
-	fs: React.RefObject<Promise<IFileSystem>>,
+	fileSystemRef: React.RefObject<Promise<IFileSystem>>,
 	saveNameRef: React.RefObject<string | undefined>
 ) => {
 	const [error, setError] = useState<IError | undefined>(undefined);
@@ -14,7 +14,7 @@ export const useErrorHandling = (
 			const errorObject: IError = { message };
 
 			if (saveNameRef.current) {
-				const fsInstance = await fs.current;
+				const fsInstance = await fileSystemRef.current;
 				errorObject.save = await fsInstance.fileUrl(saveNameRef.current);
 			}
 
@@ -36,7 +36,7 @@ export const useErrorHandling = (
 				updateErrorState();
 			}
 		},
-		[fs, saveNameRef]
+		[fileSystemRef, saveNameRef]
 	);
 
 	return { error, onError };
