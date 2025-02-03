@@ -63,9 +63,7 @@ const App: React.FC = () => {
 		}
 	};
 
-	const pointerLocked = () => {
-		return document.pointerLockElement === canvasRef.current;
-	};
+	const pointerLocked = () => document.pointerLockElement === canvasRef.current;
 
 	const mousePos = useCallback((e: { clientX: number; clientY: number } | null) => {
 		const rect = canvasRef.current!.getBoundingClientRect();
@@ -104,14 +102,11 @@ const App: React.FC = () => {
 		return buttonMap[e.button] || 1;
 	};
 
-	const eventMods = (e: MouseEvent | KeyboardEvent | TouchEvent) => {
-		return (
-			((e as KeyboardEvent).shiftKey || touchMods.current[TOUCH_SHIFT] ? 1 : 0) +
-			((e as KeyboardEvent).ctrlKey ? 2 : 0) +
-			((e as KeyboardEvent).altKey ? 4 : 0) +
-			((e as TouchEvent).touches ? 8 : 0)
-		);
-	};
+	const eventMods = (e: MouseEvent | KeyboardEvent | TouchEvent) =>
+		((e as KeyboardEvent).shiftKey || touchMods.current[TOUCH_SHIFT] ? 1 : 0) +
+		((e as KeyboardEvent).ctrlKey ? 2 : 0) +
+		((e as KeyboardEvent).altKey ? 4 : 0) +
+		((e as TouchEvent).touches ? 8 : 0);
 
 	const clearKeySel = () => {
 		if (showKeyboard.current && keyboardRef.current) {
@@ -529,7 +524,7 @@ const App: React.FC = () => {
 		[compress, start]
 	);
 
-	const { dropping } = useFileDrop(onDropFile, compress);
+	const { dropping } = useFileDrop(onDropFile);
 
 	return (
 		<div

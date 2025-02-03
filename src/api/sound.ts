@@ -1,3 +1,5 @@
+import { IAudioApi } from "../types";
+
 interface ISound {
 	buffer: Promise<AudioBuffer>;
 	gain: GainNode;
@@ -5,14 +7,16 @@ interface ISound {
 	source?: Promise<AudioBufferSourceNode>;
 }
 
-function no_sound() {
+function no_sound(): IAudioApi {
 	return {
+		create_sound_raw: () => undefined,
 		create_sound: () => 0,
 		duplicate_sound: () => 0,
 		play_sound: () => undefined,
 		set_volume: () => undefined,
 		stop_sound: () => undefined,
 		delete_sound: () => undefined,
+		stop_all: () => undefined,
 	};
 }
 
