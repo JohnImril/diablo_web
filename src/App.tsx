@@ -9,7 +9,7 @@ import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
 import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
 import { useErrorHandling, useFileDrop, useInitFSAndSaves, useKeyboardRule } from "./hooks";
-import { IPlayerInfo, IProgress, ITouchOther } from "./types";
+import { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types";
 
 import "./App.css";
 
@@ -29,7 +29,7 @@ const App: React.FC = () => {
 	const [retail, setRetail] = useState<boolean | undefined>(undefined);
 
 	const cursorPos = useRef({ x: 0, y: 0 });
-	const game = useRef<any>(null);
+	const game = useRef<GameFunction | null>(null);
 	const elementRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const keyboardRef = useRef<HTMLInputElement>(null);
@@ -135,7 +135,7 @@ const App: React.FC = () => {
 		}
 
 		clearKeySel();
-		game.current("text", valid, flags);
+		game.current?.("text", valid, flags);
 	};
 
 	const setTouchMod = useCallback((index: number, value: boolean, use?: boolean) => {
@@ -147,7 +147,7 @@ const App: React.FC = () => {
 		} else if (use && touchBelt.current[index] >= 0) {
 			const now = performance.now();
 			if (!beltTime.current || now - beltTime.current > 750) {
-				game.current("DApi_Char", 49 + touchBelt.current[index]);
+				game.current?.("DApi_Char", 49 + touchBelt.current[index]);
 				beltTime.current = now;
 			}
 		}
@@ -184,7 +184,7 @@ const App: React.FC = () => {
 							clientY: touchCanvas.current.clientY,
 						};
 					}
-					delete panPos.current;
+					panPos.current = undefined;
 					return touchCanvas.current != null;
 				}
 
@@ -230,7 +230,7 @@ const App: React.FC = () => {
 					}
 					delete panPos.current;
 				} else {
-					game.current("DApi_Key", 0, 0, 110 + index);
+					game.current?.("DApi_Key", 0, 0, 110 + index);
 				}
 			} else if (touches.length === 2) {
 				const x = (touches[1].clientX + touches[0].clientX) / 2;
@@ -242,12 +242,12 @@ const App: React.FC = () => {
 
 					if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
 						const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0x25 : 0x27) : dy > 0 ? 0x26 : 0x28;
-						game.current("DApi_Key", 0, 0, key);
+						game.current?.("DApi_Key", 0, 0, key);
 						panPos.current = { x, y };
 					}
 				} else {
-					game.current("DApi_Mouse", 0, 0, 24, 320, 180);
-					game.current("DApi_Mouse", 2, 1, 24, 320, 180);
+					game.current?.("DApi_Mouse", 0, 0, 24, 320, 180);
+					game.current?.("DApi_Mouse", 2, 1, 24, 320, 180);
 					panPos.current = { x, y };
 				}
 				touchCanvas.current = null;
@@ -273,7 +273,7 @@ const App: React.FC = () => {
 		const handleMouseMove = (e: MouseEvent) => {
 			if (!canvasRef.current) return;
 			const { x, y } = mousePos(e);
-			game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+			game.current?.("DApi_Mouse", 0, 0, eventMods(e), x, y);
 			e.preventDefault();
 		};
 
@@ -292,14 +292,14 @@ const App: React.FC = () => {
 					canvasRef.current.requestPointerLock();
 				}
 			}
-			game.current("DApi_Mouse", 1, mouseButton(e), eventMods(e), x, y);
+			game.current?.("DApi_Mouse", 1, mouseButton(e), eventMods(e), x, y);
 			e.preventDefault();
 		};
 
 		const handleMouseUp = (e: MouseEvent) => {
 			if (!canvasRef.current) return;
 			const { x, y } = mousePos(e);
-			game.current("DApi_Mouse", 2, mouseButton(e), eventMods(e), x, y);
+			game.current?.("DApi_Mouse", 2, mouseButton(e), eventMods(e), x, y);
 			if (e.target !== keyboardRef.current) {
 				e.preventDefault();
 			}
@@ -307,11 +307,11 @@ const App: React.FC = () => {
 
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (!canvasRef.current) return;
-			game.current("DApi_Key", 0, eventMods(e), e.keyCode);
+			game.current?.("DApi_Key", 0, eventMods(e), e.keyCode);
 			if (!showKeyboard.current && e.key.length === 1) {
-				game.current("DApi_Char", e.key.charCodeAt(0));
+				game.current?.("DApi_Char", e.key.charCodeAt(0));
 			} else if (e.keyCode === 8 || e.keyCode === 13) {
-				game.current("DApi_Char", e.keyCode);
+				game.current?.("DApi_Char", e.keyCode);
 			}
 			clearKeySel();
 			if (
@@ -330,7 +330,7 @@ const App: React.FC = () => {
 
 		const handleKeyUp = (e: KeyboardEvent) => {
 			if (!canvasRef.current) return;
-			game.current("DApi_Key", 1, eventMods(e), e.keyCode);
+			game.current?.("DApi_Key", 1, eventMods(e), e.keyCode);
 			clearKeySel();
 		};
 
@@ -345,9 +345,9 @@ const App: React.FC = () => {
 
 			if (updateTouchButton(e.touches, false)) {
 				const { x, y } = mousePos(touchCanvas.current);
-				game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+				game.current?.("DApi_Mouse", 0, 0, eventMods(e), x, y);
 				if (!touchMods.current[TOUCH_MOVE]) {
-					game.current("DApi_Mouse", 1, touchMods.current[TOUCH_RMB] ? 2 : 1, eventMods(e), x, y);
+					game.current?.("DApi_Mouse", 1, touchMods.current[TOUCH_RMB] ? 2 : 1, eventMods(e), x, y);
 				}
 			}
 		};
@@ -359,7 +359,7 @@ const App: React.FC = () => {
 			e.preventDefault();
 			if (updateTouchButton(e.touches, false)) {
 				const { x, y } = mousePos(touchCanvas.current);
-				game.current("DApi_Mouse", 0, 0, eventMods(e), x, y);
+				game.current?.("DApi_Mouse", 0, 0, eventMods(e), x, y);
 			}
 		};
 
@@ -373,8 +373,8 @@ const App: React.FC = () => {
 
 			if (prevTouchCanvas && !touchCanvas.current) {
 				const { x, y } = mousePos(prevTouchCanvas);
-				game.current("DApi_Mouse", 2, 1, eventMods(e), x, y);
-				game.current("DApi_Mouse", 2, 2, eventMods(e), x, y);
+				game.current?.("DApi_Mouse", 2, 1, eventMods(e), x, y);
+				game.current?.("DApi_Mouse", 2, 2, eventMods(e), x, y);
 
 				if (touchMods.current[TOUCH_RMB] && (!touchButton.current || touchButton.current.index !== TOUCH_RMB)) {
 					setTouchMod(TOUCH_RMB, false);
@@ -387,8 +387,8 @@ const App: React.FC = () => {
 
 		const handlePointerLockChange = () => {
 			if (window.screen && window.innerHeight === window.screen.height && !pointerLocked()) {
-				game.current("DApi_Key", 0, 0, 27);
-				game.current("DApi_Key", 1, 0, 27);
+				game.current?.("DApi_Key", 0, 0, 27);
+				game.current?.("DApi_Key", 1, 0, 27);
 			}
 		};
 
@@ -459,7 +459,7 @@ const App: React.FC = () => {
 							y: rect.top + ((rect.bottom - rect.top) * y) / 480,
 						};
 						setTimeout(() => {
-							game.current("DApi_Mouse", 0, 0, 0, x, y);
+							game.current?.("DApi_Mouse", 0, 0, 0, x, y);
 						});
 					},
 					openKeyboard: (rect) => {
@@ -475,9 +475,8 @@ const App: React.FC = () => {
 							Object.assign(keyboardRef.current.style, showKeyboard.current);
 							keyboardRef.current.focus();
 							if (keyboardRule) {
-								keyboardRule.style.transform = `translate(-50%, ${
-									(-(rect[1] + rect[3]) * 56.25) / 960
-								}vw)`;
+								keyboardRule.style.transform = `translate(-50%, ${(-(rect[1] + rect[3]) * 56.25) / 960
+									}vw)`;
 							}
 						} else {
 							showKeyboard.current = false;
@@ -502,7 +501,7 @@ const App: React.FC = () => {
 				!isRetail
 			).then(
 				(loadedGame) => {
-					game.current = loadedGame;
+					game.current = loadedGame as GameFunction;
 					addEventListeners();
 					setLoading(false);
 					setStarted(true);

@@ -37,6 +37,8 @@ export interface IAudioApi {
 	stop_all: () => void | undefined;
 }
 
+export type GameFunction = (command: string, ...args: (string | number)[]) => void;
+
 export interface IPlayerInfo {
 	name: string;
 	cls: number;
