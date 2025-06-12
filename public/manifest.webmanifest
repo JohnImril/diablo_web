@@ -19,7 +19,8 @@
 			"type": "image/png"
 		}
 	],
-	"start_url": "./",
+	"start_url": "/diablo_web/",
+	"scope": "/diablo_web/",
 	"display": "standalone",
 	"background_color": "#000000",
 	"theme_color": "#ffffff",
