@@ -2,40 +2,32 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import { VitePWA } from "vite-plugin-pwa";
-import packageJson from "./package.json";
+import pkg from "./package.json";
+
+const BASE = "/diablo_web/";
 
 export default defineConfig({
-	base: "./",
+	base: BASE,
 	plugins: [
 		react(),
 		wasm(),
 		VitePWA({
-			base: "./",
+			base: BASE,
+			scope: BASE,
 			registerType: "autoUpdate",
-			workbox: {
-				runtimeCaching: [
-					{
-						urlPattern: new RegExp("./.*\\.(?:html|css|js|wasm)$"),
-						handler: "CacheFirst",
-						options: {
-							cacheName: "static-resources",
-							expiration: {
-								maxEntries: 50,
-								maxAgeSeconds: 30 * 24 * 60 * 60,
-							},
-						},
-					},
-				],
-				navigateFallback: "./index.html",
-				navigateFallbackAllowlist: [/^(?!\/__).*/],
-				maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-			},
-			devOptions: {
-				enabled: true,
-			},
+			includeAssets: [
+				"favicon.ico",
+				"apple-touch-icon.png",
+				"mstile-150.png",
+				"icon-192.png",
+				"icon-512.png",
+				"og-image.png",
+				"x-image.png",
+			],
+			devOptions: { enabled: true },
 		}),
 	],
 	define: {
-		__APP_VERSION__: JSON.stringify(packageJson.version),
+		__APP_VERSION__: JSON.stringify(pkg.version),
 	},
 });
