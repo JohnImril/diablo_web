@@ -24,7 +24,33 @@ export default defineConfig({
 				"og-image.png",
 				"x-image.png",
 			],
-			devOptions: { enabled: true },
+			manifest: {
+				name: "Diablo Web App",
+				short_name: "DIABLO",
+				description: "Experience the classic Diablo game directly in your browser.",
+				start_url: BASE,
+				scope: BASE,
+				display: "standalone",
+				background_color: "#000000",
+				theme_color: "#ffffff",
+				icons: [
+					{
+						src: "icon-192.png",
+						sizes: "192x192",
+						type: "image/png",
+						purpose: "any maskable",
+					},
+					{
+						src: "icon-512.png",
+						sizes: "512x512",
+						type: "image/png",
+						purpose: "any maskable",
+					},
+				],
+			},
+			devOptions: {
+				enabled: true,
+			},
 		}),
 	],
 	define: {
