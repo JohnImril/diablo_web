@@ -1,5 +1,3 @@
-import axios, { AxiosProgressEvent } from "axios";
-
 import DiabloBinary from "./Diablo.wasm?url";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -10,6 +8,7 @@ import SpawnBinary from "./DiabloSpawn.wasm?url";
 import SpawnModule from "./DiabloSpawn.jscc";
 import websocket_open from "./websocket";
 import { IWebSocketProxy } from "../types";
+import { fetchWithProgress } from "../utils/fetchWithProgress";
 
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
@@ -405,17 +404,16 @@ const readFile = (file: File, progress?: (e: ProgressEvent<FileReader>) => void)
 		reader.readAsArrayBuffer(file);
 	});
 
-async function initWasm(spawn: boolean, progress: (e: AxiosProgressEvent) => void) {
-	const binary = await axios.request({
-		url: spawn ? SpawnBinary : DiabloBinary,
-		responseType: "arraybuffer",
-		onDownloadProgress: progress,
-	});
+async function initWasm(spawn: boolean, progress: (e: { loaded: number; total?: number }) => void) {
+	const binary = await fetchWithProgress(spawn ? SpawnBinary : DiabloBinary, (loaded, total) =>
+		progress({ loaded, total })
+	);
 
 	const result = await (spawn ? SpawnModule : DiabloModule)({
-		wasmBinary: binary.data,
+		wasmBinary: binary,
 	}).ready;
-	progress({ loaded: 2000000 } as AxiosProgressEvent);
+
+	progress({ loaded: 2000000 });
 	return result;
 }
 
