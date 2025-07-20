@@ -10,7 +10,6 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"axios": "^1.10.0",
 		"classnames": "^2.5.1",
 		"idb": "^8.0.3",
 		"peerjs": "^1.5.5",

@@ -1,9 +1,8 @@
-import axios, { AxiosProgressEvent } from "axios";
-
 import { decrypt, encrypt, hash, path_name } from "../api/savefile";
 import Worker from "./mpqcmp.worker.js?worker";
 import MpqBinary from "./MpqCmp.wasm?url";
 import ListFile from "./ListFile.txt";
+import { fetchWithProgress } from "../utils/fetchWithProgress";
 
 const MPQ_SIZE = 156977;
 const LIST_SIZE = 75542;
@@ -29,12 +28,14 @@ async function loadFile(
 	progress?: (e: ProgressEvent) => void,
 	responseType: "arraybuffer" | "text" = "arraybuffer"
 ) {
-	const { data } = await axios.request<ArrayBuffer | string>({
-		url,
-		responseType,
-		onDownloadProgress: progress as unknown as (e: AxiosProgressEvent) => void,
+	const buffer = await fetchWithProgress(url, (loaded, total) => {
+		progress?.({ loaded, total } as ProgressEvent);
 	});
-	return data;
+
+	if (responseType === "text") {
+		return new TextDecoder().decode(buffer);
+	}
+	return buffer;
 }
 
 function runWorker(data: unknown, transfer: Transferable[], progress: (value: number) => void) {
