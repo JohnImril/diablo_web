@@ -17,7 +17,7 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 	const [started, setStarted] = useState<boolean>(false);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
 
-	const onDone = (blob: Blob) => {
+	const onDone = useCallback((blob: Blob) => {
 		const fileUrl = URL.createObjectURL(blob);
 		setUrl(fileUrl);
 
@@ -27,7 +27,7 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
-	};
+	}, []);
 
 	const onErrorHandler = useCallback(
 		(message: string, stack: string) => {
@@ -54,20 +54,27 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 	};
 
 	useEffect(() => {
-		if (file) {
-			setStarted(true);
-			compress(file, (text, loaded, total) => setProgress({ text, loaded: loaded || 0, total }))
-				.then(onDone)
-				.catch((e) => onErrorHandler(e.message, e.stack));
-		}
+		if (!file) return;
+
+		setStarted(true);
+		let cancelled = false;
+
+		compress(file, (text, loaded, total) => setProgress({ text, loaded: loaded ?? 0, total }))
+			.then((blob) => {
+				if (!cancelled) onDone(blob);
+			})
+			.catch((e) => onErrorHandler(e.message, e.stack));
 
 		return () => {
-			if (url) {
-				URL.revokeObjectURL(url);
-				setUrl(null);
-			}
+			cancelled = true;
+			setStarted(false);
 		};
-	}, [file, onErrorHandler, url]);
+	}, [file, onErrorHandler, onDone]);
+
+	useEffect(() => {
+		if (!url) return;
+		return () => URL.revokeObjectURL(url);
+	}, [url]);
 
 	if (url) {
 		return (
