@@ -75,6 +75,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 		try {
 			const worker = new Worker();
 			const packetQueue: ArrayBuffer[] = [];
+			// @ts-ignore
 			const webrtc = webrtc_open((data: ArrayBuffer) => packetQueue.push(data));
 
 			worker.addEventListener("message", ({ data }) => {
@@ -134,6 +135,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 
 			const transfer: ArrayBuffer[] = [];
 			for (const [, file] of fs.files) {
+				// @ts-ignore
 				transfer.push(file.buffer);
 			}
 			worker.postMessage({ action: "init", files: fs.files, mpq, spawn, offscreen }, transfer);

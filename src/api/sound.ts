@@ -62,6 +62,7 @@ export default function init_sound() {
 
 		create_sound(id: number, data: DataView) {
 			if (context) {
+				// @ts-ignore
 				setSound(id, decodeAudioData(context, data.buffer));
 			}
 		},

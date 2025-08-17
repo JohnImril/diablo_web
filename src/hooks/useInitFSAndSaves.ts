@@ -19,6 +19,7 @@ export function useInitFSAndSaves() {
 			.forEach((name) => {
 				const file = fsInstance.files.get(name);
 				if (file) {
+					// @ts-ignore
 					saves[name] = getPlayerName(file.buffer, name);
 				}
 			});
