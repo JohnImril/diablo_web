@@ -3,6 +3,7 @@ import init_sound from "./sound";
 import load_spawn from "./load_spawn";
 import webrtc_open from "./webrtc";
 import { IApi, IAudioApi } from "../types";
+import { toArrayBuffer } from "../utils/buffers";
 
 interface IRenderBatch {
 	bitmap?: ImageBitmap;
@@ -75,8 +76,9 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 		try {
 			const worker = new Worker();
 			const packetQueue: ArrayBuffer[] = [];
-			// @ts-ignore
-			const webrtc = webrtc_open((data: ArrayBuffer) => packetQueue.push(data));
+			const webrtc = webrtc_open((data) => {
+				packetQueue.push(toArrayBuffer(data));
+			});
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
@@ -135,8 +137,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 
 			const transfer: ArrayBuffer[] = [];
 			for (const [, file] of fs.files) {
-				// @ts-ignore
-				transfer.push(file.buffer);
+				transfer.push(toArrayBuffer(file.buffer));
 			}
 			worker.postMessage({ action: "init", files: fs.files, mpq, spawn, offscreen }, transfer);
 			setInterval(() => {

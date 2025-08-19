@@ -1,8 +1,9 @@
 import Peer, { DataConnection, PeerOptions } from "peerjs";
 import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
 import { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
+import { AnyBuf, toUint8 } from "../utils/buffers";
 
-type MessageHandler = (packet: ArrayBuffer | Uint8Array) => void;
+type MessageHandler = (packet: AnyBuf) => void;
 type CloseHandler = () => void;
 
 interface PeerData {
@@ -52,7 +53,6 @@ class WebRTCServer {
 		this.peer.on("open", () => {
 			setTimeout(() => {
 				onMessage(
-					// @ts-ignore
 					write_packet(server_packet.join_accept, {
 						cookie,
 						index: 0,
@@ -60,14 +60,12 @@ class WebRTCServer {
 						difficulty,
 					})
 				);
-				// @ts-ignore
 				onMessage(write_packet(server_packet.connect, { id: 0 }));
 			}, 0);
 		});
 
 		this.peer.on("error", () => {
 			onMessage(
-				// @ts-ignore
 				write_packet(server_packet.join_reject, {
 					cookie,
 					reason: RejectionReason.CREATE_GAME_EXISTS,
@@ -140,8 +138,7 @@ class WebRTCServer {
 									difficulty: this.difficulty,
 								})
 							);
-							// @ts-ignore
-							this.send(0xff, write_packet(server_packet.connect, { id: i }));
+							this.send(0xff, toUint8(write_packet(server_packet.connect, { id: i })));
 						}
 					}
 					break;
@@ -179,13 +176,11 @@ class WebRTCServer {
 			for (let i = 1; i < MAX_PLRS; ++i) {
 				this.drop(i, 0x40000006);
 			}
-			// @ts-ignore
 			this.onMessage(write_packet(server_packet.disconnect, { id, reason }));
 			this.peer.destroy();
 			this.onClose();
 		} else if (this.players[id]) {
-			// @ts-ignore
-			this.send(0xff, write_packet(server_packet.disconnect, { id, reason }));
+			this.send(0xff, toUint8(write_packet(server_packet.disconnect, { id, reason })));
 			this.players[id].id = null;
 			this.players[id].conn?.close();
 			this.players[id] = null as unknown as PeerData;
@@ -207,21 +202,13 @@ class WebRTCServer {
 			case client_packet.message.code:
 				this.send(
 					(pkt as IMessagePacket).id === 0xff ? ~(1 << id) : 1 << (pkt as IMessagePacket).id,
-					// @ts-ignore
-					write_packet(server_packet.message, {
-						id,
-						payload: (pkt as IMessagePacket).payload,
-					})
+					toUint8(write_packet(server_packet.message, { id, payload: (pkt as IMessagePacket).payload }))
 				);
 				break;
 			case client_packet.turn.code:
 				this.send(
 					~(1 << id),
-					// @ts-ignore
-					write_packet(server_packet.turn, {
-						id,
-						turn: (pkt as ITurnPacket).turn,
-					})
+					toUint8(write_packet(server_packet.turn, { id, turn: (pkt as ITurnPacket).turn }))
 				);
 				break;
 			default:
@@ -266,7 +253,6 @@ class WebRTCClient {
 
 		const onError = () => {
 			onMessage(
-				// @ts-ignore
 				write_packet(server_packet.join_reject, {
 					cookie,
 					reason: RejectionReason.JOIN_GAME_NOT_FOUND,
@@ -360,7 +346,6 @@ export default function webrtc_open(onMessage: MessageHandler) {
 				case client_packet.create_game.code:
 					if (server || client) {
 						onMessage(
-							// @ts-ignore
 							write_packet(server_packet.join_reject, {
 								cookie: (pkt as IJoinPacket).cookie,
 								reason: RejectionReason.JOIN_ALREADY_IN_GAME,
@@ -375,7 +360,6 @@ export default function webrtc_open(onMessage: MessageHandler) {
 				case client_packet.join_game.code:
 					if (server || client) {
 						onMessage(
-							// @ts-ignore
 							write_packet(server_packet.join_reject, {
 								cookie: (pkt as IJoinPacket).cookie,
 								reason: RejectionReason.JOIN_ALREADY_IN_GAME,

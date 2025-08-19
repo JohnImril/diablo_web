@@ -1,4 +1,5 @@
 import { IAudioApi } from "../types";
+import { AnyBuf, toArrayBuffer } from "../utils/buffers";
 
 interface ISound {
 	buffer: Promise<AudioBuffer>;
@@ -20,8 +21,9 @@ function no_sound(): IAudioApi {
 	};
 }
 
-function decodeAudioData(context: AudioContext, buffer: ArrayBuffer): Promise<AudioBuffer> {
-	return new Promise((resolve, reject) => context.decodeAudioData(buffer, resolve, reject));
+function decodeAudioData(context: AudioContext, buffer: AnyBuf): Promise<AudioBuffer> {
+	const ab = toArrayBuffer(buffer);
+	return new Promise((resolve, reject) => context.decodeAudioData(ab, resolve, reject));
 }
 
 export default function init_sound() {
@@ -62,7 +64,6 @@ export default function init_sound() {
 
 		create_sound(id: number, data: DataView) {
 			if (context) {
-				// @ts-ignore
 				setSound(id, decodeAudioData(context, data.buffer));
 			}
 		},

@@ -4,6 +4,7 @@ import create_fs from "../fs";
 import { SpawnSizes } from "../api/load_spawn";
 import getPlayerName from "../api/savefile";
 import { IPlayerInfo } from "../types";
+import { toArrayBuffer } from "../utils/buffers";
 
 export function useInitFSAndSaves() {
 	const fsRef = useRef(create_fs());
@@ -19,8 +20,7 @@ export function useInitFSAndSaves() {
 			.forEach((name) => {
 				const file = fsInstance.files.get(name);
 				if (file) {
-					// @ts-ignore
-					saves[name] = getPlayerName(file.buffer, name);
+					saves[name] = getPlayerName(toArrayBuffer(file.buffer), name);
 				}
 			});
 		setSaveNames(saves);
