@@ -1,20 +1,48 @@
+:root {
+	--d1-black: #0b0b0b;
+	--d1-charcoal: #151515;
+	--d1-stone: #1e1e1e;
+	--d1-stone-2: #2a2a2a;
+	--d1-iron: #3a3a3a;
+	--d1-blood: #7a0a0a;
+	--d1-ruby: #a61212;
+	--d1-ruby-bright: #c51a1a;
+	--d1-gold: #c9a34a;
+	--d1-gold-bright: #e4c367;
+	--d1-gold-dim: #8f7440;
+	--d1-parchment: #c9b79a;
+	--d1-ember: #ff8a2a;
+	--d1-ember-dim: #b85b1b;
+	--d1-shadow: rgba(0, 0, 0, 0.6);
+	--d1-shadow-deep: rgba(0, 0, 0, 0.85);
+
+	--frame-glow: 0 0 18px rgba(233, 175, 72, 0.25), 0 0 4px rgba(233, 175, 72, 0.15);
+	--torch-glow: 0 0 22px rgba(255, 132, 40, 0.2), 0 0 60px rgba(255, 80, 30, 0.08);
+
+	--bevel: 6px;
+	--slot-radius: 10%;
+}
+
 body,
 #root,
 .app {
 	overflow: hidden;
 	position: absolute;
-	left: 0;
-	top: 0;
-	right: 0;
-	bottom: 0;
-}
-
-.app {
-	background-color: #000;
+	inset: 0;
+	background:
+		radial-gradient(60% 80% at 80% 20%, rgba(255, 255, 255, 0.02), transparent 55%),
+		radial-gradient(80% 100% at 20% 80%, rgba(255, 255, 255, 0.02), transparent 55%),
+		repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 2px, rgba(0, 0, 0, 0.02) 2px 4px),
+		repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 3px, rgba(0, 0, 0, 0.02) 3px 6px),
+		linear-gradient(#0d0d0d, #0a0a0a 40%, #0e0e0e 100%);
+	color: #ddd;
 }
 
 .app--dropping {
-	background-color: #111;
+	background:
+		radial-gradient(60% 80% at 80% 20%, rgba(255, 120, 40, 0.05), transparent 55%),
+		radial-gradient(80% 100% at 20% 80%, rgba(255, 120, 40, 0.05), transparent 55%),
+		linear-gradient(#0d0d0d, #0d0b08 40%, #0e0e0e 100%);
 }
 
 .app__body,
@@ -29,10 +57,7 @@ body,
 
 .app__body .app__inner {
 	position: absolute;
-	left: 0;
-	top: 0;
-	right: 0;
-	bottom: 0;
+	inset: 0;
 }
 
 @media (max-aspect-ratio: 640/480) {
@@ -71,10 +96,28 @@ body,
 	height: 100%;
 	cursor: none;
 	visibility: hidden;
+	background: radial-gradient(120% 100% at 50% 10%, rgba(255, 200, 120, 0.04), rgba(0, 0, 0, 0) 60%);
 }
-
 .app--started canvas {
 	visibility: visible;
+}
+
+.app a,
+.app .link {
+	display: inline-block;
+	color: var(--d1-gold-bright);
+	text-decoration: none;
+	cursor: pointer;
+	text-shadow: 0 0 6px rgba(228, 195, 103, 0.25);
+	transition:
+		filter 0.15s ease,
+		transform 0.15s ease;
+}
+.app a:hover,
+.app .link:hover {
+	text-decoration: underline;
+	filter: brightness(1.08);
+	transform: translateY(-0.5px);
 }
 
 .app__keyboard {
@@ -88,27 +131,12 @@ body,
 	display: none;
 	cursor: none;
 }
-
 .app__keyboard::selection {
 	background: rgba(0, 0, 0, 0);
 	color: rgba(0, 0, 0, 0);
 }
-
 .app--keyboard .app__keyboard {
 	display: block;
-}
-
-.app a,
-.app .link {
-	display: inline-block;
-	color: rgb(112, 112, 255);
-	text-decoration: none;
-	cursor: pointer;
-}
-
-.app a:hover,
-.app .link:hover {
-	text-decoration: underline;
 }
 
 .app__touch-ui {
@@ -123,24 +151,45 @@ body,
 .app__touch-ui .app__touch-button {
 	position: absolute;
 	left: 50%;
-	background-color: #444;
 	transform: translate(-50%, -50%);
 	pointer-events: auto;
 	mask-size: 100% 100%;
+	border-radius: var(--bevel);
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.35)), linear-gradient(#2b2b2b, #1b1b1b);
+	box-shadow:
+		inset 0 0 0 1px rgba(201, 163, 74, 0.25),
+		0 2px 0 0 rgba(0, 0, 0, 0.65),
+		0 6px 12px rgba(0, 0, 0, 0.55);
+	border: 1px solid rgba(201, 163, 74, 0.35);
+	transition:
+		transform 0.08s ease,
+		box-shadow 0.12s ease,
+		background 0.2s ease;
 }
-
+.app__touch-ui .app__touch-button:active {
+	transform: translate(-50%, -48%) scale(0.98);
+	box-shadow:
+		inset 0 0 8px rgba(0, 0, 0, 0.55),
+		0 2px 0 0 rgba(0, 0, 0, 0.65),
+		0 3px 8px rgba(0, 0, 0, 0.45);
+}
 .app__touch-ui .app__touch-button--active {
-	background-color: #fff;
+	background:
+		linear-gradient(180deg, rgba(255, 60, 40, 0.25), rgba(0, 0, 0, 0.35)), linear-gradient(#7c1212, #4d0d0d);
+	box-shadow:
+		inset 0 0 0 1px rgba(233, 175, 72, 0.35),
+		0 0 14px rgba(197, 26, 26, 0.25),
+		0 2px 0 0 rgba(0, 0, 0, 0.65);
+	border-color: rgba(233, 175, 72, 0.55);
 }
 
 .app__touch-ui .app__touch-button--0 {
 	top: 15vh;
 }
-
 .app__touch-ui .app__touch-button--1 {
 	top: 35vh;
 }
-
 .app__touch-ui .app__touch-button--2 {
 	top: 55vh;
 }
@@ -149,17 +198,14 @@ body,
 	top: 70vh;
 	left: 5vw;
 }
-
 .app__touch-ui .app__touch-button--4 {
 	top: 70vh;
 	left: 11vw;
 }
-
 .app__touch-ui .app__touch-button--5 {
 	top: 85vh;
 	left: 5vw;
 }
-
 .app__touch-ui .app__touch-button--6 {
 	top: 85vh;
 	left: 11vw;
@@ -168,29 +214,26 @@ body,
 .app__touch-ui--mods {
 	left: 0;
 }
-
 .app__touch-ui--mods .app__touch-button {
 	width: 15vh;
 	height: 15vh;
 	border-radius: 10vh;
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.4)), linear-gradient(#2c2c2c, #191919);
+	border: 1px solid rgba(201, 163, 74, 0.35);
 }
-
 .app__touch-ui--mods .app__touch-button--0 {
 	mask-image: url(./icons/move.svg);
 }
-
 .app__touch-ui--mods .app__touch-button--1 {
 	mask-image: url(./icons/rmb.svg);
 }
-
 .app__touch-ui--mods .app__touch-button--2 {
 	mask-image: url(./icons/shift.svg);
 }
-
 .app__touch-ui--mods .app__touch-button--3 {
 	mask-image: url(./icons/f5.svg);
 }
-
 .app__touch-ui--mods .app__touch-button--4 {
 	mask-image: url(./icons/f6.svg);
 }
@@ -198,17 +241,19 @@ body,
 .app__touch-ui--belt {
 	right: 0;
 }
-
 .app__touch-ui--belt .app__touch-button {
 	width: 12vh;
 	height: 12vh;
 	font-size: 1vh;
-	border-radius: 20%;
+	border-radius: var(--slot-radius);
 	overflow: hidden;
-	background-color: #000;
-	border: 2px solid #444;
+	background: linear-gradient(180deg, rgba(197, 26, 26, 0.18), rgba(0, 0, 0, 0.5)), linear-gradient(#1a1a1a, #0f0f0f);
+	border: 1.5px solid rgba(201, 163, 74, 0.45);
+	box-shadow:
+		inset 0 0 0 2px rgba(0, 0, 0, 0.65),
+		inset 0 0 22px rgba(0, 0, 0, 0.8),
+		0 0 14px rgba(201, 163, 74, 0.18);
 }
-
 .app__touch-ui--belt .app__touch-button canvas {
 	position: absolute;
 	left: 5%;
@@ -216,15 +261,11 @@ body,
 	width: 90%;
 	height: 90%;
 }
-
 .app__touch-ui--belt .app__touch-button::after {
 	content: "";
 	position: absolute;
-	left: 0;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	border-radius: 20%;
+	inset: 0;
+	border-radius: var(--slot-radius);
 	box-shadow: inset 0 0 1em 1.5em #000;
 }
 
@@ -234,33 +275,25 @@ body,
 	bottom: 0;
 	height: 35vh;
 }
-
-.app__touch-ui--fkeys-left .app__touch-button {
+.app__touch-ui--fkeys-left .app__touch-button,
+.app__touch-ui--fkeys-right .app__touch-button {
 	width: 15vh;
 	height: 15vh;
 	position: absolute;
 	left: 50%;
-	background-color: #444;
-	transform: translate(-50%, -50%);
-	pointer-events: auto;
-	mask-size: 100% 100%;
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.4)), linear-gradient(#272727, #171717);
+	border: 1px solid rgba(201, 163, 74, 0.35);
 }
-
-.app__touch-ui--fkeys-left .app__touch-button--active {
-	background-color: #fff;
-}
-
 .app__touch-ui--fkeys-left .app__touch-button--3 {
 	top: 0;
 	transform: translate(-50%, 0);
 	mask-image: url(./icons/f5.svg);
 }
-
 .app__touch-ui--fkeys-left .app__touch-button--4 {
 	top: 60%;
 	mask-image: url(./icons/f6.svg);
 }
-
 .app__touch-ui--fkeys-right {
 	left: auto;
 	top: auto;
@@ -268,28 +301,11 @@ body,
 	bottom: 0;
 	height: 35vh;
 }
-
-.app__touch-ui--fkeys-right .app__touch-button {
-	width: 15vh;
-	height: 15vh;
-	position: absolute;
-	left: 50%;
-	background-color: #444;
-	transform: translate(-50%, -50%);
-	pointer-events: auto;
-	mask-size: 100% 100%;
-}
-
-.app__touch-ui--fkeys-right .app__touch-button--active {
-	background-color: #fff;
-}
-
 .app__touch-ui--fkeys-right .app__touch-button--5 {
 	top: 0;
 	transform: translate(-50%, 0);
 	mask-image: url(./icons/f7.svg);
 }
-
 .app__touch-ui--fkeys-right .app__touch-button--6 {
 	top: 60%;
 	mask-image: url(./icons/f8.svg);
@@ -298,7 +314,6 @@ body,
 .app--touch .app__touch-ui {
 	display: block;
 }
-
 .app--touch.app--keyboard .app__touch-ui {
 	display: none;
 }
@@ -308,31 +323,25 @@ body,
 		width: calc(50vw - 200vh / 3);
 	}
 }
-
 @media (max-aspect-ratio: 832/480) {
 	.app__touch-ui {
 		width: 20vh;
 	}
 }
-
 @media (max-aspect-ratio: 640/480) {
 	.app__touch-ui {
 		width: auto;
 		height: 20vw;
 	}
-
 	.app__touch-ui .app__touch-button {
 		top: 55%;
 	}
-
 	.app__touch-ui .app__touch-button--0 {
 		left: 16.7vw;
 	}
-
 	.app__touch-ui .app__touch-button--1 {
 		left: 50vw;
 	}
-
 	.app__touch-ui .app__touch-button--2 {
 		left: 83.3vw;
 	}
@@ -341,7 +350,6 @@ body,
 		top: auto;
 		right: 0;
 	}
-
 	.app__touch-ui--mods .app__touch-button {
 		width: 20vw;
 		height: 20vw;
@@ -352,7 +360,6 @@ body,
 		bottom: auto;
 		left: 0;
 	}
-
 	.app__touch-ui--belt .app__touch-button {
 		width: 14vw;
 		height: 14vw;
@@ -365,16 +372,13 @@ body,
 		width: 50%;
 		height: 12vh;
 	}
-
 	.app__touch-ui--fkeys-left .app__touch-button {
 		height: 12vh;
 		width: 12vh;
 	}
-
 	.app__touch-ui--fkeys-left .app__touch-button--3 {
 		left: 25%;
 	}
-
 	.app__touch-ui--fkeys-left .app__touch-button--4 {
 		top: 50%;
 		left: 75%;
@@ -387,30 +391,46 @@ body,
 		width: 50%;
 		height: 12vh;
 	}
-
 	.app__touch-ui--fkeys-right .app__touch-button {
 		height: 12vh;
 		width: 12vh;
 	}
-
 	.app__touch-ui--fkeys-right .app__touch-button--5 {
 		left: 25%;
 	}
-
 	.app__touch-ui--fkeys-right .app__touch-button--6 {
 		top: 50%;
 		left: 75%;
 	}
 }
 
-@media (max-aspect-ratio: 640/736) {
-	.app__touch-ui {
-		height: calc(50vh - 75vw / 2);
+@keyframes d1-pulse-btn {
+	0%,
+	100% {
+		box-shadow:
+			inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+			0 0 10px rgba(197, 26, 26, 0.18);
+	}
+	50% {
+		box-shadow:
+			inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+			0 0 16px rgba(197, 26, 26, 0.28);
 	}
 }
+.app__touch-ui .app__touch-button--active {
+	animation: d1-pulse-btn 1.8s ease-in-out infinite;
+}
 
-@media (max-aspect-ratio: 640/800) {
-	.app__touch-ui {
-		height: 35vw;
-	}
+.app .text-gold {
+	color: var(--d1-gold-bright);
+	text-shadow: 0 0 6px rgba(228, 195, 103, 0.25);
+}
+.app .text-ruby {
+	color: var(--d1-ruby-bright);
+}
+.app .hr {
+	height: 1px;
+	background: linear-gradient(90deg, rgba(201, 163, 74, 0), rgba(201, 163, 74, 0.45), rgba(201, 163, 74, 0));
+	border: none;
+	box-shadow: var(--frame-glow);
 }
