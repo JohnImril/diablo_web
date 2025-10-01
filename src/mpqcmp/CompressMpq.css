@@ -1,57 +1,7 @@
-:root {
-	--d1-black: #0b0b0b;
-	--d1-stone: #171717;
-	--d1-stone-2: #202020;
-	--d1-gold: #c9a34a;
-	--d1-gold-bright: #e4c367;
-	--d1-gold-dim: #8f7440;
-	--d1-ruby: #a61212;
-	--d1-ruby-bright: #c51a1a;
-	--d1-ember: #ff8a2a;
-	--bevel: 8px;
-}
-
 .compress-mpq {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	max-width: min(980px, 90%);
-	max-height: 90%;
-	overflow-y: auto;
-	pointer-events: auto;
-
-	border-radius: var(--bevel);
-	border: 1px solid var(--d1-gold-dim);
-	box-shadow:
-		inset 0 0 0 2px rgba(0, 0, 0, 0.9),
-		inset 0 0 0 3px rgba(201, 163, 74, 0.15),
-		0 0 0 1px rgba(201, 163, 74, 0.25),
-		0 0 18px rgba(233, 175, 72, 0.2),
-		0 0 50px rgba(255, 120, 40, 0.08);
-
-	padding: 16px 18px 20px;
-
-	background:
-		radial-gradient(120% 100% at 50% 0%, rgba(255, 180, 80, 0.05), rgba(0, 0, 0, 0) 60%),
-		repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 2px, rgba(0, 0, 0, 0.018) 2px 4px),
-		linear-gradient(#151515, #121212 40%, #181818 100%);
-
-	color: #eee;
 	font-size: 18px;
 	text-align: center;
-}
-
-.compress-mpq::-webkit-scrollbar {
-	width: 10px;
-}
-.compress-mpq::-webkit-scrollbar-track {
-	background: #0f0f0f;
-}
-.compress-mpq::-webkit-scrollbar-thumb {
-	background: linear-gradient(#3a3a3a, #2a2a2a);
-	border: 1px solid rgba(201, 163, 74, 0.35);
-	border-radius: 6px;
+	color: #eee;
 }
 
 .compress-mpq__description,
@@ -62,68 +12,13 @@
 	text-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
 }
 
-.compress-mpq__message a {
-	color: var(--d1-gold-bright);
-	text-decoration: none;
-	text-shadow: 0 0 6px rgba(228, 195, 103, 0.25);
-	transition:
-		filter 0.12s ease,
-		transform 0.12s ease;
-}
-.compress-mpq__message a:hover {
-	text-decoration: underline;
-	filter: brightness(1.08);
-	transform: translateY(-0.5px);
-}
-
 .compress-mpq__button {
 	display: block;
 	margin: 12px auto 0;
 	width: 11em;
 	font-size: clamp(18px, 2.2vw, 28px);
 	line-height: 1.15;
-
-	border-radius: 10px;
-	border: 1px solid rgba(201, 163, 74, 0.55);
-	background:
-		linear-gradient(180deg, rgba(255, 60, 40, 0.18), rgba(0, 0, 0, 0.45)), linear-gradient(#2a2a2a, #151515);
-	color: #f1e6c8;
-
-	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-		0 2px 0 0 rgba(0, 0, 0, 0.65),
-		0 8px 18px rgba(0, 0, 0, 0.55),
-		0 0 14px rgba(201, 163, 74, 0.18);
-
-	padding: 10px 22px;
-	cursor: pointer;
 	user-select: none;
-	transition:
-		transform 0.08s ease,
-		box-shadow 0.12s ease,
-		filter 0.12s ease,
-		background 0.2s ease;
-}
-.compress-mpq__button:hover {
-	filter: brightness(1.05);
-	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-		0 2px 0 0 rgba(0, 0, 0, 0.65),
-		0 10px 22px rgba(0, 0, 0, 0.6),
-		0 0 18px rgba(233, 175, 72, 0.22);
-}
-.compress-mpq__button:active {
-	transform: translateY(1px) scale(0.99);
-	box-shadow:
-		inset 0 0 10px rgba(0, 0, 0, 0.55),
-		0 2px 0 0 rgba(0, 0, 0, 0.65),
-		0 6px 14px rgba(0, 0, 0, 0.5);
-}
-
-.compress-mpq__button + .compress-mpq__button,
-.compress-mpq__button:last-of-type {
-	background:
-		linear-gradient(180deg, rgba(233, 175, 72, 0.18), rgba(0, 0, 0, 0.45)), linear-gradient(#2a2a1a, #15150d);
 }
 
 @media (max-width: 560px) {
@@ -137,8 +32,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.compress-mpq__button,
-	.compress-mpq__message a {
+	.compress-mpq__button {
 		transition: none;
 	}
 }

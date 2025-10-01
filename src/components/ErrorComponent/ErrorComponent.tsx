@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import cn from "classnames";
 
 import { IError } from "../../types";
 
@@ -45,19 +46,30 @@ const ErrorComponent: React.FC<IProps> = ({ error, retail, saveUrl, saveName }) 
 	const reportLink = buildReportLink();
 
 	return (
-		<div className="error-component">
-			<p className="error-component__header">The following error has occurred:</p>
+		<div
+			className={cn(
+				"error-component",
+				"u-center-abs",
+				"u-modal",
+				"d1-panel",
+				"d1-panel--ruby",
+				"u-scrollbar-gold"
+			)}
+		>
+			<p className={cn("error-component__header", "text-ruby")}>
+				<b>The following error has occurred:</b>
+			</p>
 			<p className="error-component__body">{error.message}</p>
 
 			<p className="error-component__footer">
-				<a href={reportLink} target="_blank" rel="noopener noreferrer" className="error-component__report-link">
+				<a href={reportLink} target="_blank" rel="noopener noreferrer" className={cn("d1-btn", "d1-btn--gold")}>
 					Create an issue on GitHub
 				</a>
 			</p>
 
 			{saveUrl && (
 				<p className="error-component__save-wrapper">
-					<a className="error-component__save-link" href={saveUrl} download={saveName}>
+					<a className={cn("d1-link", "text-ruby")} href={saveUrl} download={saveName}>
 						Download save file
 					</a>
 				</p>

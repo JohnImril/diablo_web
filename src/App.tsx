@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import classNames from "classnames";
+import cn from "classnames";
 import Peer from "peerjs";
 
 import load_game from "./api/loader";
@@ -11,6 +11,7 @@ import StartScreen from "./components/StartScreen/StartScreen";
 import { useErrorHandling, useFileDrop, useInitFSAndSaves, useKeyboardRule } from "./hooks";
 import { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types";
 
+import "./base.css";
 import "./App.css";
 
 window.Peer = Peer;
@@ -475,8 +476,9 @@ const App: React.FC = () => {
 							Object.assign(keyboardRef.current.style, showKeyboard.current);
 							keyboardRef.current.focus();
 							if (keyboardRule) {
-								keyboardRule.style.transform = `translate(-50%, ${(-(rect[1] + rect[3]) * 56.25) / 960
-									}vw)`;
+								keyboardRule.style.transform = `translate(-50%, ${
+									(-(rect[1] + rect[3]) * 56.25) / 960
+								}vw)`;
 							}
 						} else {
 							showKeyboard.current = false;
@@ -527,7 +529,7 @@ const App: React.FC = () => {
 
 	return (
 		<div
-			className={classNames("app", {
+			className={cn("app", {
 				"app--touch": touchControls.current,
 				"app--started": started,
 				"app--dropping": dropping,
@@ -539,7 +541,7 @@ const App: React.FC = () => {
 				{Array.from({ length: 3 }).map((_, i) => (
 					<div
 						key={`touch-mod-${i}`}
-						className={classNames("app__touch-button", `app__touch-button--${i}`, {
+						className={cn("d1-btn", "d1-iconbtn", "app__touch-button", `app__touch-button--${i}`, {
 							"app__touch-button--active": touchMods.current[i],
 						})}
 						ref={(el) => {
@@ -554,7 +556,7 @@ const App: React.FC = () => {
 					return (
 						<div
 							key={`touch-belt-${idx}`}
-							className={classNames("app__touch-button", `app__touch-button--${i}`)}
+							className={cn("d1-btn", "d1-iconbtn", "app__touch-button", `app__touch-button--${i}`)}
 							ref={(el) => {
 								touchButtons.current[idx] = el;
 								if (el) {
@@ -577,7 +579,7 @@ const App: React.FC = () => {
 					return (
 						<div
 							key={`fkeys-left-${idx}`}
-							className={classNames("app__touch-button", `app__touch-button--${idx - 3}`)}
+							className={cn("d1-btn", "d1-iconbtn", "app__touch-button", `app__touch-button--${idx - 3}`)}
 							ref={(el) => {
 								touchButtons.current[idx] = el;
 							}}
@@ -591,7 +593,7 @@ const App: React.FC = () => {
 					return (
 						<div
 							key={`fkeys-right-${idx}`}
-							className={classNames("app__touch-button", `app__touch-button--${idx - 3}`)}
+							className={cn("d1-btn", "d1-iconbtn", "app__touch-button", `app__touch-button--${idx - 3}`)}
 							ref={(el) => {
 								touchButtons.current[idx] = el;
 							}}

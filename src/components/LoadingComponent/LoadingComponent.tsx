@@ -1,4 +1,5 @@
 import React from "react";
+import cn from "classnames";
 import { IProgress } from "../../types";
 
 import "./LoadingComponent.css";
@@ -8,10 +9,15 @@ const LoadingComponent: React.FC<{
 	progress?: IProgress;
 }> = ({ title, progress }) => {
 	return (
-		<div className="loading-component">
-			<span className="loading-component__text">{progress?.text || title}</span>
-			{progress?.total && (
-				<progress className="loading-component__progress" value={progress.loaded} max={progress.total} />
+		<div className={cn("loading-component", "u-center-abs", "u-modal")}>
+			<span className={cn("loading-component__text", "text-gold")}>{progress?.text || title}</span>
+
+			{typeof progress?.total === "number" && (
+				<progress
+					className={cn("d1-progress", "loading-component__progress")}
+					value={progress.loaded}
+					max={progress.total}
+				/>
 			)}
 		</div>
 	);

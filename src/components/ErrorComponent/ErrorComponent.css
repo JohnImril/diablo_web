@@ -1,63 +1,16 @@
-:root {
-	--d1-black: #0b0b0b;
-	--d1-stone: #171717;
-	--d1-ruby-dark: #3a0a0a;
-	--d1-ruby: #a61212;
-	--d1-ruby-bright: #c51a1a;
-	--d1-ruby-light: #ff4d4d;
-	--d1-gold: #c9a34a;
-	--d1-gold-bright: #e4c367;
-	--shadow-deep: rgba(0, 0, 0, 0.85);
-	--bevel: 8px;
-}
-
-.error-component {
-	display: block;
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	max-width: 90%;
-	max-height: 90%;
-	overflow-y: auto;
-	pointer-events: auto;
-
-	padding: 16px 18px 20px;
-	border-radius: var(--bevel);
-	border: 1px solid var(--d1-ruby-bright);
-
-	background:
-		linear-gradient(180deg, rgba(255, 40, 40, 0.05), rgba(0, 0, 0, 0.45)), linear-gradient(#1a0b0b, #0d0000);
-
-	color: var(--d1-ruby-light);
-	font-size: 18px;
-	text-align: center;
-
-	box-shadow:
-		inset 0 0 0 2px rgba(0, 0, 0, 0.9),
-		inset 0 0 0 3px rgba(197, 26, 26, 0.25),
-		0 0 0 1px rgba(197, 26, 26, 0.35),
-		0 0 18px rgba(197, 26, 26, 0.35);
-}
-
 .error-component__header {
-	font-weight: bold;
 	font-size: 1.3em;
-	color: var(--d1-ruby-bright);
-	text-shadow:
-		0 0 6px rgba(197, 26, 26, 0.4),
-		0 0 12px rgba(255, 80, 30, 0.3);
 	margin-bottom: 0.5em;
 }
 
 .error-component__body {
 	font-family: monospace, monospace;
 	background: rgba(0, 0, 0, 0.4);
-	color: var(--d1-ruby-light);
 	padding: 8px 10px;
 	border-radius: 4px;
 	border: 1px solid rgba(197, 26, 26, 0.35);
 	box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8);
+	color: var(--d1-ruby-light);
 }
 
 .error-component__footer {
@@ -65,48 +18,6 @@
 	font-size: 0.9em;
 }
 
-.error-component__report-link {
-	color: var(--d1-gold-bright);
-	text-decoration: none;
-	cursor: pointer;
-	padding: 6px 14px;
-	border-radius: 6px;
-	border: 1px solid rgba(201, 163, 74, 0.45);
-	background:
-		linear-gradient(180deg, rgba(233, 175, 72, 0.18), rgba(0, 0, 0, 0.45)), linear-gradient(#2a2a1a, #15150d);
-	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.65),
-		0 2px 0 0 rgba(0, 0, 0, 0.65);
-	transition:
-		transform 0.08s ease,
-		box-shadow 0.12s ease,
-		filter 0.12s ease;
-}
-.error-component__report-link:hover {
-	filter: brightness(1.08);
-	box-shadow: 0 0 14px rgba(233, 175, 72, 0.3);
-}
-.error-component__report-link:active {
-	transform: translateY(1px) scale(0.98);
-}
-
 .error-component__save-wrapper {
 	margin-top: 0.8em;
-}
-.error-component__save-link {
-	color: var(--d1-ruby-light);
-	text-decoration: none;
-	cursor: pointer;
-	font-weight: 600;
-	transition:
-		filter 0.12s ease,
-		text-shadow 0.12s ease;
-}
-.error-component__save-link:hover {
-	filter: brightness(1.15);
-	text-shadow: 0 0 8px rgba(255, 60, 40, 0.4);
-}
-
-.error-component:hover {
-	text-decoration: none;
 }

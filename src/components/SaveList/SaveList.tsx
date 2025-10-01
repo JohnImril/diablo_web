@@ -1,3 +1,5 @@
+import React from "react";
+import cn from "classnames";
 import { IFileSystem, IPlayerInfo } from "../../types";
 
 import "./SaveList.css";
@@ -10,36 +12,42 @@ const SaveList: React.FC<{
 	start: (file?: File | null) => void;
 }> = ({ saveNames, fs, updateSaves, setShowSaves, start }) => {
 	const plrClass = ["Warrior", "Rogue", "Sorcerer"];
+
 	return (
-		<div className="save-list">
+		<div className={cn("save-list", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
 			<ul className="save-list__items">
 				{Object.entries(saveNames).map(([name, info]) => (
 					<li key={name} className="save-list__item">
 						<div className="save-list__item-info">
-							<div className="save-list__item-name">{name}</div>
+							<div className={cn("save-list__item-name", "text-gold")}>{name}</div>
 							{info ? (
 								<div className="save-list__player-info">
 									{info.name} (lv. {info.level} {plrClass[info.cls]})
 								</div>
 							) : null}
 						</div>
+
 						<div className="save-list__buttons">
 							<div
-								className="save-list__button--download"
+								className={cn("d1-btn", "d1-iconbtn")}
+								title="Download"
 								onClick={() => fs.then((fsInstance: IFileSystem) => fsInstance.download(name))}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									viewBox="0 0 24 24"
 									fill="currentColor"
-									width="16px"
-									height="16px"
+									width="16"
+									height="16"
+									aria-hidden="true"
 								>
 									<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
 								</svg>
 							</div>
+
 							<div
-								className="save-list__button--remove"
+								className={cn("d1-btn", "d1-iconbtn", "d1-btn--ruby")}
+								title="Delete"
 								onClick={() => {
 									if (window.confirm(`Are you sure you want to delete ${name}?`)) {
 										(async () => {
@@ -55,8 +63,9 @@ const SaveList: React.FC<{
 									xmlns="http://www.w3.org/2000/svg"
 									viewBox="0 0 24 24"
 									fill="currentColor"
-									width="16px"
-									height="16px"
+									width="16"
+									height="16"
+									aria-hidden="true"
 								>
 									<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
 								</svg>
@@ -65,8 +74,9 @@ const SaveList: React.FC<{
 					</li>
 				))}
 			</ul>
+
 			<form className="save-list__form">
-				<label htmlFor="loadFile" className="save-list__button save-list__button--upload">
+				<label htmlFor="loadFile" className={cn("save-list__button", "d1-btn")}>
 					Upload Save
 				</label>
 				<input
@@ -82,7 +92,8 @@ const SaveList: React.FC<{
 					}}
 				/>
 			</form>
-			<div className="save-list__button save-list__button--back" onClick={() => setShowSaves(false)}>
+
+			<div className={cn("save-list__button", "d1-btn", "d1-btn--gold")} onClick={() => setShowSaves(false)}>
 				Back
 			</div>
 		</div>

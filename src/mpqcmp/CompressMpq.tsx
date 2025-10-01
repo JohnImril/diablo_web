@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useCallback } from "react";
+import cn from "classnames";
 import compress from "./compress";
 import { IProgress } from "../types";
 import LoadingComponent from "../components/LoadingComponent/LoadingComponent";
@@ -78,13 +79,13 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 
 	if (url) {
 		return (
-			<div className="compress-mpq">
+			<div className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
 				<p className="compress-mpq__message">
-					<a href={url} download="DIABDAT.MPQ">
+					<a className="d1-link" href={url} download="DIABDAT.MPQ">
 						Click here if download doesn't start.
 					</a>
 				</p>
-				<div className="compress-mpq__button" onClick={onClose}>
+				<div className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")} onClick={onClose}>
 					Back
 				</div>
 			</div>
@@ -96,19 +97,19 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 	}
 
 	return (
-		<div className="compress-mpq">
+		<div className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
 			<p className="compress-mpq__description">
 				You can use this tool to reduce the original MPQ to about half its size. It encodes sounds in MP3 format
 				and uses better compression for regular files. To begin, click the button below or drop the MPQ onto the
 				page.
 			</p>
 			<form className="compress-mpq__form">
-				<label htmlFor="loadFile" className="compress-mpq__button">
+				<label htmlFor="loadFile" className={cn("compress-mpq__button", "d1-btn")}>
 					Select MPQ
 				</label>
 				<input accept=".mpq" type="file" id="loadFile" style={{ display: "none" }} onChange={parseFile} />
 			</form>
-			<div className="compress-mpq__button" onClick={onClose}>
+			<div className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")} onClick={onClose}>
 				Back
 			</div>
 		</div>

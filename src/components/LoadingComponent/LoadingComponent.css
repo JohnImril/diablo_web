@@ -1,36 +1,23 @@
-:root {
-	--d1-gold: #c9a34a;
-	--d1-gold-bright: #e4c367;
-	--d1-ruby: #a61212;
-	--d1-ruby-bright: #c51a1a;
-	--d1-ruby-light: #ff4d4d;
-	--d1-shadow: rgba(0, 0, 0, 0.75);
-}
-
 .loading-component {
-	color: var(--d1-gold-bright);
-	font-size: 32px;
 	text-align: center;
-	width: 75vw;
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
 	letter-spacing: 1px;
+	font-size: 32px;
 }
 
 .loading-component__text {
-	text-shadow:
-		0 0 3px rgba(233, 175, 72, 0.18),
-		0 0 6px rgba(255, 132, 40, 0.18),
-		0 0 12px rgba(197, 26, 26, 0.1);
 	animation: d1-pulse 2s ease-in-out infinite;
 	will-change: text-shadow;
+	display: inline-block;
 }
 
 .loading-component__progress {
 	display: block;
 	margin-top: 18px;
+}
+
+.loading-component .d1-progress {
+	appearance: none;
+	-webkit-appearance: none;
 	width: 100%;
 	height: 42px;
 	border: 2px solid var(--d1-gold);
@@ -42,11 +29,11 @@
 	overflow: hidden;
 }
 
-.loading-component__progress::-webkit-progress-bar {
+.loading-component .d1-progress::-webkit-progress-bar {
 	background: transparent;
 }
 
-.loading-component__progress::-webkit-progress-value {
+.loading-component .d1-progress::-webkit-progress-value {
 	background: linear-gradient(to top, var(--d1-ruby) 0%, var(--d1-ruby-bright) 50%, var(--d1-ruby-light) 100%);
 	box-shadow:
 		inset 0 0 8px rgba(0, 0, 0, 0.65),
@@ -55,42 +42,13 @@
 	transition: width 0.25s ease;
 }
 
-.loading-component__progress::-moz-progress-bar {
+.loading-component .d1-progress::-moz-progress-bar {
 	background: linear-gradient(to top, var(--d1-ruby) 0%, var(--d1-ruby-bright) 50%, var(--d1-ruby-light) 100%);
 	box-shadow:
 		inset 0 0 8px rgba(0, 0, 0, 0.65),
 		0 0 16px rgba(197, 26, 26, 0.25);
 	border-radius: 4px;
 	transition: width 0.25s ease;
-}
-
-@keyframes d1-pulse {
-	0%,
-	100% {
-		text-shadow:
-			0 0 3px rgba(233, 175, 72, 0.18),
-			0 0 6px rgba(255, 132, 40, 0.18),
-			0 0 12px rgba(197, 26, 26, 0.1);
-	}
-	35% {
-		text-shadow:
-			0 0 4px rgba(233, 175, 72, 0.26),
-			0 0 10px rgba(255, 132, 40, 0.3),
-			0 0 18px rgba(197, 26, 26, 0.16);
-	}
-	50% {
-		text-shadow:
-			0 0 6px rgba(233, 175, 72, 0.34),
-			0 0 14px rgba(255, 132, 40, 0.42),
-			0 0 26px rgba(197, 26, 26, 0.22),
-			0 0 38px rgba(197, 26, 26, 0.14);
-	}
-	65% {
-		text-shadow:
-			0 0 4px rgba(233, 175, 72, 0.26),
-			0 0 10px rgba(255, 132, 40, 0.3),
-			0 0 18px rgba(197, 26, 26, 0.16);
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {
