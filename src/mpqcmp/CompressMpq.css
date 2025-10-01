@@ -1,38 +1,38 @@
 .compress-mpq {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	max-width: 90%;
-	max-height: 90%;
-	overflow-y: auto;
-	pointer-events: auto;
-	border: 1px solid #888;
-	padding: 12px;
-	color: #fff;
 	font-size: 18px;
 	text-align: center;
-	background: #000;
+	color: #eee;
 }
 
 .compress-mpq__description,
 .compress-mpq__message {
-	margin: 10px 0;
+	margin: 12px 0;
+	line-height: 1.45;
+	color: #e5e5e5;
+	text-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
 }
 
 .compress-mpq__button {
 	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	border: 1px solid #fff;
-	background: #000;
-	font-size: 2em;
-	padding: 4px 18px;
-	cursor: pointer;
-	margin-top: 6px;
-	width: 8em;
+	margin: 12px auto 0;
+	width: 11em;
+	font-size: clamp(18px, 2.2vw, 28px);
+	line-height: 1.15;
+	user-select: none;
 }
 
-.compress-mpq__button:hover {
-	background-color: #111;
+@media (max-width: 560px) {
+	.compress-mpq {
+		padding: 12px;
+	}
+	.compress-mpq__button {
+		width: 100%;
+		font-size: 20px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.compress-mpq__button {
+		transition: none;
+	}
 }

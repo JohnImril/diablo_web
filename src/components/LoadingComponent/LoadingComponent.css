@@ -1,34 +1,58 @@
 .loading-component {
-	color: #888;
-	font-size: 32px;
 	text-align: center;
-	width: 75vw;
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
+	letter-spacing: 1px;
+	font-size: 32px;
+}
+
+.loading-component__text {
+	animation: d1-pulse 2s ease-in-out infinite;
+	will-change: text-shadow;
+	display: inline-block;
 }
 
 .loading-component__progress {
 	display: block;
-	margin-top: 16px;
-	width: 100%;
-	height: 40px;
-	border: 2px solid #888;
-	border-radius: 4px;
-	position: relative;
+	margin-top: 18px;
 }
 
-.loading-component__progress::-webkit-progress-bar {
+.loading-component .d1-progress {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 100%;
+	height: 42px;
+	border: 2px solid var(--d1-gold);
+	border-radius: 6px;
+	background: rgba(0, 0, 0, 0.8);
+	box-shadow:
+		inset 0 0 12px rgba(0, 0, 0, 0.85),
+		0 0 12px rgba(201, 163, 74, 0.25);
+	overflow: hidden;
+}
+
+.loading-component .d1-progress::-webkit-progress-bar {
 	background: transparent;
 }
 
-.loading-component__progress::-webkit-progress-value {
-	background: linear-gradient(to top, #ff0000, #ff4d4d);
+.loading-component .d1-progress::-webkit-progress-value {
+	background: linear-gradient(to top, var(--d1-ruby) 0%, var(--d1-ruby-bright) 50%, var(--d1-ruby-light) 100%);
+	box-shadow:
+		inset 0 0 8px rgba(0, 0, 0, 0.65),
+		0 0 16px rgba(197, 26, 26, 0.25);
 	border-radius: 4px;
+	transition: width 0.25s ease;
 }
 
-.loading-component__progress::-moz-progress-bar {
-	background: linear-gradient(to top, #ff0000, #ff4d4d);
+.loading-component .d1-progress::-moz-progress-bar {
+	background: linear-gradient(to top, var(--d1-ruby) 0%, var(--d1-ruby-bright) 50%, var(--d1-ruby-light) 100%);
+	box-shadow:
+		inset 0 0 8px rgba(0, 0, 0, 0.65),
+		0 0 16px rgba(197, 26, 26, 0.25);
 	border-radius: 4px;
+	transition: width 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loading-component__text {
+		animation: none;
+	}
 }

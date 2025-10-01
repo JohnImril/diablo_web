@@ -1,44 +1,36 @@
 .start-screen {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	max-width: 90%;
-	max-height: 90%;
-	overflow-y: auto;
-	pointer-events: auto;
-	border: 1px solid #888;
-	padding: 12px;
-	color: #fff;
 	font-size: 18px;
 	text-align: center;
-	background: #000;
 }
 
 .start-screen__description {
-	margin: 10px 0;
+	margin: 12px 0;
+	line-height: 1.45;
+	color: #e5e5e5;
+	text-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
 }
 
 .start-screen__button {
 	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	border: 1px solid #fff;
-	background: #000;
-	font-size: 2em;
-	padding: 4px 18px;
-	cursor: pointer;
-	margin-top: 6px;
-	width: 8em;
+	margin: 10px auto 0;
+	width: 10.5em;
+	font-size: clamp(18px, 2.2vw, 28px);
+	line-height: 1.15;
+	user-select: none;
 }
 
-.start-screen__button:hover {
-	background-color: #111;
+@media (max-width: 560px) {
+	.start-screen {
+		padding: 14px;
+	}
+	.start-screen__button {
+		width: 100%;
+		font-size: 20px;
+	}
 }
 
-.start-screen__compress-link {
-	display: inline-block;
-	color: rgb(112, 112, 255);
-	text-decoration: none;
-	cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+	.start-screen__button {
+		transition: none;
+	}
 }

@@ -1,0 +1,256 @@
+:root {
+	--d1-black: #0b0b0b;
+	--d1-charcoal: #151515;
+	--d1-stone: #171717;
+	--d1-stone-2: #202020;
+	--d1-iron: #2c2c2c;
+	--d1-ash: #bfbfbf;
+	--d1-blood: #7a0a0a;
+	--d1-ruby-dark: #3a0a0a;
+	--d1-ruby: #a61212;
+	--d1-ruby-bright: #c51a1a;
+	--d1-ruby-light: #ff4d4d;
+	--d1-gold: #c9a34a;
+	--d1-gold-bright: #e4c367;
+	--d1-gold-dim: #8f7440;
+	--d1-ember: #ff8a2a;
+	--d1-ember-dim: #b85b1b;
+
+	--d1-shadow: rgba(0, 0, 0, 0.65);
+	--d1-shadow-deep: rgba(0, 0, 0, 0.85);
+	--frame-glow: 0 0 18px rgba(233, 175, 72, 0.25), 0 0 4px rgba(233, 175, 72, 0.15);
+	--torch-glow: 0 0 22px rgba(255, 132, 40, 0.2), 0 0 60px rgba(255, 80, 30, 0.08);
+	--bevel: 8px;
+	--slot-radius: 10%;
+}
+
+.u-center-abs {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+.u-modal {
+	max-height: 90%;
+	overflow-y: auto;
+	pointer-events: auto;
+	width: min(980px, 90%);
+	max-width: none;
+}
+.u-scrollbar-gold::-webkit-scrollbar {
+	width: 10px;
+}
+.u-scrollbar-gold::-webkit-scrollbar-track {
+	background: #0f0f0f;
+}
+.u-scrollbar-gold::-webkit-scrollbar-thumb {
+	background: linear-gradient(#3a3a3a, #2a2a2a);
+	border: 1px solid rgba(201, 163, 74, 0.35);
+	border-radius: 6px;
+}
+.text-gold {
+	color: var(--d1-gold-bright);
+	text-shadow: 0 0 6px rgba(228, 195, 103, 0.25);
+}
+.text-ruby {
+	color: var(--d1-ruby-bright);
+}
+.hr {
+	height: 1px;
+	background: linear-gradient(90deg, rgba(201, 163, 74, 0), rgba(201, 163, 74, 0.45), rgba(201, 163, 74, 0));
+	border: 0;
+	box-shadow: var(--frame-glow);
+}
+
+.d1-panel {
+	--panel-border: var(--d1-gold-dim);
+	--panel-inset-1: rgba(0, 0, 0, 0.9);
+	--panel-inset-2: rgba(201, 163, 74, 0.15);
+	--panel-outline: rgba(201, 163, 74, 0.25);
+	--panel-outer-glow: rgba(233, 175, 72, 0.2);
+	--panel-fire-glow: rgba(255, 120, 40, 0.08);
+	--panel-bg-top: #151515;
+	--panel-bg-mid: #121212;
+	--panel-bg-bot: #181818;
+
+	border-radius: var(--bevel);
+	border: 1px solid var(--panel-border);
+	box-shadow:
+		inset 0 0 0 2px var(--panel-inset-1),
+		inset 0 0 0 3px var(--panel-inset-2),
+		0 0 0 1px var(--panel-outline),
+		0 0 18px var(--panel-outer-glow),
+		0 0 50px var(--panel-fire-glow);
+	padding: 16px 18px 20px;
+	background:
+		radial-gradient(120% 100% at 50% 0%, rgba(255, 180, 80, 0.05), transparent 60%),
+		repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 2px, rgba(0, 0, 0, 0.018) 2px 4px),
+		linear-gradient(var(--panel-bg-top), var(--panel-bg-mid) 40%, var(--panel-bg-bot));
+	color: #eee;
+	font-size: 18px;
+	text-align: center;
+}
+.d1-panel--ruby {
+	--panel-border: var(--d1-ruby-bright);
+	--panel-inset-2: rgba(197, 26, 26, 0.25);
+	--panel-outline: rgba(197, 26, 26, 0.35);
+	--panel-outer-glow: rgba(197, 26, 26, 0.35);
+	--panel-bg-top: #1a0b0b;
+	--panel-bg-mid: #0d0000;
+	--panel-bg-bot: #130000;
+}
+
+.d1-btn {
+	--btn-border: rgba(201, 163, 74, 0.45);
+	--btn-bg1: rgba(255, 60, 40, 0.18);
+	--btn-bg2: rgba(0, 0, 0, 0.45);
+	--btn-grad1: #2a2a2a;
+	--btn-grad2: #151515;
+	--btn-color: #f1e6c8;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	border: 1px solid var(--btn-border);
+	background:
+		linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2)), linear-gradient(var(--btn-grad1), var(--btn-grad2));
+	color: var(--btn-color);
+	box-shadow:
+		inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+		0 2px 0 0 rgba(0, 0, 0, 0.65),
+		0 8px 18px rgba(0, 0, 0, 0.55),
+		0 0 14px rgba(201, 163, 74, 0.18);
+	padding: 10px 22px;
+	cursor: pointer;
+	user-select: none;
+	transition:
+		transform 0.08s ease,
+		box-shadow 0.12s ease,
+		filter 0.12s ease,
+		background 0.2s ease,
+		color 0.12s ease;
+}
+.d1-btn:hover {
+	filter: brightness(1.05);
+	box-shadow:
+		inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+		0 2px 0 0 rgba(0, 0, 0, 0.65),
+		0 10px 22px rgba(0, 0, 0, 0.6),
+		0 0 18px rgba(233, 175, 72, 0.22);
+}
+.d1-btn:active {
+	transform: translateY(1px) scale(0.99);
+	box-shadow:
+		inset 0 0 10px rgba(0, 0, 0, 0.55),
+		0 2px 0 0 rgba(0, 0, 0, 0.65),
+		0 6px 14px rgba(0, 0, 0, 0.5);
+}
+.d1-btn--gold {
+	--btn-bg1: rgba(233, 175, 72, 0.18);
+	--btn-grad1: #2a2a1a;
+	--btn-grad2: #15150d;
+	--btn-border: rgba(201, 163, 74, 0.55);
+	color: var(--d1-gold-bright);
+}
+.d1-btn--ruby {
+	--btn-bg1: rgba(197, 26, 26, 0.2);
+	--btn-grad1: #2a1515;
+	--btn-grad2: #150d0d;
+	--btn-border: rgba(197, 26, 26, 0.5);
+	color: var(--d1-ruby-bright);
+}
+.d1-iconbtn {
+	width: 36px;
+	height: 32px;
+	padding: 0;
+}
+
+.d1-link {
+	color: var(--d1-gold-bright);
+	text-decoration: none;
+	cursor: pointer;
+	text-shadow: 0 0 6px rgba(228, 195, 103, 0.25);
+	transition:
+		filter 0.12s ease,
+		transform 0.12s ease;
+}
+.d1-link:hover {
+	text-decoration: underline;
+	filter: brightness(1.08);
+	transform: translateY(-0.5px);
+}
+.d1-link:focus-visible {
+	outline: none;
+	box-shadow:
+		0 0 0 2px rgba(233, 175, 72, 0.5),
+		0 0 0 4px rgba(0, 0, 0, 0.9);
+	border-color: var(--d1-gold);
+}
+
+.d1-progress {
+	display: block;
+	width: 100%;
+	height: 42px;
+	border: 2px solid var(--d1-gold);
+	border-radius: 6px;
+	background: rgba(0, 0, 0, 0.8);
+	box-shadow:
+		inset 0 0 12px rgba(0, 0, 0, 0.85),
+		0 0 12px rgba(201, 163, 74, 0.25);
+	overflow: hidden;
+}
+.d1-progress::-webkit-progress-bar {
+	background: transparent;
+}
+.d1-progress::-webkit-progress-value,
+.d1-progress::-moz-progress-bar {
+	background: linear-gradient(to top, var(--d1-ruby) 0%, var(--d1-ruby-bright) 50%, var(--d1-ruby-light) 100%);
+	box-shadow:
+		inset 0 0 8px rgba(0, 0, 0, 0.65),
+		0 0 16px rgba(197, 26, 26, 0.25);
+	border-radius: 4px;
+	transition: width 0.25s ease;
+}
+
+@keyframes d1-pulse {
+	0%,
+	100% {
+		text-shadow:
+			0 0 3px rgba(233, 175, 72, 0.18),
+			0 0 6px rgba(255, 132, 40, 0.18),
+			0 0 12px rgba(197, 26, 26, 0.1);
+	}
+	35%,
+	65% {
+		text-shadow:
+			0 0 4px rgba(233, 175, 72, 0.26),
+			0 0 10px rgba(255, 132, 40, 0.3),
+			0 0 18px rgba(197, 26, 26, 0.16);
+	}
+	50% {
+		text-shadow:
+			0 0 6px rgba(233, 175, 72, 0.34),
+			0 0 14px rgba(255, 132, 40, 0.42),
+			0 0 26px rgba(197, 26, 26, 0.22),
+			0 0 38px rgba(197, 26, 26, 0.14);
+	}
+}
+@keyframes d1-pulse-btn {
+	0%,
+	100% {
+		box-shadow:
+			inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+			0 0 10px rgba(197, 26, 26, 0.18);
+	}
+	50% {
+		box-shadow:
+			inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+			0 0 16px rgba(197, 26, 26, 0.28);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.d1-btn,
+	.d1-link {
+		transition: none;
+	}
+}
