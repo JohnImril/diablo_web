@@ -1,6 +1,6 @@
 import React from "react";
 import cn from "classnames";
-import { IProgress } from "../../types";
+import type { IProgress } from "../../types";
 
 import "./LoadingComponent.css";
 

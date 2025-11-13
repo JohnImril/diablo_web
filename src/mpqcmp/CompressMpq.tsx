@@ -1,7 +1,7 @@
-import React, { useState, useEffect, ChangeEvent, useCallback } from "react";
+import React, { useState, useEffect, type ChangeEvent, useCallback } from "react";
 import cn from "classnames";
 import compress from "./compress";
-import { IProgress } from "../types";
+import type { IProgress } from "../types";
 import LoadingComponent from "../components/LoadingComponent/LoadingComponent";
 
 import "./CompressMpq.css";

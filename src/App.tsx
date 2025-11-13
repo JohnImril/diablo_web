@@ -9,7 +9,7 @@ import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
 import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
 import { useErrorHandling, useFileDrop, useInitFSAndSaves, useKeyboardRule } from "./hooks";
-import { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types";
+import type { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types";
 
 import "./base.css";
 import "./App.css";

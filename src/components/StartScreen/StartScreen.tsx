@@ -1,6 +1,6 @@
 import React from "react";
 import cn from "classnames";
-import { IPlayerInfo } from "../../types";
+import type { IPlayerInfo } from "../../types";
 
 import "./StartScreen.css";
 

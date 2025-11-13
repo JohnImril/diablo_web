@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import cn from "classnames";
 
-import { IError } from "../../types";
+import type { IError } from "../../types";
 
 import "./ErrorComponent.css";
 

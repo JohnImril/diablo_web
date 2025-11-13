@@ -1,4 +1,4 @@
-import { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
+import type { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
 
 export class buffer_reader {
 	private buffer: Uint8Array;

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import create_fs from "../fs";
 import { SpawnSizes } from "../api/load_spawn";
 import getPlayerName from "../api/savefile";
-import { IPlayerInfo } from "../types";
+import type { IPlayerInfo } from "../types";
 import { toArrayBuffer } from "../utils/buffers";
 
 export function useInitFSAndSaves() {

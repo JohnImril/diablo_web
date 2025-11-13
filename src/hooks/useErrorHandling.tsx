@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { mapStackTrace } from "sourcemapped-stacktrace";
 
-import { IError, IFileSystem } from "../types";
+import type { IError, IFileSystem } from "../types";
 
 export const useErrorHandling = (
 	fileSystemRef: React.RefObject<Promise<IFileSystem>>,
