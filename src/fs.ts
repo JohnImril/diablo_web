@@ -1,5 +1,6 @@
-import { openDB, IDBPDatabase } from "idb";
-import { IFileSystem } from "./types";
+import { openDB } from "idb";
+import type { IDBPDatabase } from "idb";
+import type { IFileSystem } from "./types";
 
 export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());

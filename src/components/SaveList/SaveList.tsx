@@ -1,6 +1,6 @@
 import React from "react";
 import cn from "classnames";
-import { IFileSystem, IPlayerInfo } from "../../types";
+import type { IFileSystem, IPlayerInfo } from "../../types";
 
 import "./SaveList.css";
 

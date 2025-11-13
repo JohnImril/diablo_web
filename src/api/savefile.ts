@@ -1,6 +1,6 @@
 import { explode } from "./explode";
 import codec_decode from "./codec";
-import { IPlayerInfo } from "../types";
+import type { IPlayerInfo } from "../types";
 
 type ReadBuffer = (dst: Uint8Array) => number;
 type WriteBuffer = (src: Uint8Array) => void;

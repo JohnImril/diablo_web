@@ -2,7 +2,7 @@ import Worker from "./game.worker.js?worker";
 import init_sound from "./sound";
 import load_spawn from "./load_spawn";
 import webrtc_open from "./webrtc";
-import { IApi, IAudioApi } from "../types";
+import type { IApi, IAudioApi } from "../types";
 import { toArrayBuffer } from "../utils/buffers";
 
 interface IRenderBatch {

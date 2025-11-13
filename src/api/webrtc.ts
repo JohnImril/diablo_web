@@ -1,7 +1,9 @@
-import Peer, { DataConnection, PeerOptions } from "peerjs";
+import Peer from "peerjs";
+import type { DataConnection, PeerOptions } from "peerjs";
 import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
-import { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
-import { AnyBuf, toUint8 } from "../utils/buffers";
+import type { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
+import { toUint8 } from "../utils/buffers";
+import type { AnyBuf } from "../utils/buffers";
 
 type MessageHandler = (packet: AnyBuf) => void;
 type CloseHandler = () => void;

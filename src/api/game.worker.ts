@@ -7,7 +7,7 @@ import SpawnBinary from "./DiabloSpawn.wasm?url";
 // @ts-ignore
 import SpawnModule from "./DiabloSpawn.jscc";
 import websocket_open from "./websocket";
-import { IWebSocketProxy } from "../types";
+import type { IWebSocketProxy } from "../types";
 import { fetchWithProgress } from "../utils/fetchWithProgress";
 
 const DiabloSize = 1466809;
