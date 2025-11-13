@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import { VitePWA } from "vite-plugin-pwa";
 import pkg from "./package.json";
@@ -9,7 +9,11 @@ const BASE = "/diablo_web/";
 export default defineConfig({
 	base: BASE,
 	plugins: [
-		react(),
+		react({
+			babel: {
+				plugins: [["babel-plugin-react-compiler"]],
+			},
+		}),
 		wasm(),
 		VitePWA({
 			base: BASE,
