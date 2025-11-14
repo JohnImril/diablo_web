@@ -560,11 +560,18 @@ const App: React.FC = () => {
 							ref={(el) => {
 								touchButtons.current[idx] = el;
 								if (el) {
-									const canvas = document.createElement("canvas");
-									canvas.width = 28;
-									canvas.height = 28;
-									el.appendChild(canvas);
-									touchCtx.current[idx] = canvas.getContext("2d");
+									if (!touchCtx.current[idx]) {
+										let canvas = el.querySelector("canvas") as HTMLCanvasElement | null;
+
+										if (!canvas) {
+											canvas = document.createElement("canvas");
+											canvas.width = 28;
+											canvas.height = 28;
+											el.appendChild(canvas);
+										}
+
+										touchCtx.current[idx] = canvas.getContext("2d");
+									}
 								} else {
 									touchCtx.current[idx] = null;
 								}
