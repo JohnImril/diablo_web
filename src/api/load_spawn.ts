@@ -17,13 +17,25 @@ export default async function load_spawn(api: IApi, fs: IFileSystem) {
 	if (!file) {
 		const url = import.meta.env.BASE_URL === "/" ? "/spawn.mpq" : import.meta.env.BASE_URL + "/spawn.mpq";
 
+		let lastEmit = 0;
+		let lastPercent = -1;
+
 		const buffer = await fetchWithProgress(
 			url,
 			(loaded, total) => {
+				const t = total || SpawnSizes[1];
+				const now = performance.now();
+				const percent = t ? Math.floor((loaded / t) * 100) : 0;
+
+				if (percent === lastPercent && now - lastEmit < 120 && loaded < t) return;
+
+				lastEmit = now;
+				lastPercent = percent;
+
 				api.onProgress?.({
 					text: "Downloading...",
 					loaded,
-					total: total || SpawnSizes[1],
+					total: t,
 				});
 			},
 			{
