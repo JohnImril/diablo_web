@@ -87,11 +87,11 @@ export default async function compress(mpq: File, progress: (text: string, loade
 	files.push(fHeader);
 
 	const fBinary: IFileLoad = { loaded: 0, weight: 5, total: MPQ_SIZE };
-	fBinary.ready = loadFile(MpqBinary, loader(fBinary)) as Promise<ArrayBuffer>;
+	fBinary.ready = loadFile(MpqBinary, loader(fBinary));
 	files.push(fBinary);
 
 	const fList: IFileLoad = { loaded: 0, weight: 5, total: LIST_SIZE };
-	fList.ready = loadFile(ListFile, loader(fList), "text") as Promise<string>;
+	fList.ready = loadFile(ListFile, loader(fList), "text");
 	files.push(fList);
 
 	const header = new Uint32Array((await fHeader.ready) as ArrayBuffer);
