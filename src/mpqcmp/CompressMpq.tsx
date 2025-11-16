@@ -73,9 +73,19 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 	}, [file, onErrorHandler, onDone]);
 
 	useEffect(() => {
-		if (!url) return;
-		return () => URL.revokeObjectURL(url);
+		return () => {
+			if (url) {
+				URL.revokeObjectURL(url);
+				setUrl(null);
+			}
+		};
 	}, [url]);
+
+	useEffect(() => {
+		return () => {
+			if (url) URL.revokeObjectURL(url);
+		};
+	}, []);
 
 	if (url) {
 		return (
