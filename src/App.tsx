@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import cn from "classnames";
 import Peer from "peerjs";
 
@@ -35,7 +35,7 @@ const App: React.FC = () => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const keyboardRef = useRef<HTMLInputElement>(null);
 	const saveNameRef = useRef<string | undefined>(undefined);
-
+	const cleanupRef = useRef<(() => void) | null>(null);
 	const showKeyboard = useRef<boolean | React.CSSProperties>(false);
 	const keyboardNum = useRef(0);
 	const maxKeyboard = useRef(0);
@@ -362,15 +362,17 @@ const App: React.FC = () => {
 
 		const handleResize = () => document.exitPointerLock();
 
+		const touchOptions = { passive: false, capture: true };
+
 		document.addEventListener("mousemove", handleMouseMove, true);
 		document.addEventListener("mousedown", handleMouseDown, true);
 		document.addEventListener("mouseup", handleMouseUp, true);
 		document.addEventListener("keydown", handleKeyDown, true);
 		document.addEventListener("keyup", handleKeyUp, true);
 		document.addEventListener("contextmenu", handleContextMenu, true);
-		document.addEventListener("touchstart", handleTouchStart, { passive: false, capture: true });
-		document.addEventListener("touchmove", handleTouchMove, { passive: false, capture: true });
-		document.addEventListener("touchend", handleTouchEnd, { passive: false, capture: true });
+		document.addEventListener("touchstart", handleTouchStart, touchOptions);
+		document.addEventListener("touchmove", handleTouchMove, touchOptions);
+		document.addEventListener("touchend", handleTouchEnd, touchOptions);
 		document.addEventListener("pointerlockchange", handlePointerLockChange);
 		window.addEventListener("resize", handleResize);
 
@@ -381,15 +383,19 @@ const App: React.FC = () => {
 			document.removeEventListener("keydown", handleKeyDown, true);
 			document.removeEventListener("keyup", handleKeyUp, true);
 			document.removeEventListener("contextmenu", handleContextMenu, true);
-			document.removeEventListener("touchstart", handleTouchStart, true);
-			document.removeEventListener("touchmove", handleTouchMove, true);
-			document.removeEventListener("touchend", handleTouchEnd, true);
+			document.removeEventListener("touchstart", handleTouchStart, touchOptions);
+			document.removeEventListener("touchmove", handleTouchMove, touchOptions);
+			document.removeEventListener("touchend", handleTouchEnd, touchOptions);
 			document.removeEventListener("pointerlockchange", handlePointerLockChange);
 			window.removeEventListener("resize", handleResize);
 		};
 	}, [mousePos, updateTouchButton, setTouchMod]);
+
 	const start = useCallback(
 		async (file: File | null = null) => {
+			cleanupRef.current?.();
+			cleanupRef.current = null;
+
 			if (file) {
 				const fileName = file.name.toLowerCase();
 				if (fileName.endsWith(".sv")) {
@@ -466,7 +472,9 @@ const App: React.FC = () => {
 						onError,
 						onProgress: setProgress,
 						onExit: () => {
-							if (!error) window.location.reload();
+							cleanupRef.current?.();
+							cleanupRef.current = null;
+							if (!error) setStarted(false);
 						},
 						setCurrentSave: (name: string) => {
 							saveNameRef.current = name;
@@ -477,20 +485,42 @@ const App: React.FC = () => {
 				);
 
 				game.current = loadedGame as GameFunction;
-				const cleanup = addEventListeners();
+				const removeListeners = addEventListeners();
 				setLoading(false);
 				setStarted(true);
 
-				return () => {
-					cleanup?.();
+				const worker = (loadedGame as any).worker as Worker | undefined;
+				const webrtc = (loadedGame as any).webrtc as { send?: (data: Uint8Array) => void } | undefined;
+				const webrtcIntervalId = (loadedGame as any).webrtcIntervalId as number | null;
+
+				cleanupRef.current = () => {
+					console.debug("[Cleanup] Running game cleanup...");
+
+					removeListeners?.();
 					game.current = null;
+
+					worker?.terminate();
+
+					if (webrtcIntervalId != null) {
+						clearInterval(webrtcIntervalId);
+					}
+
+					try {
+						webrtc?.send?.(new Uint8Array([0x24]));
+					} catch (e) {
+						console.warn("Failed to send leave_game:", e);
+					}
+
+					setStarted(false);
+					setLoading(false);
+					setRetail(undefined);
 				};
 			} catch (e: any) {
 				onError(e.message, e.stack);
 				setLoading(false);
 			}
 		},
-		[showSaves, fsRef, updateSaves, drawBelt, onError, keyboardRule, error, addEventListeners]
+		[showSaves, fsRef, updateSaves, drawBelt, onError, keyboardRule, error, addEventListeners, updateSaves]
 	);
 
 	const onDropFile = useCallback(
@@ -506,13 +536,12 @@ const App: React.FC = () => {
 
 	const { dropping } = useFileDrop(onDropFile);
 
-	useLayoutEffect(() => {
-		if (!started) return;
+	useEffect(() => {
 		return () => {
-			window.location.reload();
+			cleanupRef.current?.();
+			cleanupRef.current = null;
 		};
-	}, [started]);
-
+	}, []);
 	return (
 		<div
 			className={cn("app", {

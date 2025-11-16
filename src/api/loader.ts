@@ -76,8 +76,12 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 		try {
 			const worker = new Worker();
 			const packetQueue: ArrayBuffer[] = [];
-			const webrtc = webrtc_open((data) => {
+			let webrtc: any = null;
+			let intervalId: number | null = null;
+
+			webrtc = webrtc_open((data) => {
 				packetQueue.push(toArrayBuffer(data));
+				if (packetQueue.length > 100) packetQueue.shift();
 			});
 
 			worker.addEventListener("message", ({ data }) => {
@@ -140,12 +144,23 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 				transfer.push(toArrayBuffer(file.buffer));
 			}
 			worker.postMessage({ action: "init", files: fs.files, mpq, spawn, offscreen }, transfer);
-			setInterval(() => {
+
+			intervalId = setInterval(() => {
 				if (packetQueue.length) {
 					worker.postMessage({ action: "packetBatch", batch: packetQueue }, packetQueue);
 					packetQueue.length = 0;
 				}
 			}, 20);
+
+			const gameFn = (func: string, ...params: unknown[]) =>
+				worker.postMessage({ action: "event", func, params });
+
+			gameFn.worker = worker;
+			gameFn.webrtc = webrtc;
+			gameFn.webrtcIntervalId = intervalId;
+
+			resolve(gameFn);
+
 			fs.files.clear();
 		} catch (error) {
 			reject(error);
