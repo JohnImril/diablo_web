@@ -23,7 +23,7 @@ const StartScreen: React.FC<{
 					rel="noopener noreferrer"
 					href="https://github.com/JohnImril/diablo_web"
 				>
-					https://github.com/JohnImril/diablo_web
+					GitHub repository
 				</a>
 				.
 			</p>
