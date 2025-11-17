@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import cn from "classnames";
-import Peer from "peerjs";
 
 import load_game from "./api/loader";
 import CompressMpq from "./mpqcmp/CompressMpq";
@@ -13,8 +12,6 @@ import type { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types"
 
 import "./base.css";
 import "./App.css";
-
-window.Peer = Peer;
 
 const TOUCH_MOVE = 0;
 const TOUCH_RMB = 1;
@@ -542,6 +539,7 @@ const App: React.FC = () => {
 			cleanupRef.current = null;
 		};
 	}, []);
+
 	return (
 		<div
 			className={cn("app", {

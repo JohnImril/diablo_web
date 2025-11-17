@@ -1,4 +1,3 @@
-import Peer from "peerjs";
 import type { DataConnection, PeerOptions } from "peerjs";
 import { buffer_reader, read_packet, write_packet, client_packet, server_packet, RejectionReason } from "./packet";
 import type { IDisconnectPacket, IGameOptions, IInfoPacket, IJoinPacket, IMessagePacket, ITurnPacket } from "../types";
@@ -20,6 +19,16 @@ const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
 const Options: PeerOptions = { port: 443, secure: true, debug: 3 };
 const MAX_PLRS = 4;
 
+let PeerClass: any = null;
+
+const getPeerClass = async () => {
+	if (!PeerClass) {
+		const mod = await import("peerjs");
+		PeerClass = mod.default;
+	}
+	return PeerClass;
+};
+
 class WebRTCServer {
 	version: number;
 	name: string;
@@ -27,7 +36,7 @@ class WebRTCServer {
 	difficulty?: number;
 	onMessage: MessageHandler;
 	onClose: CloseHandler;
-	peer: Peer;
+	peer: import("peerjs").default | null = null;
 	players: PeerData[];
 	seed: number;
 	myplr: number;
@@ -44,43 +53,50 @@ class WebRTCServer {
 		this.difficulty = difficulty;
 		this.onMessage = onMessage;
 		this.onClose = onClose;
-		this.peer = new Peer(PeerID(name), Options);
-
-		this.peer.on("connection", (conn) => this.onConnect(conn));
 		this.players = [];
 		this.myplr = 0;
-
 		this.seed = Math.floor(Math.random() * Math.pow(2, 32));
 
-		this.peer.on("open", () => {
+		void this.init(cookie);
+	}
+
+	private async init(cookie: number) {
+		const Peer = await getPeerClass();
+
+		const peer = new Peer(PeerID(this.name), Options);
+		this.peer = peer;
+
+		peer.on("connection", (conn: DataConnection) => this.onConnect(conn));
+
+		peer.on("open", () => {
 			setTimeout(() => {
-				onMessage(
+				this.onMessage(
 					write_packet(server_packet.join_accept, {
 						cookie,
 						index: 0,
 						seed: this.seed,
-						difficulty,
+						difficulty: this.difficulty,
 					})
 				);
-				onMessage(write_packet(server_packet.connect, { id: 0 }));
+				this.onMessage(write_packet(server_packet.connect, { id: 0 }));
 			}, 0);
 		});
 
-		this.peer.on("error", () => {
-			onMessage(
+		peer.on("error", () => {
+			this.onMessage(
 				write_packet(server_packet.join_reject, {
 					cookie,
 					reason: RejectionReason.CREATE_GAME_EXISTS,
 				})
 			);
-			onClose();
+			this.onClose();
 		});
 
-		this.peer.on("disconnected", () => {
+		peer.on("disconnected", () => {
 			console.warn(`${timestamp()} WebRTCServer: Peer disconnected`);
 		});
 
-		this.peer.on("close", () => {
+		peer.on("close", () => {
 			console.warn(`${timestamp()} WebRTCServer: Peer connection closed`);
 		});
 	}
@@ -179,7 +195,7 @@ class WebRTCServer {
 				this.drop(i, 0x40000006);
 			}
 			this.onMessage(write_packet(server_packet.disconnect, { id, reason }));
-			this.peer.destroy();
+			this.peer?.destroy();
 			this.onClose();
 		} else if (this.players[id]) {
 			this.send(0xff, toUint8(write_packet(server_packet.disconnect, { id, reason })));
@@ -220,7 +236,7 @@ class WebRTCServer {
 }
 
 class WebRTCClient {
-	peer: Peer;
+	peer: import("peerjs").default | null = null;
 	conn: DataConnection | undefined;
 	pending: (ArrayBuffer | Uint8Array)[] | null = [];
 	myplr?: number;
@@ -231,6 +247,17 @@ class WebRTCClient {
 		onMessage: MessageHandler,
 		onClose: CloseHandler
 	) {
+		void this.init(version, { cookie, name, password }, onMessage, onClose);
+	}
+
+	private async init(
+		version: number,
+		{ cookie, name, password }: IGameOptions,
+		onMessage: MessageHandler,
+		onClose: CloseHandler
+	) {
+		const Peer = await getPeerClass();
+
 		function generateGUID() {
 			return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
 				const random = (Math.random() * 16) | 0;
@@ -241,15 +268,16 @@ class WebRTCClient {
 
 		const guid = generateGUID();
 
-		this.peer = new Peer(guid, Options);
+		const peer = new Peer(guid, Options);
+		this.peer = peer;
 
 		let needUnreg = true;
 
 		const unreg = () => {
 			if (!needUnreg) return;
 			needUnreg = false;
-			this.peer.off("error", onError);
-			this.peer.off("open", onPeerOpen);
+			peer.off("error", onError);
+			peer.off("open", onPeerOpen);
 			clearTimeout(timeout);
 		};
 
@@ -281,16 +309,16 @@ class WebRTCClient {
 		};
 
 		const onPeerOpen = () => {
-			this.conn = this.peer.connect(PeerID(name));
+			this.conn = peer.connect(PeerID(name));
 
-			this.conn.on("error", onError);
-			this.conn.on("open", onOpen);
+			this.conn?.on("error", onError);
+			this.conn?.on("open", onOpen);
 
-			this.conn.on("iceStateChanged", () => {
+			this.conn?.on("iceStateChanged", () => {
 				// console.debug(`${timestamp()} WebRTCClient: iceStateChanged:`, e);
 			});
 
-			this.conn.on("data", (data) => {
+			this.conn?.on("data", (data) => {
 				unreg();
 				const reader = new buffer_reader(data as ArrayBuffer | Uint8Array);
 				const { type, packet: pkt } = read_packet(reader, server_packet);
@@ -311,14 +339,14 @@ class WebRTCClient {
 				onMessage(data as ArrayBuffer | Uint8Array);
 			});
 
-			this.conn.on("close", () => {
+			this.conn?.on("close", () => {
 				onClose();
 			});
 		};
 
 		const timeout = setTimeout(() => onError(), 20000);
-		this.peer.on("open", onPeerOpen);
-		this.peer.on("error", onError);
+		peer.on("open", onPeerOpen);
+		peer.on("error", onError);
 	}
 
 	send(packet: ArrayBuffer | Uint8Array) {

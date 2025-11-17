@@ -1,15 +1,9 @@
-import Peer from "peerjs";
-
 declare global {
 	interface Window {
-		Peer: typeof Peer;
-	}
-}
-
-declare global {
-	interface Window {
-		webkitAudioContext?: typeof AudioContext;
+		Peer?: typeof Peer;
 		DownloadFile: (name: string) => void;
 		DownloadSaves: () => void;
 	}
 }
+
+export {};
