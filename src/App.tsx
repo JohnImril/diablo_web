@@ -1,10 +1,7 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
 import cn from "classnames";
 
 import load_game from "./api/loader";
-import CompressMpq from "./mpqcmp/CompressMpq";
-import SaveList from "./components/SaveList/SaveList";
-import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
 import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
 import { useErrorHandling, useFileDrop, useInitFSAndSaves, useKeyboardRule } from "./hooks";
@@ -12,6 +9,10 @@ import type { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types"
 
 import "./base.css";
 import "./App.css";
+
+const SaveList = lazy(() => import("./components/SaveList/SaveList"));
+const CompressMpq = lazy(() => import("./mpqcmp/CompressMpq"));
+const ErrorComponent = lazy(() => import("./components/ErrorComponent/ErrorComponent"));
 
 const TOUCH_MOVE = 0;
 const TOUCH_RMB = 1;
@@ -638,26 +639,33 @@ const App: React.FC = () => {
 			</div>
 
 			<div className="app__body-v">
-				{showSaves && typeof saveNames === "object" && (
-					<SaveList
-						saveNames={saveNames as Record<string, IPlayerInfo | null>}
-						fs={fsRef.current}
-						updateSaves={updateSaves}
-						setShowSaves={setShowSaves}
-						start={start}
-					/>
-				)}
-				{compress && (
-					<CompressMpq
-						file={compressFile}
-						setCompressFile={setCompressFile}
-						setCompress={setCompress}
-						onError={onError}
-					/>
-				)}
-				{error && (
-					<ErrorComponent error={error} retail={retail} saveUrl={error.save} saveName={saveNameRef.current} />
-				)}
+				<Suspense fallback={null}>
+					{showSaves && typeof saveNames === "object" && (
+						<SaveList
+							saveNames={saveNames as Record<string, IPlayerInfo | null>}
+							fs={fsRef.current}
+							updateSaves={updateSaves}
+							setShowSaves={setShowSaves}
+							start={start}
+						/>
+					)}
+					{compress && (
+						<CompressMpq
+							file={compressFile}
+							setCompressFile={setCompressFile}
+							setCompress={setCompress}
+							onError={onError}
+						/>
+					)}
+					{error && (
+						<ErrorComponent
+							error={error}
+							retail={retail}
+							saveUrl={error.save}
+							saveName={saveNameRef.current}
+						/>
+					)}
+				</Suspense>
 				{loading && !started && !error && <LoadingComponent title="Loading..." progress={progress} />}
 				{!started && !compress && !loading && !error && !showSaves && (
 					<StartScreen
