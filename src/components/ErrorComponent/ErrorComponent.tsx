@@ -1,4 +1,3 @@
-import React, { useCallback } from "react";
 import cn from "classnames";
 
 import type { IError } from "../../types";
@@ -12,38 +11,34 @@ interface IProps {
 	saveName?: string;
 }
 
-const ErrorComponent: React.FC<IProps> = ({ error, retail, saveUrl, saveName }) => {
-	const buildReportLink = useCallback(() => {
-		const { message = "Unknown error", stack } = error;
-		const lines = stack ? `${message}\n${stack}` : message;
-		const url = new URL("https://github.com/JohnImril/diablo_web/issues/new");
+const ErrorComponent = ({ error, retail, saveUrl, saveName }: IProps) => {
+	const { message = "Unknown error", stack } = error;
+	const lines = stack ? `${message}\n${stack}` : message;
+	const url = new URL("https://github.com/JohnImril/diablo_web/issues/new");
 
-		const body = `**Description:**
-		[Please describe what you were doing before the error occurred]
+	const body = `**Description:**
+[Please describe what you were doing before the error occurred]
 
-		**App version:**
-		DiabloWeb ${__APP_VERSION__} (${retail ? "Retail" : "Shareware"})
+**App version:**
+DiabloWeb ${__APP_VERSION__} (${retail ? "Retail" : "Shareware"})
 
-		**Error message:**
+**Error message:**
 
-		${lines
-			.split("\n")
-			.map((line) => `    ${line}`)
-			.join("\n")}
+${lines
+	.split("\n")
+	.map((line) => `    ${line}`)
+	.join("\n")}
 
-		**User agent:**
+**User agent:**
 
-			${navigator.userAgent}
+    ${navigator.userAgent}
 
-		**Save file:**
-		[Please attach the save file, if applicable. The error box should have a link to download the current save you were playing; alternatively, you can open dev console on the game page (F12) and type in DownloadSaves()]
-		`;
+**Save file:**
+[Please attach the save file, if applicable. The error box should have a link to download the current save you were playing; alternatively, you can open dev console on the game page (F12) and type in DownloadSaves()]
+`;
 
-		url.searchParams.set("body", body);
-		return url.toString();
-	}, [error, retail]);
-
-	const reportLink = buildReportLink();
+	url.searchParams.set("body", body);
+	const reportLink = url.toString();
 
 	return (
 		<div
@@ -59,7 +54,8 @@ const ErrorComponent: React.FC<IProps> = ({ error, retail, saveUrl, saveName }) 
 			<p className={cn("error-component__header", "text-ruby")}>
 				<b>The following error has occurred:</b>
 			</p>
-			<p className="error-component__body">{error.message}</p>
+
+			<p className="error-component__body">{message}</p>
 
 			<p className="error-component__footer">
 				<a href={reportLink} target="_blank" rel="noopener noreferrer" className={cn("d1-btn", "d1-btn--gold")}>

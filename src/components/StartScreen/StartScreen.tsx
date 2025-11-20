@@ -1,17 +1,19 @@
-import React from "react";
 import cn from "classnames";
 import type { IPlayerInfo } from "../../types";
 
 import "./StartScreen.css";
 
-const StartScreen: React.FC<{
+interface IProps {
 	hasSpawn: boolean;
 	start: (file?: File | null) => void;
-	saveNames: boolean | Record<string, IPlayerInfo | null>;
-	setCompress: React.Dispatch<React.SetStateAction<boolean>>;
-	setShowSaves: React.Dispatch<React.SetStateAction<boolean>>;
-	updateSaves: () => Promise<void>;
-}> = ({ hasSpawn, start, saveNames, setCompress, setShowSaves, updateSaves }) => {
+	saveNames: false | Record<string, IPlayerInfo | null>;
+	onCompressMpq: () => void;
+	onOpenSaves: () => void;
+}
+
+const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }: IProps) => {
+	const hasSaves = !!(saveNames && typeof saveNames === "object" && Object.keys(saveNames).length > 0);
+
 	return (
 		<div className={cn("start-screen", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
 			<p className="start-screen__description">
@@ -35,7 +37,7 @@ const StartScreen: React.FC<{
 					GoG
 				</a>
 				.{" "}
-				<span className="d1-link" onClick={() => setCompress(true)}>
+				<span className="d1-link" onClick={onCompressMpq}>
 					Click here to compress the MPQ, greatly reducing its size.
 				</span>
 			</p>
@@ -68,17 +70,8 @@ const StartScreen: React.FC<{
 				Play Shareware
 			</div>
 
-			{!!saveNames && (
-				<div
-					className={cn("start-screen__button", "d1-btn", "d1-btn--gold")}
-					onClick={() => {
-						if (saveNames === true) {
-							updateSaves().then(() => setShowSaves((prev) => !prev));
-						} else {
-							setShowSaves((prev) => !prev);
-						}
-					}}
-				>
+			{hasSaves && (
+				<div className={cn("start-screen__button", "d1-btn", "d1-btn--gold")} onClick={onOpenSaves}>
 					Manage Saves
 				</div>
 			)}

@@ -9,7 +9,7 @@ import { toArrayBuffer } from "../utils/buffers";
 export function useInitFSAndSaves() {
 	const fsRef = useRef(create_fs());
 	const [hasSpawn, setHasSpawn] = useState(false);
-	const [saveNames, setSaveNames] = useState<Record<string, IPlayerInfo | null> | boolean>(false);
+	const [saveNames, setSaveNames] = useState<false | Record<string, IPlayerInfo | null>>(false);
 
 	const updateSaves = useCallback(async () => {
 		const fsInstance = await fsRef.current;
@@ -35,10 +35,10 @@ export function useInitFSAndSaves() {
 
 			const hasAnySaves = [...fsInstance.files.keys()].some((name) => /\.sv$/i.test(name));
 			if (hasAnySaves) {
-				setSaveNames(true);
+				updateSaves();
 			}
 		});
-	}, []);
+	}, [updateSaves]);
 
 	return {
 		fsRef,

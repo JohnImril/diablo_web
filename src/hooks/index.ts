@@ -1,4 +1,3 @@
-export { useInitFSAndSaves } from "./useInitFSAndSaves";
-export { useErrorHandling } from "./useErrorHandling";
-export { useFileDrop } from "./useFileDrop";
-export { useKeyboardRule } from "./useKeyboardRule";
+export * from "./useErrorHandling";
+export * from "./useFileDrop";
+export * from "./useInitFSAndSaves";

@@ -17,11 +17,13 @@ export const useFileDrop = (onDropFile: (file: File) => void): { dropping: numbe
 		};
 
 		const handleDragEnter = (e: DragEvent) => {
+			if (!isDropFile(e)) return;
 			e.preventDefault();
 			setDropping((prev) => Math.max(prev + 1, 0));
 		};
 
-		const handleDragLeave = () => {
+		const handleDragLeave = (e: DragEvent) => {
+			if (!isDropFile(e)) return;
 			setDropping((prev) => Math.max(prev - 1, 0));
 		};
 
