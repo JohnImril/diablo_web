@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type ChangeEvent, useCallback } from "react";
+import { useState, useEffect, type ChangeEvent, useCallback } from "react";
 import cn from "classnames";
 import compress from "./compress";
 import type { IProgress } from "../types";
@@ -13,7 +13,7 @@ interface IProps {
 	onError: (message: string, stack: string) => void;
 }
 
-const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onError }) => {
+const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) => {
 	const [url, setUrl] = useState<string | null>(null);
 	const [started, setStarted] = useState<boolean>(false);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
@@ -64,7 +64,7 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 			.then((blob) => {
 				if (!cancelled) onDone(blob);
 			})
-			.catch((e) => onErrorHandler(e.message, e.stack));
+			.catch((e) => onErrorHandler(e.message, e.stack ?? ""));
 
 		return () => {
 			cancelled = true;
@@ -80,12 +80,6 @@ const CompressMpq: React.FC<IProps> = ({ file, setCompressFile, setCompress, onE
 			}
 		};
 	}, [url]);
-
-	useEffect(() => {
-		return () => {
-			if (url) URL.revokeObjectURL(url);
-		};
-	}, []);
 
 	if (url) {
 		return (

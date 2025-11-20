@@ -1,13 +1,14 @@
-import React from "react";
 import cn from "classnames";
 import type { IProgress } from "../../types";
 
 import "./LoadingComponent.css";
 
-const LoadingComponent: React.FC<{
+interface IProps {
 	title: string;
 	progress?: IProgress;
-}> = ({ title, progress }) => {
+}
+
+const LoadingComponent = ({ title, progress }: IProps) => {
 	return (
 		<div className={cn("loading-component", "u-center-abs", "u-modal")}>
 			<span className={cn("loading-component__text", "text-gold")}>{progress?.text || title}</span>

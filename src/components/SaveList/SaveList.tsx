@@ -1,16 +1,17 @@
-import React from "react";
 import cn from "classnames";
-import type { IFileSystem, IPlayerInfo } from "../../types";
+import type { IPlayerInfo } from "../../types";
 
 import "./SaveList.css";
 
-const SaveList: React.FC<{
+interface IProps {
 	saveNames: Record<string, IPlayerInfo | null>;
-	fs: Promise<IFileSystem>;
-	updateSaves: () => Promise<void>;
-	setShowSaves: React.Dispatch<React.SetStateAction<boolean>>;
-	start: (file?: File | null) => void;
-}> = ({ saveNames, fs, updateSaves, setShowSaves, start }) => {
+	onDownload: (name: string) => void;
+	onDelete: (name: string) => void;
+	onUploadSave: (file: File) => void;
+	onBack: () => void;
+}
+
+const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IProps) => {
 	const plrClass = ["Warrior", "Rogue", "Sorcerer"];
 
 	return (
@@ -31,7 +32,7 @@ const SaveList: React.FC<{
 							<div
 								className={cn("d1-btn", "d1-iconbtn")}
 								title="Download"
-								onClick={() => fs.then((fsInstance: IFileSystem) => fsInstance.download(name))}
+								onClick={() => onDownload(name)}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -48,16 +49,7 @@ const SaveList: React.FC<{
 							<div
 								className={cn("d1-btn", "d1-iconbtn", "d1-btn--ruby")}
 								title="Delete"
-								onClick={() => {
-									if (window.confirm(`Are you sure you want to delete ${name}?`)) {
-										(async () => {
-											const fsInstance = await fs;
-											await fsInstance.delete(name.toLowerCase());
-											fsInstance.files.delete(name.toLowerCase());
-											updateSaves();
-										})();
-									}
-								}}
+								onClick={() => onDelete(name)}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -76,24 +68,25 @@ const SaveList: React.FC<{
 			</ul>
 
 			<form className="save-list__form">
-				<label htmlFor="loadFile" className={cn("save-list__button", "d1-btn")}>
+				<label htmlFor="loadSave" className={cn("save-list__button", "d1-btn")}>
 					Upload Save
 				</label>
 				<input
 					accept=".sv"
 					type="file"
-					id="loadFile"
+					id="loadSave"
 					style={{ display: "none" }}
 					onChange={(e) => {
 						const files = e.target.files;
 						if (files && files.length > 0) {
-							start(files[0]);
+							onUploadSave(files[0]);
+							e.target.value = "";
 						}
 					}}
 				/>
 			</form>
 
-			<div className={cn("save-list__button", "d1-btn", "d1-btn--gold")} onClick={() => setShowSaves(false)}>
+			<div className={cn("save-list__button", "d1-btn", "d1-btn--gold")} onClick={onBack}>
 				Back
 			</div>
 		</div>
