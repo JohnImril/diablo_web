@@ -1,4 +1,5 @@
 import cn from "classnames";
+
 import type { IProgress } from "../../types";
 
 import "./LoadingComponent.css";
@@ -10,7 +11,12 @@ interface IProps {
 
 const LoadingComponent = ({ title, progress }: IProps) => {
 	return (
-		<div className={cn("loading-component", "u-center-abs", "u-modal")}>
+		<section
+			className={cn("loading-component", "u-center-abs", "u-modal")}
+			aria-busy="true"
+			aria-live="polite"
+			aria-label={progress?.text || title}
+		>
 			<span className={cn("loading-component__text", "text-gold")}>{progress?.text || title}</span>
 
 			{typeof progress?.total === "number" && (
@@ -20,7 +26,7 @@ const LoadingComponent = ({ title, progress }: IProps) => {
 					max={progress.total}
 				/>
 			)}
-		</div>
+		</section>
 	);
 };
 

@@ -15,7 +15,6 @@ interface IProps {
 
 const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) => {
 	const [url, setUrl] = useState<string | null>(null);
-	const [started, setStarted] = useState<boolean>(false);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
 
 	const onDone = useCallback((blob: Blob) => {
@@ -41,8 +40,8 @@ const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) =>
 	const onClose = () => {
 		if (url) {
 			URL.revokeObjectURL(url);
-			setUrl(null);
 		}
+		setUrl(null);
 		setCompress(false);
 		setCompressFile(null);
 	};
@@ -57,18 +56,16 @@ const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) =>
 	useEffect(() => {
 		if (!file) return;
 
-		setStarted(true);
 		let cancelled = false;
 
 		compress(file, (text, loaded, total) => setProgress({ text, loaded: loaded ?? 0, total }))
 			.then((blob) => {
 				if (!cancelled) onDone(blob);
 			})
-			.catch((e) => onErrorHandler(e.message, e.stack ?? ""));
+			.catch((e: any) => onErrorHandler(e.message, e.stack ?? ""));
 
 		return () => {
 			cancelled = true;
-			setStarted(false);
 		};
 	}, [file, onErrorHandler, onDone]);
 
@@ -76,32 +73,47 @@ const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) =>
 		return () => {
 			if (url) {
 				URL.revokeObjectURL(url);
-				setUrl(null);
 			}
 		};
 	}, [url]);
 
+	const isProcessing = !!file && !url;
+
 	if (url) {
 		return (
-			<div className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
+			<section
+				className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
+				role="dialog"
+				aria-modal="true"
+				aria-label="MPQ compression completed"
+			>
 				<p className="compress-mpq__message">
 					<a className="d1-link" href={url} download="DIABDAT.MPQ">
-						Click here if download doesn't start.
+						Click here if download doesn&apos;t start.
 					</a>
 				</p>
-				<div className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")} onClick={onClose}>
+				<button
+					type="button"
+					className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")}
+					onClick={onClose}
+				>
 					Back
-				</div>
-			</div>
+				</button>
+			</section>
 		);
 	}
 
-	if (started) {
+	if (isProcessing) {
 		return <LoadingComponent title="Processing..." progress={progress} />;
 	}
 
 	return (
-		<div className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
+		<section
+			className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
+			role="dialog"
+			aria-modal="true"
+			aria-label="MPQ compression"
+		>
 			<p className="compress-mpq__description">
 				You can use this tool to reduce the original MPQ to about half its size. It encodes sounds in MP3 format
 				and uses better compression for regular files. To begin, click the button below or drop the MPQ onto the
@@ -113,10 +125,10 @@ const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) =>
 				</label>
 				<input accept=".mpq" type="file" id="loadFile" style={{ display: "none" }} onChange={parseFile} />
 			</form>
-			<div className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")} onClick={onClose}>
+			<button type="button" className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")} onClick={onClose}>
 				Back
-			</div>
-		</div>
+			</button>
+		</section>
 	);
 };
 

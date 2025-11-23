@@ -41,7 +41,7 @@ ${lines
 	const reportLink = url.toString();
 
 	return (
-		<div
+		<section
 			className={cn(
 				"error-component",
 				"u-center-abs",
@@ -50,12 +50,18 @@ ${lines
 				"d1-panel--ruby",
 				"u-scrollbar-gold"
 			)}
+			role="alertdialog"
+			aria-modal="true"
+			aria-labelledby="error-component-title"
+			aria-describedby="error-component-body"
 		>
-			<p className={cn("error-component__header", "text-ruby")}>
+			<p id="error-component-title" className={cn("error-component__header", "text-ruby")}>
 				<b>The following error has occurred:</b>
 			</p>
 
-			<p className="error-component__body">{message}</p>
+			<p id="error-component-body" className="error-component__body">
+				{message}
+			</p>
 
 			<p className="error-component__footer">
 				<a href={reportLink} target="_blank" rel="noopener noreferrer" className={cn("d1-btn", "d1-btn--gold")}>
@@ -70,7 +76,7 @@ ${lines
 					</a>
 				</p>
 			)}
-		</div>
+		</section>
 	);
 };
 

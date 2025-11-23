@@ -25,12 +25,15 @@ const App = () => {
 	const [compress, setCompress] = useState(false);
 	const [compressFile, setCompressFile] = useState<File | null>(null);
 	const [retail, setRetail] = useState<boolean | undefined>(undefined);
+	const [isTouchMode, setIsTouchMode] = useState(false);
+	const [keyboardStyle, setKeyboardStyle] = useState<CSSProperties | null>(null);
+	const [currentSaveName, setCurrentSaveName] = useState<string | undefined>(undefined);
 
 	const cursorPos = useRef({ x: 0, y: 0 });
 	const game = useRef<GameFunction | null>(null);
-	const elementRef = useRef<HTMLDivElement>(null);
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const keyboardRef = useRef<HTMLInputElement>(null);
+	const elementRef = useRef<HTMLElement | null>(null);
+	const canvasRef = useRef<HTMLCanvasElement | null>(null);
+	const keyboardRef = useRef<HTMLInputElement | null>(null);
 	const saveNameRef = useRef<string | undefined>(undefined);
 	const cleanupRef = useRef<(() => void) | null>(null);
 	const showKeyboard = useRef<CSSProperties | null>(null);
@@ -103,7 +106,7 @@ const App = () => {
 			valid = keyboardNum.current ? keyboardNum.current.toString() : "";
 		}
 
-		if (text !== valid) {
+		if (text !== valid && keyboardRef.current) {
 			keyboardRef.current.value = valid;
 		}
 		clearSelection();
@@ -159,22 +162,24 @@ const App = () => {
 
 	const processTouches = useCallback(
 		(touches: TouchList, isRelease: boolean): boolean => {
+			const touchArray = Array.from(touches);
+
 			if (!touchControls.current) {
 				touchControls.current = true;
-				elementRef.current?.classList.add("app--touch");
+				setIsTouchMode(true);
 			}
 
 			let newActive: ITouchOther | null = null;
 			secondaryTouch.current = null;
 
-			for (const t of touches as any as Touch[]) {
+			for (const t of touchArray) {
 				const idx = touchButtons.current.indexOf(t.target as HTMLDivElement);
 				if (activeTouch.current?.id === t.identifier) {
 					activeTouch.current.clientX = t.clientX;
 					activeTouch.current.clientY = t.clientY;
 					if (touches.length > 1) activeTouch.current.stick = false;
 
-					const other = [...(touches as any as Touch[])].find((x) => x.identifier !== t.identifier);
+					const other = touchArray.find((x) => x.identifier !== t.identifier);
 					if (other) secondaryTouch.current = { clientX: other.clientX, clientY: other.clientY };
 					panPos.current = null;
 					return secondaryTouch.current !== null;
@@ -224,8 +229,7 @@ const App = () => {
 					game.current?.("DApi_Key", 0, 0, KEYS.FKEY_BASE + i);
 				}
 			} else if (touches.length === 2) {
-				const t0 = (touches as any as Touch[])[0];
-				const t1 = (touches as any as Touch[])[1];
+				const [t0, t1] = touchArray;
 				const x = (t0.clientX + t1.clientX) / 2;
 				const y = (t0.clientY + t1.clientY) / 2;
 				if (panPos.current) {
@@ -254,7 +258,7 @@ const App = () => {
 				panPos.current = null;
 			}
 
-			const other = [...(touches as any as Touch[])].find((t) => t.identifier !== newActive?.id);
+			const other = touchArray.find((t) => t.identifier !== newActive?.id);
 			if (other) secondaryTouch.current = { clientX: other.clientX, clientY: other.clientY };
 			return secondaryTouch.current !== null;
 		},
@@ -272,7 +276,7 @@ const App = () => {
 			if (!canvasRef.current || e.target === keyboardRef.current) return;
 			if (touchControls.current) {
 				touchControls.current = false;
-				elementRef.current?.classList.remove("app--touch");
+				setIsTouchMode(false);
 			}
 			const { x, y } = getMousePos(e);
 			if (!pointerLocked() && window.innerHeight === screen.height) {
@@ -444,19 +448,20 @@ const App = () => {
 						},
 						openKeyboard: (rect) => {
 							if (rect && keyboardRef.current && elementRef.current) {
-								showKeyboard.current = {
+								const style: CSSProperties = {
 									left: `${((100 * (rect[0] - 10)) / DIABLO.WIDTH).toFixed(2)}%`,
 									top: `${((100 * (rect[1] - 10)) / DIABLO.HEIGHT).toFixed(2)}%`,
 									width: `${((100 * (rect[2] - rect[0] + 20)) / DIABLO.WIDTH).toFixed(2)}%`,
 									height: `${((100 * (rect[3] - rect[1] + 20)) / DIABLO.HEIGHT).toFixed(2)}%`,
 								};
+								showKeyboard.current = style;
+								setKeyboardStyle(style);
 								maxKeyboard.current = rect[4];
-								elementRef.current.classList.add("app--keyboard");
-								Object.assign(keyboardRef.current.style, showKeyboard.current);
+								Object.assign(keyboardRef.current.style, style);
 								keyboardRef.current.focus();
 							} else {
 								showKeyboard.current = null;
-								elementRef.current?.classList.remove("app--keyboard");
+								setKeyboardStyle(null);
 								keyboardRef.current?.blur();
 								if (keyboardRef.current) keyboardRef.current.value = "";
 								keyboardNum.current = 0;
@@ -467,7 +472,10 @@ const App = () => {
 						onExit: () => {
 							cleanupRef.current?.();
 						},
-						setCurrentSave: (name) => (saveNameRef.current = name),
+						setCurrentSave: (name) => {
+							saveNameRef.current = name;
+							setCurrentSaveName(name);
+						},
 					},
 					file,
 					!isRetail
@@ -478,9 +486,9 @@ const App = () => {
 				setLoading(false);
 				setStarted(true);
 
-				const worker = (loaded as any).worker as Worker | undefined;
-				const webrtc = (loaded as any).webrtc;
-				const intervalId = (loaded as any).webrtcIntervalId as number | null;
+				const worker = (loaded as { worker?: Worker }).worker;
+				const webrtc = (loaded as { webrtc?: { send?: (data: Uint8Array) => void } }).webrtc;
+				const intervalId = (loaded as { webrtcIntervalId?: number | null }).webrtcIntervalId ?? null;
 
 				cleanupRef.current = () => {
 					remove?.();
@@ -489,9 +497,11 @@ const App = () => {
 					if (intervalId != null) clearInterval(intervalId);
 					try {
 						webrtc?.send?.(new Uint8Array([0x24]));
-					} catch {}
+					} catch {
+						// ignore send errors
+					}
 					touchControls.current = false;
-					elementRef.current?.classList.remove("app--touch");
+					setIsTouchMode(false);
 					touchMods.current = [false, false, false];
 					touchBelt.current = [-1, -1, -1];
 					activeTouch.current = secondaryTouch.current = panPos.current = null;
@@ -505,9 +515,12 @@ const App = () => {
 					setStarted(false);
 					setLoading(false);
 					setRetail(undefined);
+					showKeyboard.current = null;
+					setKeyboardStyle(null);
 				};
-			} catch (e: any) {
-				onError(e.message ?? "Failed to load game", e.stack ?? "");
+			} catch (e: unknown) {
+				const err = e instanceof Error ? e : new Error(String(e));
+				onError(err.message ?? "Failed to load game", err.stack ?? "");
 				setLoading(false);
 			}
 		},
@@ -528,32 +541,32 @@ const App = () => {
 	const { dropping } = useFileDrop(onDrop);
 
 	return (
-		<div
+		<main
 			className={cn("app", {
-				"app--touch": touchControls.current,
+				"app--touch": isTouchMode,
 				"app--started": started,
 				"app--dropping": dropping > 0,
-				"app--keyboard": !!showKeyboard.current,
+				"app--keyboard": !!keyboardStyle,
 			})}
 			ref={elementRef}
+			role="application"
+			aria-label="Diablo Web"
 		>
 			{started && (
 				<>
-					<div className="app__touch-ui app__touch-ui--mods">
+					<section className="app__touch-ui app__touch-ui--mods" aria-hidden="true">
 						{TOUCH.MOD_INDICES.map((i) => (
 							<div
 								key={i}
-								className={cn("d1-btn d1-iconbtn app__touch-button", `app__touch-button--${i}`, {
-									"app__touch-button--active": touchMods.current[i],
-								})}
+								className={cn("d1-btn d1-iconbtn app__touch-button", `app__touch-button--${i}`)}
 								ref={(el) => {
 									touchButtons.current[i] = el;
 								}}
 							/>
 						))}
-					</div>
+					</section>
 
-					<div className="app__touch-ui app__touch-ui--belt">
+					<section className="app__touch-ui app__touch-ui--belt" aria-hidden="true">
 						{TOUCH.BELT_SLOTS.map((slotIdx) => {
 							const buttonIndex = TOUCH.BUTTON_START_BELT + slotIdx;
 							return (
@@ -577,9 +590,9 @@ const App = () => {
 								/>
 							);
 						})}
-					</div>
+					</section>
 
-					<div className="app__touch-ui app__touch-ui--fkeys-left">
+					<section className="app__touch-ui app__touch-ui--fkeys-left" aria-hidden="true">
 						{TOUCH.FKEY_LEFT_INDICES.map((idx) => (
 							<div
 								key={`fkeys-left-${idx}`}
@@ -594,9 +607,9 @@ const App = () => {
 								}}
 							/>
 						))}
-					</div>
+					</section>
 
-					<div className="app__touch-ui app__touch-ui--fkeys-right">
+					<section className="app__touch-ui app__touch-ui--fkeys-right" aria-hidden="true">
 						{TOUCH.FKEY_RIGHT_INDICES.map((idx) => (
 							<div
 								key={`fkeys-right-${idx}`}
@@ -611,11 +624,11 @@ const App = () => {
 								}}
 							/>
 						))}
-					</div>
+					</section>
 				</>
 			)}
 
-			<div className="app__body">
+			<section className="app__body" aria-label="Game viewport">
 				<div className="app__inner">
 					{!error && <canvas ref={canvasRef} width={DIABLO.WIDTH} height={DIABLO.HEIGHT} />}
 					<input
@@ -626,12 +639,12 @@ const App = () => {
 						onChange={() => onKeyboardInput(false)}
 						onBlur={() => onKeyboardInput(true)}
 						spellCheck={false}
-						style={showKeyboard.current || {}}
+						style={keyboardStyle || {}}
 					/>
 				</div>
-			</div>
+			</section>
 
-			<div className="app__body-v">
+			<section className="app__body-v" aria-live="polite">
 				<Suspense fallback={null}>
 					{showSaves && typeof saveNames === "object" && (
 						<SaveList
@@ -661,12 +674,7 @@ const App = () => {
 					)}
 
 					{error && (
-						<ErrorComponent
-							error={error}
-							retail={retail}
-							saveUrl={error.save}
-							saveName={saveNameRef.current}
-						/>
+						<ErrorComponent error={error} retail={retail} saveUrl={error.save} saveName={currentSaveName} />
 					)}
 				</Suspense>
 
@@ -681,8 +689,8 @@ const App = () => {
 						onOpenSaves={() => setShowSaves((prev) => !prev)}
 					/>
 				)}
-			</div>
-		</div>
+			</section>
+		</main>
 	);
 };
 

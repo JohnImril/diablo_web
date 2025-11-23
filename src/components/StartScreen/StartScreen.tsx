@@ -15,7 +15,12 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 	const hasSaves = !!(saveNames && typeof saveNames === "object" && Object.keys(saveNames).length > 0);
 
 	return (
-		<div className={cn("start-screen", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
+		<section
+			className={cn("start-screen", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
+			role="dialog"
+			aria-modal="true"
+			aria-label="Start screen"
+		>
 			<p className="start-screen__description">
 				This is a web port of the original Diablo game, based on source code reconstructed by GalaXyHaXz and
 				devilution team. The project page with information and links can be found over here{" "}
@@ -37,9 +42,9 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 					GoG
 				</a>
 				.{" "}
-				<span className="d1-link" onClick={onCompressMpq}>
+				<button type="button" className="d1-link" onClick={onCompressMpq}>
 					Click here to compress the MPQ, greatly reducing its size.
-				</span>
+				</button>
 			</p>
 
 			{!hasSpawn && (
@@ -66,16 +71,24 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 				/>
 			</form>
 
-			<div className={cn("start-screen__button", "d1-btn", "d1-btn--gold")} onClick={() => start()}>
+			<button
+				type="button"
+				className={cn("start-screen__button", "d1-btn", "d1-btn--gold")}
+				onClick={() => start()}
+			>
 				Play Shareware
-			</div>
+			</button>
 
 			{hasSaves && (
-				<div className={cn("start-screen__button", "d1-btn", "d1-btn--gold")} onClick={onOpenSaves}>
+				<button
+					type="button"
+					className={cn("start-screen__button", "d1-btn", "d1-btn--gold")}
+					onClick={onOpenSaves}
+				>
 					Manage Saves
-				</div>
+				</button>
 			)}
-		</div>
+		</section>
 	);
 };
 
