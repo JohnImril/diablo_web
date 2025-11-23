@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useCallback, useEffect, lazy, Suspense, type CSSProperties } from "react";
 import cn from "classnames";
 
 import load_game from "./api/loader";
@@ -17,7 +17,7 @@ const ErrorComponent = lazy(() => import("./components/ErrorComponent/ErrorCompo
 
 const clamp = (num: number, min: number, max: number) => Math.min(Math.max(num, min), max);
 
-const App: React.FC = () => {
+const App = () => {
 	const [started, setStarted] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
@@ -33,7 +33,7 @@ const App: React.FC = () => {
 	const keyboardRef = useRef<HTMLInputElement>(null);
 	const saveNameRef = useRef<string | undefined>(undefined);
 	const cleanupRef = useRef<(() => void) | null>(null);
-	const showKeyboard = useRef<React.CSSProperties | null>(null);
+	const showKeyboard = useRef<CSSProperties | null>(null);
 	const maxKeyboard = useRef(0);
 	const keyboardNum = useRef(0);
 	const touchControls = useRef(false);
