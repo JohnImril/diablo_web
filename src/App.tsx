@@ -549,7 +549,6 @@ const App = () => {
 				"app--keyboard": !!keyboardStyle,
 			})}
 			ref={elementRef}
-			role="application"
 			aria-label="Diablo Web"
 		>
 			{started && (
