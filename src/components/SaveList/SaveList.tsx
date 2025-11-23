@@ -15,7 +15,12 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 	const plrClass = ["Warrior", "Rogue", "Sorcerer"];
 
 	return (
-		<div className={cn("save-list", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}>
+		<section
+			className={cn("save-list", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
+			role="dialog"
+			aria-modal="true"
+			aria-label="Manage save files"
+		>
 			<ul className="save-list__items">
 				{Object.entries(saveNames).map(([name, info]) => (
 					<li key={name} className="save-list__item">
@@ -29,10 +34,12 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 						</div>
 
 						<div className="save-list__buttons">
-							<div
+							<button
+								type="button"
 								className={cn("d1-btn", "d1-iconbtn")}
 								title="Download"
 								onClick={() => onDownload(name)}
+								aria-label={`Download save ${name}`}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -44,12 +51,14 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 								>
 									<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
 								</svg>
-							</div>
+							</button>
 
-							<div
+							<button
+								type="button"
 								className={cn("d1-btn", "d1-iconbtn", "d1-btn--ruby")}
 								title="Delete"
 								onClick={() => onDelete(name)}
+								aria-label={`Delete save ${name}`}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -61,7 +70,7 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 								>
 									<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
 								</svg>
-							</div>
+							</button>
 						</div>
 					</li>
 				))}
@@ -86,10 +95,10 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 				/>
 			</form>
 
-			<div className={cn("save-list__button", "d1-btn", "d1-btn--gold")} onClick={onBack}>
+			<button type="button" className={cn("save-list__button", "d1-btn", "d1-btn--gold")} onClick={onBack}>
 				Back
-			</div>
-		</div>
+			</button>
+		</section>
 	);
 };
 

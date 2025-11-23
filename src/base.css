@@ -167,6 +167,8 @@
 
 .d1-link {
 	color: var(--d1-gold-bright);
+	background-color: inherit;
+	border: none;
 	text-decoration: none;
 	cursor: pointer;
 	text-shadow: 0 0 6px rgba(228, 195, 103, 0.25);
