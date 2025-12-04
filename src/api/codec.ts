@@ -2,27 +2,17 @@ const W = new Uint32Array(80);
 
 const SHA1CircularShift = (shift: number, value: number) => (value << shift) | (value >> (32 - shift));
 
-class SHA1 {
-	digest: Uint32Array;
-	digest8: Uint8Array;
-	count: number;
+const createSHA1 = () => {
+	const digest = new Uint32Array([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]);
+	const digest8 = new Uint8Array(digest.buffer);
+	let count = 0;
 
-	constructor() {
-		this.digest = new Uint32Array([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]);
-		this.digest8 = new Uint8Array(this.digest.buffer);
-		this.count = 0;
-	}
-
-	input8(u8: Uint8Array) {
-		this.input(new Uint32Array(u8.buffer, u8.byteOffset, 16));
-	}
-
-	input(u32: Uint32Array) {
-		this.count += u32.length * 32;
+	const input = (u32: Uint32Array) => {
+		count += u32.length * 32;
 		for (let i = 0; i < 16; ++i) W[i] = u32[i];
 		for (let i = 16; i < 80; ++i) W[i] = W[i - 16] ^ W[i - 14] ^ W[i - 8] ^ W[i - 3];
 
-		let [A, B, C, D, E] = this.digest;
+		let [A, B, C, D, E] = digest;
 
 		for (let i = 0; i < 20; i++) {
 			const temp = (SHA1CircularShift(5, A) + ((B & C) | (~B & D)) + E + W[i] + 0x5a827999) | 0;
@@ -44,29 +34,43 @@ class SHA1 {
 			[E, D, C, B, A] = [D, C, SHA1CircularShift(30, B), A, temp];
 		}
 
-		this.digest[0] += A;
-		this.digest[1] += B;
-		this.digest[2] += C;
-		this.digest[3] += D;
-		this.digest[4] += E;
-	}
-}
+		digest[0] += A;
+		digest[1] += B;
+		digest[2] += C;
+		digest[3] += D;
+		digest[4] += E;
+	};
 
-class Random {
-	seed: number;
+	const input8 = (u8: Uint8Array) => {
+		input(new Uint32Array(u8.buffer, u8.byteOffset, 16));
+	};
 
-	constructor(seed: number) {
-		this.seed = seed;
-	}
+	return {
+		get digest() {
+			return digest;
+		},
+		get digest8() {
+			return digest8;
+		},
+		get count() {
+			return count;
+		},
+		input,
+		input8,
+	};
+};
 
-	next() {
-		this.seed = (((this.seed * 3) << 16) + ((this.seed * 67) << 8) + this.seed * 253 + 2531011) | 0;
-		return (this.seed >> 16) & 0x7fff;
-	}
-}
+const createRandom = (initialSeed: number) => {
+	let seed = initialSeed;
+	const next = () => {
+		seed = (((seed * 3) << 16) + ((seed * 67) << 8) + seed * 253 + 2531011) | 0;
+		return (seed >> 16) & 0x7fff;
+	};
+	return { next };
+};
 
 function codec_init_key(password: string) {
-	const rand = new Random(0x7058);
+	const rand = createRandom(0x7058);
 	const key = new Uint8Array(136);
 	const k32 = new Uint32Array(key.buffer);
 
@@ -75,12 +79,12 @@ function codec_init_key(password: string) {
 	const pw = new Uint8Array(64);
 	for (let i = 0; i < 64; ++i) pw[i] = password.charCodeAt(i % password.length);
 
-	let sha = new SHA1();
+	let sha = createSHA1();
 	sha.input8(pw);
 
 	for (let i = 0; i < 34; ++i) k32[i] ^= sha.digest[i % sha.digest.length];
 
-	sha = new SHA1();
+	sha = createSHA1();
 	sha.input(k32.subarray(18));
 
 	return sha;

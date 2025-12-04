@@ -102,3 +102,16 @@ export interface IJoinPacket {
 export interface IInfoPacket {
 	version: number;
 }
+
+export interface IJoinAcceptPacket {
+	cookie: number;
+	index: number;
+	seed: number;
+	difficulty?: number;
+}
+
+export interface IConnectPacket {
+	id: number;
+}
+
+export type IEmptyPacket = Record<string, never>;
