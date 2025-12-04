@@ -62,7 +62,11 @@ const CompressMpq = ({ file, setCompressFile, setCompress, onError }: IProps) =>
 			.then((blob) => {
 				if (!cancelled) onDone(blob);
 			})
-			.catch((e: any) => onErrorHandler(e.message, e.stack ?? ""));
+			.catch((error: unknown) => {
+				const message = error instanceof Error ? error.message : String(error);
+				const stack = error instanceof Error ? error.stack ?? "" : "";
+				onErrorHandler(message, stack);
+			});
 
 		return () => {
 			cancelled = true;

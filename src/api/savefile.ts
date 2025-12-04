@@ -136,24 +136,20 @@ interface FileInfo {
 	key: number;
 }
 
-export class MpqReader {
-	private buffer: ArrayBuffer;
-	private u8: Uint8Array;
-	private u32: Uint32Array;
-	private hashTable!: Uint32Array;
-	private blockTable!: Uint32Array;
-	private blockSize!: number;
+export const createMpqReader = (buffer: ArrayBuffer) => {
+	const u8 = new Uint8Array(buffer);
+	const u32 = new Uint32Array(buffer, 0, buffer.byteLength >> 2);
+	let hashTable: Uint32Array;
+	let blockTable: Uint32Array;
+	let blockSize = 0;
 
-	constructor(buffer: ArrayBuffer) {
-		this.buffer = buffer;
-		this.u8 = new Uint8Array(buffer);
-		this.u32 = new Uint32Array(buffer, 0, buffer.byteLength >> 2);
+	const readTable = (offset: number, count: number, key: string) => {
+		const tableBuffer = new Uint32Array(buffer.slice(offset, offset + count * 16));
+		decrypt(tableBuffer, hash(key, 3));
+		return tableBuffer;
+	};
 
-		this.readHeader();
-	}
-
-	private readHeader() {
-		const { u8, u32 } = this;
+	const readHeader = () => {
 		if (u32[0] !== 0x1a51504d) {
 			throw Error("invalid MPQ header");
 		}
@@ -162,19 +158,12 @@ export class MpqReader {
 		const blockOffset = u32[5];
 		const hashCount = u32[6];
 		const blockCount = u32[7];
-		this.hashTable = this.readTable(hashOffset, hashCount, "(hash table)");
-		this.blockTable = this.readTable(blockOffset, blockCount, "(block table)");
-		this.blockSize = 1 << (9 + sizeId);
-	}
+		hashTable = readTable(hashOffset, hashCount, "(hash table)");
+		blockTable = readTable(blockOffset, blockCount, "(block table)");
+		blockSize = 1 << (9 + sizeId);
+	};
 
-	private readTable(offset: number, count: number, key: string) {
-		const buffer = new Uint32Array(this.buffer.slice(offset, offset + count * 16));
-		decrypt(buffer, hash(key, 3));
-		return buffer;
-	}
-
-	private fileIndex(name: string) {
-		const { hashTable } = this;
+	const fileIndex = (name: string) => {
 		const length = hashTable.length >> 2;
 		const index = hash(name, 0) % length;
 		const keyA = hash(name, 1);
@@ -188,22 +177,22 @@ export class MpqReader {
 				return i;
 			}
 		}
-	}
+	};
 
-	readRaw(name: string) {
-		const index = this.fileIndex(name);
+	const readRaw = (name: string) => {
+		const index = fileIndex(name);
 		if (index == null) {
 			return;
 		}
-		const block = this.hashTable[index * 4 + 3];
+		const block = hashTable[index * 4 + 3];
 		const info: FileInfo = {
-			filePos: this.blockTable[block * 4],
-			cmpSize: this.blockTable[block * 4 + 1],
-			fileSize: this.blockTable[block * 4 + 2],
-			flags: this.blockTable[block * 4 + 3],
+			filePos: blockTable[block * 4],
+			cmpSize: blockTable[block * 4 + 1],
+			fileSize: blockTable[block * 4 + 2],
+			flags: blockTable[block * 4 + 3],
 			key: hash(path_name(name), 3),
 		};
-		if (info.flags & Flags.PatchFile || info.filePos + info.cmpSize > this.buffer.byteLength) {
+		if (info.flags & Flags.PatchFile || info.filePos + info.cmpSize > buffer.byteLength) {
 			return;
 		}
 		if (!(info.flags & Flags.Compressed)) {
@@ -214,18 +203,17 @@ export class MpqReader {
 		}
 		return {
 			info,
-			data: new Uint8Array(this.buffer, info.filePos, info.cmpSize),
+			data: new Uint8Array(buffer, info.filePos, info.cmpSize),
 		};
-	}
+	};
 
-	read(name: string) {
-		const raw = this.readRaw(name);
+	const read = (name: string) => {
+		const raw = readRaw(name);
 		if (!raw) {
 			return;
 		}
-		// eslint-disable-next-line prefer-const
-		let { info, data } = raw;
-		data = data.slice();
+		const { info } = raw;
+		const data = raw.data.slice();
 
 		if (info.flags & Flags.SingleUnit) {
 			if (info.flags & Flags.Encrypted) {
@@ -237,52 +225,57 @@ export class MpqReader {
 				return pkzip_decompress(data, info.fileSize);
 			}
 			return data;
-		} else if (!(info.flags & Flags.Compressed)) {
+		}
+
+		if (!(info.flags & Flags.Compressed)) {
 			if (info.flags & Flags.Encrypted) {
-				for (let i = 0; i < info.fileSize; i += this.blockSize) {
-					decrypt8(
-						data.subarray(i, Math.min(info.fileSize, i + this.blockSize)),
-						info.key + i / this.blockSize
-					);
+				for (let i = 0; i < info.fileSize; i += blockSize) {
+					decrypt8(data.subarray(i, Math.min(info.fileSize, i + blockSize)), info.key + i / blockSize);
 				}
 			}
 			return data;
-		} else {
-			const numBlocks = Math.floor((info.fileSize + this.blockSize - 1) / this.blockSize);
-			const tableSize = numBlocks + 1;
-			if (data.length < tableSize * 4) {
+		}
+
+		const numBlocks = Math.floor((info.fileSize + blockSize - 1) / blockSize);
+		const tableSize = numBlocks + 1;
+		if (data.length < tableSize * 4) {
+			return;
+		}
+		const blocks = new Uint32Array(data.buffer, 0, tableSize);
+		if (info.flags & Flags.Encrypted) {
+			decrypt(blocks, info.key - 1);
+		}
+		const output = new Uint8Array(info.fileSize);
+		for (let i = 0; i < numBlocks; ++i) {
+			const oPos = i * blockSize;
+			const uSize = Math.min(blockSize, info.fileSize - oPos);
+			if (blocks[i + 1] > data.length) {
 				return;
 			}
-			const blocks = new Uint32Array(data.buffer, 0, tableSize);
+			let tmp: Uint8Array | null = data.subarray(blocks[i], blocks[i + 1]);
 			if (info.flags & Flags.Encrypted) {
-				decrypt(blocks, info.key - 1);
+				// this is not safe, but our files are small enough
+				decrypt8(tmp, info.key + i);
 			}
-			const output = new Uint8Array(info.fileSize);
-			for (let i = 0; i < numBlocks; ++i) {
-				const oPos = i * this.blockSize;
-				const uSize = Math.min(this.blockSize, info.fileSize - oPos);
-				if (blocks[i + 1] > data.length) {
-					return;
-				}
-				let tmp: Uint8Array | null = data.subarray(blocks[i], blocks[i + 1]);
-				if (info.flags & Flags.Encrypted) {
-					// this is not safe, but our files are small enough
-					decrypt8(tmp, info.key + i);
-				}
-				if (info.flags & Flags.CompressMulti) {
-					return;
-				} else if (info.flags & Flags.CompressPkWare) {
-					tmp = pkzip_decompress(tmp, uSize);
-				}
-				if (!tmp || tmp.length !== uSize) {
-					return;
-				}
-				output.set(tmp, oPos);
+			if (info.flags & Flags.CompressMulti) {
+				return;
+			} else if (info.flags & Flags.CompressPkWare) {
+				tmp = pkzip_decompress(tmp, uSize);
 			}
-			return output;
+			if (!tmp || tmp.length !== uSize) {
+				return;
+			}
+			output.set(tmp, oPos);
 		}
-	}
-}
+		return output;
+	};
+
+	readHeader();
+
+	return { readRaw, read };
+};
+
+export type MpqReader = ReturnType<typeof createMpqReader>;
 
 function getPassword(name: string) {
 	if (name.match(/spawn\d+\.sv/i)) {
@@ -298,7 +291,7 @@ function getPassword(name: string) {
 
 export default function getPlayerName(data: ArrayBuffer, name: string) {
 	try {
-		const reader = new MpqReader(data);
+		const reader = createMpqReader(data);
 		const hero = codec_decode(reader.read("hero")!, getPassword(name));
 		const nameEnd = hero?.indexOf(0, 16);
 		const result: IPlayerInfo = {

@@ -39,65 +39,75 @@ function onError(err: unknown, action = "error") {
 
 const ChunkSize = 1 << 20;
 
-class RemoteFile {
-	byteLength: number;
-	url: string;
-	buffer: Uint8Array;
-	chunks: Uint8Array;
+type RemoteFile = ReturnType<typeof createRemoteFile>;
 
-	constructor(url: string) {
-		const request = new XMLHttpRequest();
-		request.open("HEAD", url, false);
-		request.send();
-		if (request.status < 200 || request.status >= 300) {
-			throw Error("Failed to load remote file");
-		}
-		this.byteLength = parseInt(request.getResponseHeader("Content-Length") || "0");
-		this.url = url;
-		this.buffer = new Uint8Array(this.byteLength);
-		this.chunks = new Uint8Array(((this.byteLength + ChunkSize - 1) >> 20) | 0);
+const createRemoteFile = (url: string) => {
+	const request = new XMLHttpRequest();
+	request.open("HEAD", url, false);
+	request.send();
+	if (request.status < 200 || request.status >= 300) {
+		throw Error("Failed to load remote file");
 	}
 
-	subarray(start: number, end: number) {
+	const byteLength = parseInt(request.getResponseHeader("Content-Length") || "0");
+	const buffer = new Uint8Array(byteLength);
+	const chunks = new Uint8Array(((byteLength + ChunkSize - 1) >> 20) | 0);
+
+	const ensureRange = (start: number, end: number) => {
 		let chunk0 = (start / ChunkSize) | 0;
 		let chunk1 = ((end + ChunkSize - 1) / ChunkSize) | 0;
-		let missing0 = chunk1,
-			missing1 = chunk0;
+		let missing0 = chunk1;
+		let missing1 = chunk0;
+
 		for (let i = chunk0; i < chunk1; ++i) {
-			if (!this.chunks[i]) {
+			if (!chunks[i]) {
 				missing0 = Math.min(missing0, i);
 				missing1 = Math.max(missing1, i);
 			}
 		}
-		if (missing0 <= missing1) {
-			const request = new XMLHttpRequest();
-			request.open("GET", this.url, false);
-			request.setRequestHeader(
-				"Range",
-				`bytes=${missing0 * ChunkSize}-${Math.min(missing1 * ChunkSize + ChunkSize - 1, this.byteLength - 1)}`
-			);
-			request.responseType = "arraybuffer";
-			request.send();
-			if (request.status < 200 || request.status >= 300) {
-				throw Error("Failed to load remote file");
-			} else {
-				const header = request.getResponseHeader("Content-Range");
-				let m,
-					start = 0;
-				if (header && (m = header.match(/bytes (\d+)-(\d+)\/(\d+)/))) {
-					start = parseInt(m[1]);
-				}
-				this.buffer.set(new Uint8Array(request.response), start);
-				chunk0 = ((start + ChunkSize - 1) / ChunkSize) | 0;
-				chunk1 = ((start + request.response.byteLength + ChunkSize - 1) / ChunkSize) | 0;
-				for (let i = chunk0; i < chunk1; ++i) {
-					this.chunks[i] = 1;
-				}
-			}
+
+		if (missing0 > missing1) return;
+
+		const rangeRequest = new XMLHttpRequest();
+		rangeRequest.open("GET", url, false);
+		rangeRequest.setRequestHeader(
+			"Range",
+			`bytes=${missing0 * ChunkSize}-${Math.min(missing1 * ChunkSize + ChunkSize - 1, byteLength - 1)}`
+		);
+		rangeRequest.responseType = "arraybuffer";
+		rangeRequest.send();
+		if (rangeRequest.status < 200 || rangeRequest.status >= 300) {
+			throw Error("Failed to load remote file");
 		}
-		return this.buffer.subarray(start, end);
-	}
-}
+
+		const header = rangeRequest.getResponseHeader("Content-Range");
+		let offset = 0;
+		const match = header?.match(/bytes (\d+)-(\d+)\/(\d+)/);
+		if (match) {
+			offset = parseInt(match[1]);
+		}
+
+		buffer.set(new Uint8Array(rangeRequest.response), offset);
+		chunk0 = ((offset + ChunkSize - 1) / ChunkSize) | 0;
+		chunk1 = ((offset + rangeRequest.response.byteLength + ChunkSize - 1) / ChunkSize) | 0;
+		for (let i = chunk0; i < chunk1; ++i) {
+			chunks[i] = 1;
+		}
+	};
+
+	const subarray = (start: number, end: number) => {
+		ensureRange(start, end);
+		return buffer.subarray(start, end);
+	};
+
+	return {
+		byteLength,
+		url,
+		buffer,
+		chunks,
+		subarray,
+	};
+};
 
 const DApi: IDApi = {
 	exit_error(error: string) {
@@ -434,7 +444,7 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 			// This should never happen, but we do support remote loading
 			files!.set(
 				name,
-				new RemoteFile(import.meta.env.BASE_URL === "/" ? `/${name}` : `${import.meta.env.BASE_URL}/${name}`)
+				createRemoteFile(import.meta.env.BASE_URL === "/" ? `/${name}` : `${import.meta.env.BASE_URL}/${name}`)
 			);
 		}
 	}

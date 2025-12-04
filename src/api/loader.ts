@@ -76,7 +76,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 		try {
 			const worker = new Worker();
 			const packetQueue: ArrayBuffer[] = [];
-			let webrtc: any = null;
+			let webrtc: ReturnType<typeof webrtc_open> | null = null;
 			let intervalId: number | null = null;
 
 			webrtc = webrtc_open((data) => {
