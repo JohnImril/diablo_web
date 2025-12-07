@@ -408,24 +408,22 @@ const App = () => {
 	}, [getMousePos, processTouches, setTouchMod]);
 
 	const start = useCallback(
-		async (file: File | null = null) => {
+		(file: File | null = null) => {
 			cleanupRef.current?.();
 			cleanupRef.current = null;
 
 			game.current = null;
-			let ready = false;
 
 			if (file) {
 				const name = file.name.toLowerCase();
 
 				if (name.endsWith(".sv")) {
-					await (await fsRef.current).upload(file);
-					updateSaves();
+					fsRef.current.then((fs) => fs.upload(file)).then(updateSaves);
 					return;
 				}
 
 				if (!name.endsWith(".mpq")) {
-					alert("Please select a valid .mpq file (or spawn.mpq for free version).");
+					alert("Please select a valid .mpq file (or spawn.mpq file)");
 					return;
 				}
 			}
@@ -436,145 +434,110 @@ const App = () => {
 			setRetail(isRetail);
 			setLoading(true);
 
-			try {
-				const loaded = await load_game(
-					{
-						updateBelt: (belt) => {
-							if (!ready) return;
-
-							if (!belt) {
-								TOUCH.BELT_SLOTS.forEach((slotIndex) => drawBelt(slotIndex, -1));
-								return;
-							}
-
-							const used = new Set<number>();
-							let pos = 0;
-
-							for (let i = 0; i < belt.length && pos < TOUCH.BELT_SLOTS.length; i++) {
-								if (belt[i] >= 0 && !used.has(belt[i])) {
-									drawBelt(pos++, i);
-									used.add(belt[i]);
-								}
-							}
-
-							while (pos < TOUCH.BELT_SLOTS.length) drawBelt(pos++, -1);
-						},
-
-						canvas: canvasRef.current!,
-						fs: fsRef.current,
-
-						setCursorPos: (x, y) => {
-							if (!ready) return;
-
-							const rect = canvasRef.current!.getBoundingClientRect();
-							cursorPos.current = {
-								x: rect.left + (rect.width * x) / DIABLO.WIDTH,
-								y: rect.top + (rect.height * y) / DIABLO.HEIGHT,
-							};
-
-							setTimeout(() => {
-								if (!ready) return;
-								game.current?.("DApi_Mouse", 0, 0, 0, x, y);
-							}, 0);
-						},
-
-						openKeyboard: (rect) => {
-							if (!ready) return;
-
-							if (rect && keyboardRef.current && elementRef.current) {
-								const style: CSSProperties = {
-									left: `${((100 * (rect[0] - 10)) / DIABLO.WIDTH).toFixed(2)}%`,
-									top: `${((100 * (rect[1] - 10)) / DIABLO.HEIGHT).toFixed(2)}%`,
-									width: `${((100 * (rect[2] - rect[0] + 20)) / DIABLO.WIDTH).toFixed(2)}%`,
-									height: `${((100 * (rect[3] - rect[1] + 20)) / DIABLO.HEIGHT).toFixed(2)}%`,
-								};
-
-								showKeyboard.current = style;
-								setKeyboardStyle(style);
-								maxKeyboard.current = rect[4];
-								Object.assign(keyboardRef.current.style, style);
-								keyboardRef.current.focus();
-							} else {
-								showKeyboard.current = null;
-								setKeyboardStyle(null);
-								keyboardRef.current?.blur();
-
-								if (keyboardRef.current) keyboardRef.current.value = "";
-								keyboardNum.current = 0;
-							}
-						},
-
-						onError,
-						onProgress: setProgress,
-
-						onExit: () => {
-							cleanupRef.current?.();
-						},
-
-						setCurrentSave: (name) => {
-							if (!ready) return;
-							saveNameRef.current = name;
-							setCurrentSaveName(name);
-						},
-					},
-					file,
-					!isRetail
-				);
-
-				game.current = loaded as GameFunction;
-				ready = true;
-
-				const remove = addEventListeners();
-
-				setLoading(false);
-				setStarted(true);
-
-				const worker = (loaded as { worker?: Worker }).worker;
-				const webrtc = (loaded as { webrtc?: { send?: (data: Uint8Array) => void } }).webrtc;
-				const intervalId = (loaded as { webrtcIntervalId?: number | null }).webrtcIntervalId ?? null;
-
-				cleanupRef.current = () => {
-					remove?.();
-
-					game.current = null;
-					ready = false;
-
-					worker?.terminate();
-					if (intervalId != null) clearInterval(intervalId);
-
-					try {
-						webrtc?.send?.(new Uint8Array([0x24]));
-					} catch {
-						/* empty */
-					}
-
-					touchControls.current = false;
-					setIsTouchMode(false);
-					touchMods.current = [false, false, false];
-					touchBelt.current = [-1, -1, -1];
-					activeTouch.current = secondaryTouch.current = panPos.current = null;
-					beltTime.current = undefined;
-
-					touchButtons.current.forEach((b) => {
-						if (b) {
-							b.classList.remove("app__touch-button--active");
-							if (b.parentElement?.classList.contains("app__touch-ui--belt")) {
-								b.style.display = "none";
+			load_game(
+				{
+					updateBelt: (belt) => {
+						if (!game.current) return;
+						if (!belt) {
+							TOUCH.BELT_SLOTS.forEach((i) => drawBelt(i, -1));
+							return;
+						}
+						const used = new Set<number>();
+						let pos = 0;
+						for (let i = 0; i < belt.length && pos < TOUCH.BELT_SLOTS.length; i++) {
+							if (belt[i] >= 0 && !used.has(belt[i])) {
+								drawBelt(pos++, i);
+								used.add(belt[i]);
 							}
 						}
-					});
+						while (pos < TOUCH.BELT_SLOTS.length) drawBelt(pos++, -1);
+					},
 
-					setStarted(false);
+					canvas: canvasRef.current!,
+					fs: fsRef.current,
+
+					setCursorPos: (x, y) => {
+						const rect = canvasRef.current!.getBoundingClientRect();
+						cursorPos.current = {
+							x: rect.left + (rect.width * x) / DIABLO.WIDTH,
+							y: rect.top + (rect.height * y) / DIABLO.HEIGHT,
+						};
+						setTimeout(() => {
+							if (!game.current) return;
+							game.current("DApi_Mouse", 0, 0, 0, x, y);
+						});
+					},
+
+					openKeyboard: (rect) => {
+						if (!game.current) return;
+						if (rect && keyboardRef.current) {
+							const style: CSSProperties = {
+								left: `${((100 * (rect[0] - 10)) / DIABLO.WIDTH).toFixed(2)}%`,
+								top: `${((100 * (rect[1] - 10)) / DIABLO.HEIGHT).toFixed(2)}%`,
+								width: `${((100 * (rect[2] - rect[0] + 20)) / DIABLO.WIDTH).toFixed(2)}%`,
+								height: `${((100 * (rect[3] - rect[1] + 20)) / DIABLO.HEIGHT).toFixed(2)}%`,
+							};
+							showKeyboard.current = style;
+							setKeyboardStyle(style);
+							maxKeyboard.current = rect[4];
+							Object.assign(keyboardRef.current.style, style);
+							keyboardRef.current.focus();
+						} else {
+							showKeyboard.current = null;
+							setKeyboardStyle(null);
+							keyboardRef.current?.blur();
+							if (keyboardRef.current) keyboardRef.current.value = "";
+							keyboardNum.current = 0;
+						}
+					},
+
+					onError,
+					onProgress: setProgress,
+
+					onExit: () => cleanupRef.current?.(),
+
+					setCurrentSave: (name) => {
+						saveNameRef.current = name;
+						setCurrentSaveName(name);
+					},
+				},
+				file,
+				!isRetail
+			).then(
+				(loaded) => {
+					game.current = loaded as GameFunction;
+
+					const removeListeners = addEventListeners();
+
 					setLoading(false);
-					setRetail(undefined);
-					showKeyboard.current = null;
-					setKeyboardStyle(null);
-				};
-			} catch (e: unknown) {
-				const err = e instanceof Error ? e : new Error(String(e));
-				onError(err.message ?? "Failed to load game", err.stack ?? "");
-				setLoading(false);
-			}
+					setStarted(true);
+
+					const worker = (loaded as any).worker;
+					const intervalId = (loaded as any).webrtcIntervalId ?? null;
+					const webrtc = (loaded as any).webrtc;
+
+					cleanupRef.current = () => {
+						removeListeners?.();
+						game.current = null;
+						worker?.terminate();
+						if (intervalId != null) clearInterval(intervalId);
+						try {
+							webrtc?.send?.(new Uint8Array([0x24]));
+						} catch {
+							/* empty */
+						}
+						setStarted(false);
+						setLoading(false);
+						setRetail(undefined);
+						showKeyboard.current = null;
+						setKeyboardStyle(null);
+					};
+				},
+				(err) => {
+					onError(err.message, err.stack);
+					setLoading(false);
+				}
+			);
 		},
 		[showSaves, fsRef, updateSaves, drawBelt, onError, addEventListeners]
 	);
