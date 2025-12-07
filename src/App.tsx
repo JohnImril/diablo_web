@@ -412,13 +412,18 @@ const App = () => {
 			cleanupRef.current?.();
 			cleanupRef.current = null;
 
+			game.current = null;
+			let ready = false;
+
 			if (file) {
 				const name = file.name.toLowerCase();
+
 				if (name.endsWith(".sv")) {
 					await (await fsRef.current).upload(file);
 					updateSaves();
 					return;
 				}
+
 				if (!name.endsWith(".mpq")) {
 					alert("Please select a valid .mpq file (or spawn.mpq for free version).");
 					return;
@@ -435,31 +440,47 @@ const App = () => {
 				const loaded = await load_game(
 					{
 						updateBelt: (belt) => {
+							if (!ready) return;
+
 							if (!belt) {
 								TOUCH.BELT_SLOTS.forEach((slotIndex) => drawBelt(slotIndex, -1));
 								return;
 							}
+
 							const used = new Set<number>();
 							let pos = 0;
+
 							for (let i = 0; i < belt.length && pos < TOUCH.BELT_SLOTS.length; i++) {
 								if (belt[i] >= 0 && !used.has(belt[i])) {
 									drawBelt(pos++, i);
 									used.add(belt[i]);
 								}
 							}
+
 							while (pos < TOUCH.BELT_SLOTS.length) drawBelt(pos++, -1);
 						},
+
 						canvas: canvasRef.current!,
 						fs: fsRef.current,
+
 						setCursorPos: (x, y) => {
+							if (!ready) return;
+
 							const rect = canvasRef.current!.getBoundingClientRect();
 							cursorPos.current = {
 								x: rect.left + (rect.width * x) / DIABLO.WIDTH,
 								y: rect.top + (rect.height * y) / DIABLO.HEIGHT,
 							};
-							setTimeout(() => game.current?.("DApi_Mouse", 0, 0, 0, x, y), 0);
+
+							setTimeout(() => {
+								if (!ready) return;
+								game.current?.("DApi_Mouse", 0, 0, 0, x, y);
+							}, 0);
 						},
+
 						openKeyboard: (rect) => {
+							if (!ready) return;
+
 							if (rect && keyboardRef.current && elementRef.current) {
 								const style: CSSProperties = {
 									left: `${((100 * (rect[0] - 10)) / DIABLO.WIDTH).toFixed(2)}%`,
@@ -467,6 +488,7 @@ const App = () => {
 									width: `${((100 * (rect[2] - rect[0] + 20)) / DIABLO.WIDTH).toFixed(2)}%`,
 									height: `${((100 * (rect[3] - rect[1] + 20)) / DIABLO.HEIGHT).toFixed(2)}%`,
 								};
+
 								showKeyboard.current = style;
 								setKeyboardStyle(style);
 								maxKeyboard.current = rect[4];
@@ -476,16 +498,21 @@ const App = () => {
 								showKeyboard.current = null;
 								setKeyboardStyle(null);
 								keyboardRef.current?.blur();
+
 								if (keyboardRef.current) keyboardRef.current.value = "";
 								keyboardNum.current = 0;
 							}
 						},
+
 						onError,
 						onProgress: setProgress,
+
 						onExit: () => {
 							cleanupRef.current?.();
 						},
+
 						setCurrentSave: (name) => {
+							if (!ready) return;
 							saveNameRef.current = name;
 							setCurrentSaveName(name);
 						},
@@ -495,7 +522,10 @@ const App = () => {
 				);
 
 				game.current = loaded as GameFunction;
+				ready = true;
+
 				const remove = addEventListeners();
+
 				setLoading(false);
 				setStarted(true);
 
@@ -505,26 +535,35 @@ const App = () => {
 
 				cleanupRef.current = () => {
 					remove?.();
+
 					game.current = null;
+					ready = false;
+
 					worker?.terminate();
 					if (intervalId != null) clearInterval(intervalId);
+
 					try {
 						webrtc?.send?.(new Uint8Array([0x24]));
 					} catch {
-						// ignore send errors
+						/* empty */
 					}
+
 					touchControls.current = false;
 					setIsTouchMode(false);
 					touchMods.current = [false, false, false];
 					touchBelt.current = [-1, -1, -1];
 					activeTouch.current = secondaryTouch.current = panPos.current = null;
 					beltTime.current = undefined;
+
 					touchButtons.current.forEach((b) => {
 						if (b) {
 							b.classList.remove("app__touch-button--active");
-							if (b.parentElement?.classList.contains("app__touch-ui--belt")) b.style.display = "none";
+							if (b.parentElement?.classList.contains("app__touch-ui--belt")) {
+								b.style.display = "none";
+							}
 						}
 					});
+
 					setStarted(false);
 					setLoading(false);
 					setRetail(undefined);
