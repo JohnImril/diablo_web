@@ -266,13 +266,17 @@ const App = () => {
 	);
 
 	const addEventListeners = useCallback(() => {
+		const safe = () => !!game.current;
+
 		const move = (e: MouseEvent) => {
+			if (!safe()) return;
 			const { x, y } = getMousePos(e);
-			game.current?.("DApi_Mouse", 0, 0, getMods(e), x, y);
+			game.current!("DApi_Mouse", 0, 0, getMods(e), x, y);
 			e.preventDefault();
 		};
 
 		const down = (e: MouseEvent) => {
+			if (!safe()) return;
 			if (!canvasRef.current || e.target === keyboardRef.current) return;
 			if (touchControls.current) {
 				touchControls.current = false;
@@ -283,21 +287,23 @@ const App = () => {
 				canvasRef.current.requestPointerLock();
 			}
 			const button = MOUSE.BUTTON_MAP[e.button] ?? MOUSE.BUTTON_MAP[0];
-			game.current?.("DApi_Mouse", 1, button, getMods(e), x, y);
+			game.current!("DApi_Mouse", 1, button, getMods(e), x, y);
 			e.preventDefault();
 		};
 
 		const up = (e: MouseEvent) => {
+			if (!safe()) return;
 			const { x, y } = getMousePos(e);
 			const button = MOUSE.BUTTON_MAP[e.button] ?? MOUSE.BUTTON_MAP[0];
-			game.current?.("DApi_Mouse", 2, button, getMods(e), x, y);
+			game.current!("DApi_Mouse", 2, button, getMods(e), x, y);
 			if (e.target !== keyboardRef.current) e.preventDefault();
 		};
 
 		const keydown = (e: KeyboardEvent) => {
-			game.current?.("DApi_Key", 0, getMods(e), e.keyCode);
-			if (!showKeyboard.current && e.key.length === 1) game.current?.("DApi_Char", e.key.charCodeAt(0));
-			if ([8, 13].includes(e.keyCode)) game.current?.("DApi_Char", e.keyCode);
+			if (!safe()) return;
+			game.current!("DApi_Key", 0, getMods(e), e.keyCode);
+			if (!showKeyboard.current && e.key.length === 1) game.current!("DApi_Char", e.key.charCodeAt(0));
+			if ([8, 13].includes(e.keyCode)) game.current!("DApi_Char", e.keyCode);
 			clearSelection();
 			if (!showKeyboard.current && [8, 9, ...Array.from({ length: 8 }, (_, i) => 112 + i)].includes(e.keyCode)) {
 				e.preventDefault();
@@ -305,34 +311,40 @@ const App = () => {
 		};
 
 		const keyup = (e: KeyboardEvent) => {
-			game.current?.("DApi_Key", 1, getMods(e), e.keyCode);
+			if (!safe()) return;
+			game.current!("DApi_Key", 1, getMods(e), e.keyCode);
 			clearSelection();
 		};
 
 		const touchstart = (e: TouchEvent) => {
+			if (!safe()) return;
 			if (!canvasRef.current || e.target === keyboardRef.current) return;
 			keyboardRef.current?.blur();
 			e.preventDefault();
+
 			if (processTouches(e.touches, false) && secondaryTouch.current) {
 				const { x, y } = getMousePos(secondaryTouch.current);
-				game.current?.("DApi_Mouse", 0, 0, getMods(e), x, y);
+				game.current!("DApi_Mouse", 0, 0, getMods(e), x, y);
 				if (!touchMods.current[TOUCH.MOVE]) {
 					const btn = touchMods.current[TOUCH.RMB] ? MOUSE.BUTTON_MAP[2] : MOUSE.BUTTON_MAP[0];
-					game.current?.("DApi_Mouse", 1, btn, getMods(e), x, y);
+					game.current!("DApi_Mouse", 1, btn, getMods(e), x, y);
 				}
 			}
 		};
 
 		const touchmove = (e: TouchEvent) => {
+			if (!safe()) return;
 			if (!canvasRef.current) return;
 			e.preventDefault();
+
 			if (processTouches(e.touches, false) && secondaryTouch.current) {
 				const { x, y } = getMousePos(secondaryTouch.current);
-				game.current?.("DApi_Mouse", 0, 0, getMods(e), x, y);
+				game.current!("DApi_Mouse", 0, 0, getMods(e), x, y);
 			}
 		};
 
 		const touchend = (e: TouchEvent) => {
+			if (!safe()) return;
 			if (!canvasRef.current) return;
 			e.preventDefault();
 			const lastSecondary = secondaryTouch.current && { ...secondaryTouch.current };
@@ -343,8 +355,8 @@ const App = () => {
 				const leftButton = MOUSE.BUTTON_MAP[0];
 				const rightButton = MOUSE.BUTTON_MAP[2];
 
-				game.current?.("DApi_Mouse", 2, leftButton, getMods(e), x, y);
-				game.current?.("DApi_Mouse", 2, rightButton, getMods(e), x, y);
+				game.current!("DApi_Mouse", 2, leftButton, getMods(e), x, y);
+				game.current!("DApi_Mouse", 2, rightButton, getMods(e), x, y);
 				if (touchMods.current[TOUCH.RMB] && (!activeTouch.current || activeTouch.current.index !== TOUCH.RMB)) {
 					setTouchMod(TOUCH.RMB, false);
 				}
@@ -355,9 +367,10 @@ const App = () => {
 		const onContextMenu = (e: MouseEvent) => e.preventDefault();
 
 		const onPointerLockChange = () => {
+			if (!safe()) return;
 			if (!pointerLocked() && window.innerHeight === screen.height) {
-				game.current?.("DApi_Key", 0, 0, KEYS.ESC);
-				game.current?.("DApi_Key", 1, 0, KEYS.ESC);
+				game.current!("DApi_Key", 0, 0, KEYS.ESC);
+				game.current!("DApi_Key", 1, 0, KEYS.ESC);
 			}
 		};
 
