@@ -16,6 +16,7 @@ export interface IGameHandles {
 	worker?: Worker;
 	webrtc?: IWebRTCConnection | null;
 	webrtcIntervalId?: number | null;
+	audio?: IAudioApi | null;
 }
 
 export interface IApi {

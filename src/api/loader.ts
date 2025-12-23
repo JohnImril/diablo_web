@@ -82,6 +82,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 					worker,
 					webrtc: null as IWebRTCConnection | null,
 					webrtcIntervalId: null as number | null,
+					audio,
 				}
 			);
 
@@ -154,6 +155,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 						break;
 
 					case "exit":
+						audio.stop_all();
 						api.onExit();
 						break;
 
