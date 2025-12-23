@@ -75,71 +75,102 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 	return await new Promise<GameFunction>((resolve, reject) => {
 		try {
 			const worker = new Worker();
+
 			const gameFn: GameFunction = Object.assign(
-				(func: string, ...params: (string | number)[]) =>
-					worker.postMessage({ action: "event", func, params }),
+				(func: string, ...params: (string | number)[]) => worker.postMessage({ action: "event", func, params }),
 				{
 					worker,
 					webrtc: null as IWebRTCConnection | null,
 					webrtcIntervalId: null as number | null,
 				}
 			);
+
 			const packetQueue: ArrayBuffer[] = [];
 			const webrtc: IWebRTCConnection = webrtc_open((data) => {
 				packetQueue.push(toArrayBuffer(data));
 				if (packetQueue.length > 100) packetQueue.shift();
 			});
+
+			gameFn.webrtc = webrtc;
+
 			let intervalId: number | null = null;
+			let resolved = false;
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
-					case "loaded":
-						resolve(gameFn);
+					case "loaded": {
+						if (!resolved) {
+							resolved = true;
+							intervalId = window.setInterval(() => {
+								if (packetQueue.length) {
+									worker.postMessage({ action: "packetBatch", batch: packetQueue });
+									packetQueue.length = 0;
+								}
+							}, 20);
+
+							gameFn.webrtcIntervalId = intervalId;
+							resolve(gameFn);
+						}
 						break;
+					}
+
 					case "render":
 						onRender(api, context, data.batch);
 						break;
+
 					case "audio":
 						(audio[data.func as keyof IAudioApi] as (...args: unknown[]) => void)(...data.params);
 						break;
+
 					case "audioBatch":
 						for (const { func, params } of data.batch as { func: keyof IAudioApi; params: unknown[] }[]) {
 							(audio[func] as (...args: unknown[]) => void)(...params);
 						}
 						break;
+
 					case "fs":
 						(fs as unknown as Record<string, (...args: unknown[]) => void>)[data.func](...data.params);
 						break;
+
 					case "cursor":
 						api.setCursorPos(data.x, data.y);
 						break;
+
 					case "keyboard":
 						api.openKeyboard(data.rect);
 						break;
+
 					case "error":
 						audio.stop_all();
 						api.onError(data.error, data.stack);
 						break;
+
 					case "failed":
 						reject({ message: data.error, stack: data.stack });
 						break;
+
 					case "progress":
 						api.onProgress({ text: data.text, loaded: data.loaded, total: data.total });
 						break;
+
 					case "exit":
 						api.onExit();
 						break;
+
 					case "current_save":
 						api.setCurrentSave(data.name);
 						break;
+
 					case "packet":
 						webrtc.send(data.buffer);
 						break;
+
 					case "packetBatch":
 						for (const packet of data.batch) {
 							webrtc.send(packet);
 						}
 						break;
+
 					default:
 				}
 			});
@@ -148,19 +179,8 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 			for (const [, file] of fs.files) {
 				transfer.push(toArrayBuffer(file.buffer));
 			}
+
 			worker.postMessage({ action: "init", files: fs.files, mpq, spawn, offscreen }, transfer);
-
-			intervalId = setInterval(() => {
-				if (packetQueue.length) {
-					worker.postMessage({ action: "packetBatch", batch: packetQueue }, packetQueue);
-					packetQueue.length = 0;
-				}
-			}, 20);
-			gameFn.webrtcIntervalId = intervalId;
-
-			gameFn.webrtc = webrtc;
-
-			resolve(gameFn);
 
 			fs.files.clear();
 		} catch (error) {
