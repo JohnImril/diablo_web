@@ -518,6 +518,11 @@ const App = () => {
 
 					cleanupRef.current = () => {
 						removeListeners?.();
+						try {
+							game.current?.audio?.stop_all?.();
+						} catch {
+							/* empty */
+						}
 						game.current = null;
 						worker?.terminate();
 						if (intervalId != null) clearInterval(intervalId);
