@@ -505,16 +505,16 @@ const App = () => {
 				!isRetail
 			).then(
 				(loaded) => {
-					game.current = loaded as GameFunction;
+					game.current = loaded;
 
 					const removeListeners = addEventListeners();
 
 					setLoading(false);
 					setStarted(true);
 
-					const worker = (loaded as any).worker;
-					const intervalId = (loaded as any).webrtcIntervalId ?? null;
-					const webrtc = (loaded as any).webrtc;
+					const worker = loaded.worker;
+					const intervalId = loaded.webrtcIntervalId ?? null;
+					const webrtc = loaded.webrtc;
 
 					cleanupRef.current = () => {
 						removeListeners?.();
