@@ -2,7 +2,7 @@ import Worker from "./game.worker.js?worker";
 import init_sound from "./sound";
 import load_spawn from "./load_spawn";
 import webrtc_open from "./webrtc";
-import type { IApi, IAudioApi } from "../types";
+import type { GameFunction, IApi, IAudioApi, IWebRTCConnection } from "../types";
 import { toArrayBuffer } from "../utils/buffers";
 
 interface IRenderBatch {
@@ -57,7 +57,7 @@ function testOffscreen() {
   }*/
 }
 
-async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn: boolean) {
+async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn: boolean): Promise<GameFunction> {
 	const fs = await api.fs;
 	if (spawn && !mpq) {
 		await load_spawn(api, fs);
@@ -72,24 +72,29 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 		context = api.canvas.getContext("2d", { alpha: false });
 	}
 
-	return await new Promise((resolve, reject) => {
+	return await new Promise<GameFunction>((resolve, reject) => {
 		try {
 			const worker = new Worker();
+			const gameFn: GameFunction = Object.assign(
+				(func: string, ...params: (string | number)[]) =>
+					worker.postMessage({ action: "event", func, params }),
+				{
+					worker,
+					webrtc: null as IWebRTCConnection | null,
+					webrtcIntervalId: null as number | null,
+				}
+			);
 			const packetQueue: ArrayBuffer[] = [];
-			let webrtc: ReturnType<typeof webrtc_open> | null = null;
-			let intervalId: number | null = null;
-
-			webrtc = webrtc_open((data) => {
+			const webrtc: IWebRTCConnection = webrtc_open((data) => {
 				packetQueue.push(toArrayBuffer(data));
 				if (packetQueue.length > 100) packetQueue.shift();
 			});
+			let intervalId: number | null = null;
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
 					case "loaded":
-						resolve((func: string, ...params: unknown[]) =>
-							worker.postMessage({ action: "event", func, params })
-						);
+						resolve(gameFn);
 						break;
 					case "render":
 						onRender(api, context, data.batch);
@@ -151,13 +156,9 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 					packetQueue.length = 0;
 				}
 			}, 20);
-
-			const gameFn = (func: string, ...params: unknown[]) =>
-				worker.postMessage({ action: "event", func, params });
-
-			gameFn.worker = worker;
-			gameFn.webrtc = webrtc;
 			gameFn.webrtcIntervalId = intervalId;
+
+			gameFn.webrtc = webrtc;
 
 			resolve(gameFn);
 
@@ -168,7 +169,7 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 	});
 }
 
-export default function load_game(api: IApi, mpq: File | null, spawn: boolean) {
+export default function load_game(api: IApi, mpq: File | null, spawn: boolean): Promise<GameFunction> {
 	const audio = init_sound();
 	return do_load_game(api, audio, mpq, spawn);
 }

@@ -8,6 +8,16 @@ export interface IFileSystem {
 	fileUrl: (name: string) => Promise<string | undefined>;
 }
 
+export interface IWebRTCConnection {
+	send(packet: ArrayBuffer | Uint8Array): void;
+}
+
+export interface IGameHandles {
+	worker?: Worker;
+	webrtc?: IWebRTCConnection | null;
+	webrtcIntervalId?: number | null;
+}
+
 export interface IApi {
 	updateBelt: (belt: number[]) => void;
 	canvas: HTMLCanvasElement;
@@ -37,7 +47,7 @@ export interface IAudioApi {
 	stop_all: () => void | undefined;
 }
 
-export type GameFunction = (command: string, ...args: (string | number)[]) => void;
+export type GameFunction = ((command: string, ...args: (string | number)[]) => void) & IGameHandles;
 
 export interface IPlayerInfo {
 	name: string;
