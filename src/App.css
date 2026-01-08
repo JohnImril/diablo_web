@@ -75,15 +75,19 @@ body,
 	border: none;
 	outline: none;
 	z-index: 100;
-	display: none;
 	cursor: none;
+
+	display: block;
+	opacity: 0;
+
+	caret-color: transparent;
 }
 .app__keyboard::selection {
 	background: rgba(0, 0, 0, 0);
 	color: rgba(0, 0, 0, 0);
 }
 .app--keyboard .app__keyboard {
-	display: block;
+	opacity: 1;
 }
 
 .app__touch-ui {
