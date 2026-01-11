@@ -58,16 +58,16 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 }
 
 export default function websocket_open(url: string, handler: WebSocketHandler, finisher: WebSocketFinisher) {
-	let ws: WebSocket | null = null,
-		batch: Uint8Array[] = [],
-		intr: number | null = null;
+	let ws: WebSocket | null = null;
+	let batch: Uint8Array[] | null = [];
+	let intr: number | null = null;
 
 	const proxy: IWebSocketProxy = {
 		get readyState() {
 			return ws ? ws.readyState : 0;
 		},
 		send(msg: Uint8Array) {
-			batch.push(msg.slice());
+			batch!.push(msg.slice());
 		},
 		close() {
 			if (intr) {
@@ -77,7 +77,7 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 			if (ws) {
 				ws.close();
 			} else {
-				batch = null!;
+				batch = null;
 			}
 		},
 	};
@@ -87,21 +87,24 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 			ws = sock;
 			if (batch) {
 				intr = setInterval(() => {
-					if (!batch.length) {
+					if (!batch!.length) {
 						return;
 					}
-					const size = batch.reduce((sum, msg) => sum + msg.byteLength, 3);
+					const size = batch!.reduce((sum, msg) => sum + msg.byteLength, 3);
 					const buffer = new Uint8Array(size);
 					buffer[0] = 0;
-					buffer[1] = batch.length & 0xff;
-					buffer[2] = batch.length >> 8;
+					buffer[1] = batch!.length & 0xff;
+					buffer[2] = batch!.length >> 8;
+
 					let pos = 3;
-					for (const msg of batch) {
+					for (const msg of batch!) {
 						buffer.set(msg, pos);
 						pos += msg.byteLength;
 					}
-					ws?.send(buffer);
-					batch.length = 0;
+
+					ws!.send(buffer);
+
+					batch!.length = 0;
 				}, 100);
 			} else {
 				ws.close();

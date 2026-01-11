@@ -13,6 +13,8 @@ import { fetchWithProgress } from "../utils/fetchWithProgress";
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
 
+const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8787/ws";
+
 const worker: WorkerContext = self as unknown as WorkerContext;
 
 let canvas: OffscreenCanvas | null = null;
@@ -33,7 +35,7 @@ function onError(err: unknown, action = "error") {
 	if (err instanceof Error) {
 		worker.postMessage({ action, error: err.toString(), stack: err.stack });
 	} else {
-		worker.postMessage({ action, error: err!.toString() });
+		worker.postMessage({ action, error: err?.toString?.() ?? String(err) });
 	}
 }
 
@@ -169,23 +171,21 @@ const DApi: IDApi = {
 		if (flag) {
 			if (!websocket || websocket.readyState !== 1) {
 				const sock = (websocket = websocket_open(
-					"wss://diablo.rivsoft.net/websocket",
+					WS_URL,
 					(data) => {
 						if (websocket === sock) {
 							try_api(() => {
-								const ptr = wasm?._DApi_AllocPacket((data as ArrayBuffer).byteLength);
-								wasm?.HEAPU8.set(new Uint8Array(data as ArrayBuffer), ptr);
+								const ab = data as ArrayBuffer;
+								const ptr = wasm!._DApi_AllocPacket(ab.byteLength);
+								wasm!.HEAPU8.set(new Uint8Array(ab), ptr);
 							});
 						}
 					},
 					(code) => {
-						if (typeof code !== "number") {
-							throw code;
-						} else {
-							call_api("SNet_WebsocketStatus", code);
-						}
+						if (typeof code !== "number") throw code;
+						call_api("SNet_WebsocketStatus", code);
 					}
-				)) as WebSocket;
+				));
 			} else {
 				call_api("SNet_WebsocketStatus", 0);
 			}
@@ -226,10 +226,9 @@ const DApi_renderLegacy = {
 	},
 
 	draw_end() {
-		const transfer = renderBatch?.images.map(({ data }) => data.buffer);
-		if (renderBatch?.belt) {
-			transfer?.push(renderBatch.belt.buffer);
-		}
+		const transfer = renderBatch?.images.map(({ data }) => data.buffer) ?? [];
+		if (renderBatch?.belt) transfer.push(renderBatch.belt.buffer);
+
 		worker.postMessage({ action: "render", batch: renderBatch }, transfer as Transferable[]);
 		renderBatch = null;
 	},
@@ -277,9 +276,7 @@ const DApi_renderOffscreen = {
 			context.restore();
 			const bitmap = canvas.transferToImageBitmap();
 			const transfer: Transferable[] = [bitmap];
-			if (drawBelt) {
-				transfer.push(drawBelt.buffer);
-			}
+			if (drawBelt) transfer.push(drawBelt.buffer);
 			worker.postMessage({ action: "render", batch: { bitmap, belt: drawBelt } }, transfer);
 			drawBelt = null;
 		}
@@ -295,7 +292,7 @@ let audioTransfer: Transferable[] | null = null;
 let maxSoundId = 0;
 let maxBatchId = 0;
 
-["create_sound_raw", "create_sound", "duplicate_sound"].forEach((func) => {
+(["create_sound_raw", "create_sound", "duplicate_sound"] as const).forEach((func) => {
 	DApi[func] = function (...params: [number, Uint8Array]) {
 		if (audioBatch) {
 			maxBatchId = params[0] + 1;
@@ -314,8 +311,8 @@ let maxBatchId = 0;
 	};
 });
 
-["play_sound", "set_volume", "stop_sound", "delete_sound"].forEach((func) => {
-	DApi[func as keyof typeof DApi] = function (...params: [number, ...unknown[]]) {
+(["play_sound", "set_volume", "stop_sound", "delete_sound"] as const).forEach((func) => {
+	DApi[func] = function (...params: [number, ...unknown[]]) {
 		if (audioBatch && params[0] >= maxSoundId) {
 			audioBatch.push({ func, params });
 		} else {
@@ -338,16 +335,7 @@ DApi.websocket_send = function (data: Uint8Array) {
 
 worker.DApi = DApi as typeof DApi;
 
-let wasm: {
-	[key: string]: unknown;
-	_DApi_AllocPacket(size: number): number;
-	HEAPU8: Uint8Array;
-	_DApi_SyncTextPtr(): number;
-	_DApi_SyncText(ptr: number): void;
-	_SNet_InitWebsocket(): void;
-	_DApi_Init(time: number, offscreen: number, major: number, minor: number, patch: number): void;
-	_DApi_Render(time: number): void;
-} | null = null;
+let wasm: WasmApi | null = null;
 
 function try_api(func: () => void) {
 	try {
@@ -365,12 +353,13 @@ function call_api(func: string, ...params: (string | number)[]) {
 			audioTransfer = [];
 			packetBatch = [];
 		}
+
 		if (func !== "text") {
 			(wasm as { [key: string]: (...args: unknown[]) => unknown })["_" + func](...params);
 		} else {
 			const ptr = wasm!._DApi_SyncTextPtr();
 			const text = params[0] as string;
-			const length = Math.min((text as string).length, 255);
+			const length = Math.min(text.length, 255);
 			const heap = wasm!.HEAPU8;
 			for (let i = 0; i < length; ++i) {
 				heap[ptr + i] = text.charCodeAt(i);
@@ -397,34 +386,34 @@ function progress(text: string, loaded?: number, total?: number) {
 	worker.postMessage({ action: "progress", text, loaded, total });
 }
 
-const readFile = (file: File, progress?: (e: ProgressEvent<FileReader>) => void) =>
-	new Promise((resolve, reject) => {
+const readFile = (file: File, progressCb?: (e: ProgressEvent<FileReader>) => void) =>
+	new Promise<ArrayBuffer>((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onload = () => {
-			if (progress) {
-				progress({ loaded: file.size } as ProgressEvent<FileReader>);
+			if (progressCb) {
+				progressCb({ loaded: file.size } as ProgressEvent<FileReader>);
 			}
 			resolve(reader.result as ArrayBuffer);
 		};
 		reader.onerror = () => reject(reader.error);
 		reader.onabort = () => reject();
-		if (progress) {
-			reader.addEventListener("progress", progress);
+		if (progressCb) {
+			reader.addEventListener("progress", progressCb);
 		}
 		reader.readAsArrayBuffer(file);
 	});
 
-async function initWasm(spawn: boolean, progress: (e: { loaded: number; total?: number }) => void) {
+async function initWasm(spawn: boolean, progressCb: (e: { loaded: number; total?: number }) => void) {
 	const binary = await fetchWithProgress(spawn ? SpawnBinary : DiabloBinary, (loaded, total) =>
-		progress({ loaded, total })
+		progressCb({ loaded, total })
 	);
 
 	const result = await (spawn ? SpawnModule : DiabloModule)({
 		wasmBinary: binary,
 	}).ready;
 
-	progress({ loaded: 2000000 });
-	return result;
+	progressCb({ loaded: 2000000 });
+	return result as WasmApi;
 }
 
 async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
@@ -441,11 +430,14 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 	if (!mpq) {
 		const name = spawn ? "spawn.mpq" : "diabdat.mpq";
 		if (!files!.has(name)) {
-			// This should never happen, but we do support remote loading
-			files!.set(
-				name,
-				createRemoteFile(import.meta.env.BASE_URL === "/" ? `/${name}` : `${import.meta.env.BASE_URL}/${name}`)
-			);
+			const base =
+				import.meta.env.BASE_URL === "/"
+					? ""
+					: import.meta.env.BASE_URL.endsWith("/")
+						? import.meta.env.BASE_URL.slice(0, -1)
+						: import.meta.env.BASE_URL;
+
+			files!.set(name, createRemoteFile(`${base}/${name}`));
 		}
 	}
 
@@ -468,31 +460,31 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 
 	const loadMpq = mpq
 		? readFile(mpq, (e) => {
-				mpqLoaded = e.loaded;
+				mpqLoaded = e.loaded ?? (e as any).loadedBytes ?? mpqLoaded;
 				updateProgress();
 			})
-		: Promise.resolve<Uint8Array | null>(null);
+		: Promise.resolve<ArrayBuffer | null>(null);
 
-	[wasm, mpq] = await Promise.all([loadWasm, loadMpq]);
+	const [wasmResult, mpqBuf] = await Promise.all([loadWasm, loadMpq]);
+	wasm = wasmResult;
 
-	if (mpq) {
-		files!.set(spawn ? "spawn.mpq" : "diabdat.mpq", new Uint8Array(mpq as unknown as ArrayBuffer));
+	if (mpqBuf) {
+		files!.set(spawn ? "spawn.mpq" : "diabdat.mpq", new Uint8Array(mpqBuf));
 	}
 
 	progress("Initializing...");
 
 	const vers = __APP_VERSION__.match(/(\d+)\.(\d+)\.(\d+)/);
 
-	if (wasm) {
-		wasm._SNet_InitWebsocket();
-		wasm._DApi_Init(
-			Math.floor(performance.now()),
-			offscreen ? 1 : 0,
-			parseInt(vers![1]),
-			parseInt(vers![2]),
-			parseInt(vers![3])
-		);
-	}
+	wasm!._SNet_InitWebsocket();
+
+	wasm!._DApi_Init(
+		Math.floor(performance.now()),
+		offscreen ? 1 : 0,
+		parseInt(vers![1]),
+		parseInt(vers![2]),
+		parseInt(vers![3])
+	);
 
 	setInterval(() => {
 		call_api("DApi_Render", Math.floor(performance.now()));
@@ -526,6 +518,7 @@ worker.addEventListener("message", ({ data }) => {
 			});
 			break;
 		default:
+			break;
 	}
 });
 
@@ -552,4 +545,15 @@ interface IDApi {
 	websocket_closed(): boolean;
 	websocket_send?(data: Uint8Array): void;
 	[key: string]: unknown;
+}
+
+interface WasmApi {
+	[key: string]: unknown;
+	_DApi_AllocPacket(size: number): number;
+	HEAPU8: Uint8Array;
+	_DApi_SyncTextPtr(): number;
+	_DApi_SyncText(ptr: number): void;
+	_SNet_InitWebsocket(): void;
+	_DApi_Init(time: number, offscreen: number, major: number, minor: number, patch: number): void;
+	_DApi_Render(time: number): void;
 }
