@@ -33,6 +33,8 @@ jobs:
 
             - name: Build project
               run: npm run build
+              env:
+                  VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
 
             - name: Setup Pages
               uses: actions/configure-pages@v4
