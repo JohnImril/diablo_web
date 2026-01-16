@@ -531,6 +531,7 @@ const App = () => {
 						} catch {
 							/* empty */
 						}
+						updateSaves();
 						setStarted(false);
 						setLoading(false);
 						setRetail(undefined);
