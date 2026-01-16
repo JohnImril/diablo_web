@@ -80,9 +80,20 @@ export default async function create_fs(): Promise<IFileSystem> {
 
 		return {
 			files,
-			update: (name: string, data: Uint8Array) => db.put("files", data, name),
-			delete: (name: string) => db.delete("files", name),
-			clear: () => db.clear("files"),
+			update: async (name: string, data: Uint8Array) => {
+				const key = name.toLowerCase();
+				files.set(key, data);
+				return db.put("files", data, key);
+			},
+			delete: async (name: string) => {
+				const key = name.toLowerCase();
+				files.delete(key);
+				return db.delete("files", key);
+			},
+			clear: async () => {
+				files.clear();
+				return db.clear("files");
+			},
 			download: (name: string) => downloadFile(db, name),
 			upload: (file: File) => uploadFile(db, files, file),
 			fileUrl: async (name: string) => {
