@@ -177,14 +177,15 @@ async function do_load_game(api: IApi, audio: IAudioApi, mpq: File | null, spawn
 				}
 			});
 
+			const workerFiles = new Map<string, Uint8Array>();
 			const transfer: ArrayBuffer[] = [];
-			for (const [, file] of fs.files) {
-				transfer.push(toArrayBuffer(file.buffer));
+			for (const [name, file] of fs.files) {
+				const copy = file.slice();
+				workerFiles.set(name, copy);
+				transfer.push(toArrayBuffer(copy.buffer));
 			}
 
-			worker.postMessage({ action: "init", files: fs.files, mpq, spawn, offscreen }, transfer);
-
-			fs.files.clear();
+			worker.postMessage({ action: "init", files: workerFiles, mpq, spawn, offscreen }, transfer);
 		} catch (error) {
 			reject(error);
 		}
