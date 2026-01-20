@@ -19,6 +19,7 @@ export default defineConfig({
 			base: BASE,
 			scope: BASE,
 			registerType: "autoUpdate",
+			injectRegister: "script-defer",
 			includeAssets: [
 				"favicon.ico",
 				"apple-touch-icon.png",
@@ -52,8 +53,43 @@ export default defineConfig({
 					},
 				],
 			},
+			workbox: {
+				cleanupOutdatedCaches: true,
+				runtimeCaching: [
+					{
+						urlPattern: new RegExp(`^${BASE}assets/`),
+						handler: "CacheFirst",
+						options: {
+							cacheName: "assets-cache",
+							expiration: {
+								maxEntries: 200,
+								maxAgeSeconds: 60 * 60 * 24 * 365,
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+					{
+						urlPattern: ({ request }) => request.mode === "navigate",
+						handler: "NetworkFirst",
+						options: {
+							cacheName: "html-cache",
+							expiration: {
+								maxEntries: 20,
+								maxAgeSeconds: 60 * 60 * 24,
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+				],
+			},
+
 			devOptions: {
 				enabled: true,
+				type: "module",
 			},
 		}),
 	],

@@ -460,7 +460,8 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 
 	const loadMpq = mpq
 		? readFile(mpq, (e) => {
-				mpqLoaded = e.loaded ?? (e as any).loadedBytes ?? mpqLoaded;
+				const progressEvent = e as ProgressEvent<FileReader> & { loadedBytes?: number };
+				mpqLoaded = progressEvent.loaded ?? progressEvent.loadedBytes ?? mpqLoaded;
 				updateProgress();
 			})
 		: Promise.resolve<ArrayBuffer | null>(null);
