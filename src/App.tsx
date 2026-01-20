@@ -4,6 +4,8 @@ import cn from "classnames";
 import load_game from "./api/loader";
 import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
+import TouchControls from "./components/TouchControls/TouchControls";
+import VirtualKeyboard from "./components/VirtualKeyboard/VirtualKeyboard";
 import { useErrorHandling, useFileDrop, useInitFSAndSaves } from "./hooks";
 import { DIABLO, TOUCH, KEYS, MODS, MOUSE, BELT, PAN } from "./constants/controls";
 import type { GameFunction, IPlayerInfo, IProgress, ITouchOther } from "./types";
@@ -16,6 +18,9 @@ const CompressMpq = lazy(() => import("./mpqcmp/CompressMpq"));
 const ErrorComponent = lazy(() => import("./components/ErrorComponent/ErrorComponent"));
 
 const clamp = (num: number, min: number, max: number) => Math.min(Math.max(num, min), max);
+const FKEY_KEYCODES = Array.from({ length: 8 }, (_, i) => 112 + i);
+const KEYDOWN_PREVENT_DEFAULT = new Set<number>([8, 9, ...FKEY_KEYCODES]);
+const isFKeyButton = (idx: number) => idx >= TOUCH.BUTTON_START_FKEY_LEFT;
 
 const App = () => {
 	const [started, setStarted] = useState(false);
@@ -196,8 +201,6 @@ const App = () => {
 				}
 			}
 
-			const isFKeyButton = (idx: number) => idx >= TOUCH.BUTTON_START_FKEY_LEFT;
-
 			if (isRelease && activeTouch.current && isFKeyButton(activeTouch.current.index)) {
 				game.current?.("DApi_Key", 1, 0, KEYS.FKEY_BASE + activeTouch.current.index);
 			}
@@ -305,7 +308,7 @@ const App = () => {
 			if (!showKeyboard.current && e.key.length === 1) game.current!("DApi_Char", e.key.charCodeAt(0));
 			if ([8, 13].includes(e.keyCode)) game.current!("DApi_Char", e.keyCode);
 			clearSelection();
-			if (!showKeyboard.current && [8, 9, ...Array.from({ length: 8 }, (_, i) => 112 + i)].includes(e.keyCode)) {
+			if (!showKeyboard.current && KEYDOWN_PREVENT_DEFAULT.has(e.keyCode)) {
 				e.preventDefault();
 			}
 		};
@@ -572,94 +575,15 @@ const App = () => {
 			ref={elementRef}
 			aria-label="Diablo Web"
 		>
-			{started && (
-				<>
-					<section className="app__touch-ui app__touch-ui--mods" aria-hidden="true">
-						{TOUCH.MOD_INDICES.map((i) => (
-							<div
-								key={i}
-								className={cn("d1-btn d1-iconbtn app__touch-button", `app__touch-button--${i}`)}
-								ref={(el) => {
-									touchButtons.current[i] = el;
-								}}
-							/>
-						))}
-					</section>
-
-					<section className="app__touch-ui app__touch-ui--belt" aria-hidden="true">
-						{TOUCH.BELT_SLOTS.map((slotIdx) => {
-							const buttonIndex = TOUCH.BUTTON_START_BELT + slotIdx;
-							return (
-								<div
-									key={buttonIndex}
-									className={cn(
-										"d1-btn",
-										"d1-iconbtn",
-										"app__touch-button",
-										`app__touch-button--${slotIdx}`
-									)}
-									ref={(el) => {
-										touchButtons.current[buttonIndex] = el;
-										if (el && !touchCtx.current[slotIdx]) {
-											const c = document.createElement("canvas");
-											c.width = c.height = BELT.ICON_SIZE;
-											el.appendChild(c);
-											touchCtx.current[slotIdx] = c.getContext("2d");
-										}
-									}}
-								/>
-							);
-						})}
-					</section>
-
-					<section className="app__touch-ui app__touch-ui--fkeys-left" aria-hidden="true">
-						{TOUCH.FKEY_LEFT_INDICES.map((idx) => (
-							<div
-								key={`fkeys-left-${idx}`}
-								className={cn(
-									"d1-btn",
-									"d1-iconbtn",
-									"app__touch-button",
-									`app__touch-button--${idx - TOUCH.BUTTON_START_BELT}`
-								)}
-								ref={(el) => {
-									touchButtons.current[idx] = el;
-								}}
-							/>
-						))}
-					</section>
-
-					<section className="app__touch-ui app__touch-ui--fkeys-right" aria-hidden="true">
-						{TOUCH.FKEY_RIGHT_INDICES.map((idx) => (
-							<div
-								key={`fkeys-right-${idx}`}
-								className={cn(
-									"d1-btn",
-									"d1-iconbtn",
-									"app__touch-button",
-									`app__touch-button--${idx - TOUCH.BUTTON_START_BELT}`
-								)}
-								ref={(el) => {
-									touchButtons.current[idx] = el;
-								}}
-							/>
-						))}
-					</section>
-				</>
-			)}
+			<TouchControls enabled={started} touchButtons={touchButtons} touchCtx={touchCtx} />
 
 			<section className="app__body" aria-label="Game viewport">
 				<div className="app__inner">
 					{!error && <canvas ref={canvasRef} width={DIABLO.WIDTH} height={DIABLO.HEIGHT} />}
-					<input
-						type="text"
-						className="app__keyboard"
-						id="virtual-keyboard-input"
-						ref={keyboardRef}
-						onChange={() => onKeyboardInput(false)}
-						onBlur={() => onKeyboardInput(true)}
-						spellCheck={false}
-						style={keyboardStyle || {}}
+					<VirtualKeyboard
+						keyboardRef={keyboardRef}
+						keyboardStyle={keyboardStyle}
+						onInput={onKeyboardInput}
 					/>
 				</div>
 			</section>
