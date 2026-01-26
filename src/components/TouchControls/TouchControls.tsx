@@ -1,15 +1,14 @@
 import { type RefObject } from "react";
 import cn from "classnames";
 
-import { BELT, TOUCH } from "../../constants/controls";
+import { TOUCH } from "../../constants/controls";
 
 interface IProps {
 	enabled: boolean;
 	touchButtons: RefObject<(HTMLDivElement | null)[]>;
-	touchCtx: RefObject<(CanvasRenderingContext2D | null)[]>;
 }
 
-const TouchControls = ({ enabled, touchButtons, touchCtx }: IProps) => {
+const TouchControls = ({ enabled, touchButtons }: IProps) => {
 	if (!enabled) return null;
 
 	return (
@@ -34,12 +33,6 @@ const TouchControls = ({ enabled, touchButtons, touchCtx }: IProps) => {
 						ref={(el) => {
 							const buttonIndex = TOUCH.BUTTON_START_BELT + slotIdx;
 							touchButtons.current[buttonIndex] = el;
-							if (el && !touchCtx.current[slotIdx]) {
-								const c = document.createElement("canvas");
-								c.width = c.height = BELT.ICON_SIZE;
-								el.appendChild(c);
-								touchCtx.current[slotIdx] = c.getContext("2d");
-							}
 						}}
 					/>
 				))}

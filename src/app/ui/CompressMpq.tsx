@@ -1,0 +1,134 @@
+import { useState, useEffect, type ChangeEvent, useCallback } from "react";
+import cn from "classnames";
+import type { IProgress } from "../../types";
+import LoadingComponent from "../../components/LoadingComponent/LoadingComponent";
+
+import "./CompressMpq.css";
+
+interface IProps {
+	file: File | null;
+	setCompressFile: (file: File | null) => void;
+	setCompress: (compress: boolean) => void;
+	onError: (message: string, stack: string) => void;
+	runCompress: (file: File, progress: (text: string, loaded?: number, total?: number) => void) => Promise<Blob>;
+	downloadBlob: (filename: string, blob: Blob) => string;
+	revokeBlobUrl: (url: string) => void;
+}
+
+const CompressMpq = ({ file, setCompressFile, setCompress, onError, runCompress, downloadBlob, revokeBlobUrl }: IProps) => {
+	const [url, setUrl] = useState<string | null>(null);
+	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
+
+	const onDone = useCallback((blob: Blob) => {
+		const fileUrl = downloadBlob("DIABDAT.MPQ", blob);
+		setUrl(fileUrl);
+	}, [downloadBlob]);
+
+	const onErrorHandler = useCallback(
+		(message: string, stack: string) => {
+			setCompress(false);
+			onError(message, stack);
+		},
+		[onError, setCompress]
+	);
+
+	const onClose = () => {
+		if (url) {
+			revokeBlobUrl(url);
+		}
+		setUrl(null);
+		setCompress(false);
+		setCompressFile(null);
+	};
+
+	const parseFile = (e: ChangeEvent<HTMLInputElement>) => {
+		const selectedFile = e.target.files?.[0];
+		if (selectedFile) {
+			setCompressFile(selectedFile);
+		}
+	};
+
+	useEffect(() => {
+		if (!file) return;
+
+		let cancelled = false;
+
+		runCompress(file, (text, loaded, total) => setProgress({ text, loaded: loaded ?? 0, total }))
+			.then((blob) => {
+				if (!cancelled) onDone(blob);
+			})
+			.catch((error: unknown) => {
+				const message = error instanceof Error ? error.message : String(error);
+				const stack = error instanceof Error ? error.stack ?? "" : "";
+				onErrorHandler(message, stack);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [file, onErrorHandler, onDone, runCompress]);
+
+	useEffect(() => {
+		return () => {
+			if (url) {
+				revokeBlobUrl(url);
+			}
+		};
+	}, [revokeBlobUrl, url]);
+
+	const isProcessing = !!file && !url;
+
+	if (url) {
+		return (
+			<section
+				className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
+				role="dialog"
+				aria-modal="true"
+				aria-label="MPQ compression completed"
+			>
+				<p className="compress-mpq__message">
+					<a className="d1-link" href={url} download="DIABDAT.MPQ">
+						Click here if download doesn&apos;t start.
+					</a>
+				</p>
+				<button
+					type="button"
+					className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")}
+					onClick={onClose}
+				>
+					Back
+				</button>
+			</section>
+		);
+	}
+
+	if (isProcessing) {
+		return <LoadingComponent title="Processing..." progress={progress} />;
+	}
+
+	return (
+		<section
+			className={cn("compress-mpq", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
+			role="dialog"
+			aria-modal="true"
+			aria-label="MPQ compression"
+		>
+			<p className="compress-mpq__description">
+				You can use this tool to reduce the original MPQ to about half its size. It encodes sounds in MP3 format
+				and uses better compression for regular files. To begin, click the button below or drop the MPQ onto the
+				page.
+			</p>
+			<form className="compress-mpq__form">
+				<label htmlFor="loadFile" className={cn("compress-mpq__button", "d1-btn")}>
+					Select MPQ
+				</label>
+				<input accept=".mpq" type="file" id="loadFile" style={{ display: "none" }} onChange={parseFile} />
+			</form>
+			<button type="button" className={cn("compress-mpq__button", "d1-btn", "d1-btn--gold")} onClick={onClose}>
+				Back
+			</button>
+		</section>
+	);
+};
+
+export default CompressMpq;

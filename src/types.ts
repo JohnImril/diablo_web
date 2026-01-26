@@ -66,6 +66,8 @@ export interface IError {
 	message: string;
 	stack?: string;
 	save?: string;
+	reportBody: string;
+	reportUrl: string;
 }
 
 export interface IProgress {
