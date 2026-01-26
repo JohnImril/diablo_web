@@ -26,7 +26,7 @@ interface PeerData {
 }
 
 const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
-const Options: PeerOptions = { port: 443, secure: true, debug: 3 };
+const Options: PeerOptions = { port: 443, secure: true, debug: import.meta.env.PROD ? 0 : 3 };
 const MAX_PLRS = 4;
 
 let PeerClass: typeof import("peerjs").default | null = null;
