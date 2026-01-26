@@ -23,4 +23,38 @@ export default defineConfig([
 			"@typescript-eslint/no-explicit-any": "warn",
 		},
 	},
+	{
+		files: ["src/modules/**/core/**/*.{ts,tsx}"],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					patterns: [
+						"**/adapters/**",
+						"src/app/runtime/**",
+						"src/app/ui/**",
+						"src/app/uiHooks/**",
+						"src/components/**",
+						"src/App.tsx",
+					],
+				},
+			],
+		},
+	},
+	{
+		files: [
+			"src/App.tsx",
+			"src/app/ui/**/*.{ts,tsx}",
+			"src/app/uiHooks/**/*.{ts,tsx}",
+			"src/components/**/*.{ts,tsx}",
+		],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					patterns: ["src/modules/**"],
+				},
+			],
+		},
+	},
 ]);

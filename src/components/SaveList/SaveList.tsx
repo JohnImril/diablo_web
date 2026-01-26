@@ -7,6 +7,7 @@ interface IProps {
 	saveNames: Record<string, IPlayerInfo | null>;
 	onDownload: (name: string) => void;
 	onDelete: (name: string) => void;
+	onSelect: (name: string) => void;
 	onUploadSave: (file: File) => void;
 	onBack: () => void;
 }
