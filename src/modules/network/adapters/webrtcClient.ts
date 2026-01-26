@@ -25,8 +25,6 @@ interface PeerData {
 	version?: number;
 }
 
-const timestamp = () => `[${new Date().toISOString()}]`;
-
 const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
 const Options: PeerOptions = { port: 443, secure: true, debug: 3 };
 const MAX_PLRS = 4;
@@ -118,7 +116,6 @@ const createWebRTCServer = (
 				case client_packet.join_game.code: {
 					const joinPacket = pkt as IGameOptions;
 					if (peer.version !== version) {
-						console.warn(`${timestamp()} WebRTCServer: Version mismatch`);
 						conn.send(
 							write_packet(server_packet.join_reject, {
 								cookie: joinPacket.cookie,
@@ -217,11 +214,9 @@ const createWebRTCServer = (
 		});
 
 		peer.on("disconnected", () => {
-			console.warn(`${timestamp()} WebRTCServer: Peer disconnected`);
 		});
 
 		peer.on("close", () => {
-			console.warn(`${timestamp()} WebRTCServer: Peer connection closed`);
 		});
 	};
 
