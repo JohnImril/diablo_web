@@ -4,7 +4,7 @@ import type { WorkerToMainMessage, MainToWorkerMessage } from "../../modules/eng
 import { mapInputToEngine, type EngineInputContext } from "../../modules/engine/core/inputMapping";
 import type { InputCommand } from "../../modules/input";
 import webrtcOpen from "../../modules/network/adapters";
-import type { GameFunction, IApi, IFileSystem, IWebRTCConnection } from "../../types";
+import type { GameFunction, IApi, IFileSystem, IWebRTCConnection, ProgressReporter } from "../../types";
 import { toArrayBuffer } from "../../shared/buffers";
 import { createSaveManager, type SaveManagerOptions } from "../../modules/storage/adapters";
 import createIndexedDbFs from "../../modules/storage/adapters/indexedDbFs";
@@ -275,8 +275,7 @@ export function createGameRuntime() {
 		const spawn = fsInstance.files.get("spawn.mpq");
 		return !!(spawn && SpawnSizes.includes(spawn.byteLength));
 	};
-	const compressMpq = (file: File, progress: (text: string, loaded?: number, total?: number) => void) =>
-		compressMpqAdapter(file, progress);
+	const compressMpq = (file: File, progress: ProgressReporter) => compressMpqAdapter(file, progress);
 
 	const getSaves = () => saveManager?.listSaves();
 	const deleteSave = (name: string) => saveManager?.deleteSave(name);
