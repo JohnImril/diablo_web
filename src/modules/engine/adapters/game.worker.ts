@@ -493,7 +493,7 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 
 	progress("Initializing...");
 
-	const vers = __APP_VERSION__.match(/(\d+)\.(\d+)\.(\d+)/);
+	const vers = import.meta.env.VITE_APP_VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
 
 	wasm!._SNet_InitWebsocket();
 

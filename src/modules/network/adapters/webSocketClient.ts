@@ -46,7 +46,7 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 		};
 	});
 
-	const vers = __APP_VERSION__.match(/(\d+)\.(\d+)\.(\d+)/);
+	const vers = import.meta.env.VITE_APP_VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
 	const clientInfo = new Uint8Array(5);
 	clientInfo[0] = 0x31;
 	clientInfo[1] = parseInt(vers![3]);
