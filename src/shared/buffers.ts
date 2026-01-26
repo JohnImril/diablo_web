@@ -9,3 +9,19 @@ export function toArrayBuffer(input: AnyBuf): ArrayBuffer {
 export function toUint8(input: AnyBuf): Uint8Array<ArrayBufferLike> {
 	return input instanceof Uint8Array ? input : new Uint8Array(input);
 }
+
+export function readFileAsArrayBuffer(
+	file: File,
+	onProgress?: (event: ProgressEvent<EventTarget>) => void
+): Promise<ArrayBuffer> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(reader.result as ArrayBuffer);
+		reader.onerror = () => reject(reader.error);
+		reader.onabort = () => reject();
+		if (onProgress) {
+			reader.addEventListener("progress", onProgress);
+		}
+		reader.readAsArrayBuffer(file);
+	});
+}

@@ -10,7 +10,7 @@ A live demo of the project is available at: [https://johnimril.github.io/diablo_
 
 To run the shareware version locally, place the `spawn.mpq` file (from the free shareware edition) into the `public` folder. This allows you to play the demo version of Diablo in your browser, even on mobile devices.
 
-For the full game experience, you’ll need your own `DIABDAT.MPQ` file obtained from a legitimate copy of the game, such as the one available on [GOG](https://www.gog.com/game/diablo). Simply place it in the appropriate directory before launching, and you’ll be able to enjoy the complete version directly in your browser.
+For the full game experience, you'll need your own `DIABDAT.MPQ` file obtained from a legitimate copy of the game, such as the one available on [GOG](https://www.gog.com/game/diablo). Simply place it in the `public` folder before launching, and you'll be able to enjoy the complete version directly in your browser.
 
 ## About the Project
 
@@ -76,6 +76,14 @@ npm run build
 ```
 
 The compiled files will be located in the `dist/` directory.
+
+### Previewing the Production Build
+
+To preview the production build locally, run:
+
+```bash
+npm run preview
+```
 
 ## Deploying on Your Own Server
 
