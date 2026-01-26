@@ -1,11 +1,8 @@
+import { clickDownloadLink } from "../../shared/download";
+
 export function downloadBlob(filename: string, blob: Blob): string {
 	const fileUrl = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = fileUrl;
-	link.download = filename;
-	document.body.appendChild(link);
-	link.click();
-	document.body.removeChild(link);
+	clickDownloadLink(fileUrl, filename);
 	return fileUrl;
 }
 

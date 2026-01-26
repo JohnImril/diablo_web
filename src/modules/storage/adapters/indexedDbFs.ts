@@ -1,6 +1,8 @@
 import { openDB } from "idb";
 import type { IDBPDatabase } from "idb";
 import type { IFileSystem } from "../../../types";
+import { readFileAsArrayBuffer } from "../../../shared/buffers";
+import { triggerDownload } from "./download";
 
 export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());
@@ -13,16 +15,6 @@ export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	triggerDownload(url, name);
 }
 
-function triggerDownload(url: string, name: string) {
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = name;
-	document.body.appendChild(link);
-	link.click();
-	document.body.removeChild(link);
-	URL.revokeObjectURL(url);
-}
-
 async function downloadSaves(db: IDBPDatabase<unknown>) {
 	const keys = await db.getAllKeys("files");
 	for (const name of keys) {
@@ -32,14 +24,7 @@ async function downloadSaves(db: IDBPDatabase<unknown>) {
 	}
 }
 
-const readFile = (file: File): Promise<ArrayBuffer> =>
-	new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => resolve(reader.result as ArrayBuffer);
-		reader.onerror = () => reject(reader.error);
-		reader.onabort = () => reject();
-		reader.readAsArrayBuffer(file);
-	});
+const readFile = (file: File): Promise<ArrayBuffer> => readFileAsArrayBuffer(file);
 
 async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Array>, file: File) {
 	const data = new Uint8Array(await readFile(file));

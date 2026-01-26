@@ -4,24 +4,16 @@ import MpqBinary from "./mpqCmp.wasm?url";
 import ListFile from "./listFile.txt";
 import { fetchWithProgress } from "../../engine/adapters/fetchWithProgress";
 import type { ProgressReporter } from "../../../types";
+import { readFileAsArrayBuffer } from "../../../shared/buffers";
 
 const MPQ_SIZE = 156977;
 const LIST_SIZE = 75542;
 const MPQ_MAGIC_NUMBER = 0x1a51504d;
 
-const readFile = (file: File, progress?: (e: ProgressEvent) => void) =>
-	new Promise<ArrayBuffer>((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			progress?.({ loaded: file.size } as ProgressEvent);
-			resolve(reader.result as ArrayBuffer);
-		};
-		reader.onerror = () => reject(reader.error);
-		reader.onabort = () => reject();
-		if (progress) {
-			reader.addEventListener("progress", progress);
-		}
-		reader.readAsArrayBuffer(file);
+const readFile = (file: File, progress?: (e: ProgressEvent<EventTarget>) => void) =>
+	readFileAsArrayBuffer(file, progress).then((buffer) => {
+		progress?.({ loaded: file.size } as ProgressEvent<EventTarget>);
+		return buffer;
 	});
 
 async function loadFile(
@@ -76,7 +68,7 @@ export default async function compress(mpq: File, progress: ProgressReporter) {
 			files.reduce((sum, { total, weight }) => sum + total * weight, 0)
 		);
 
-	const loader = (file: IFileLoad) => (e: ProgressEvent) => {
+	const loader = (file: IFileLoad) => (e: ProgressEvent<EventTarget>) => {
 		file.loaded = e.loaded;
 		updateProgress();
 	};

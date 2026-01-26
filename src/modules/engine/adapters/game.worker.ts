@@ -8,6 +8,7 @@ import SpawnBinary from "./diabloSpawn.wasm?url";
 import SpawnModule from "./diabloSpawn.jscc";
 import websocket_open from "../../network/adapters/webSocketClient";
 import type { ProgressReporter, IWebSocketProxy } from "../../../types";
+import { readFileAsArrayBuffer } from "../../../shared/buffers";
 import { fetchWithProgress } from "./fetchWithProgress";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
 
@@ -404,21 +405,10 @@ const progress: ProgressReporter = (text, loaded, total) => {
 	postToMain(withProtocol({ action: "progress", text, loaded: loaded as number, total: total as number }));
 };
 
-const readFile = (file: File, progressCb?: (e: ProgressEvent<FileReader>) => void) =>
-	new Promise<ArrayBuffer>((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			if (progressCb) {
-				progressCb({ loaded: file.size } as ProgressEvent<FileReader>);
-			}
-			resolve(reader.result as ArrayBuffer);
-		};
-		reader.onerror = () => reject(reader.error);
-		reader.onabort = () => reject();
-		if (progressCb) {
-			reader.addEventListener("progress", progressCb);
-		}
-		reader.readAsArrayBuffer(file);
+const readFile = (file: File, progressCb?: (e: ProgressEvent<EventTarget>) => void) =>
+	readFileAsArrayBuffer(file, progressCb).then((buffer) => {
+		progressCb?.({ loaded: file.size } as ProgressEvent<EventTarget>);
+		return buffer;
 	});
 
 async function initWasm(spawn: boolean, progressCb: (e: { loaded: number; total?: number }) => void) {
