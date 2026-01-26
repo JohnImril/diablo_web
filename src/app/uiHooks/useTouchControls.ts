@@ -1,13 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 
 import { ensureTouchBeltCanvases } from "../runtime/runtimeInput";
 
-type Ref<T> = { current: T };
-
 export const useTouchControls = (
 	enabled: boolean,
-	touchButtons: Ref<(HTMLDivElement | null)[]>,
-	touchCtx: Ref<(CanvasRenderingContext2D | null)[]>
+	touchButtons: RefObject<(HTMLDivElement | null)[]>,
+	touchCtx: RefObject<(CanvasRenderingContext2D | null)[]>
 ) => {
 	useEffect(() => {
 		if (!enabled) return;

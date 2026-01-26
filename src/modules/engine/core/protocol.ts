@@ -1,3 +1,5 @@
+import type { IProgress } from "../../../types";
+
 export const PROTOCOL_VERSION = 1;
 
 type BaseMessage<Type extends string> = {
@@ -34,7 +36,7 @@ export type WorkerToMainMessage =
 	| (BaseMessage<"keyboard"> & { rect: number[] | null })
 	| (BaseMessage<"error"> & { error: string; stack?: string })
 	| (BaseMessage<"failed"> & { error: string; stack?: string })
-	| (BaseMessage<"progress"> & { text: string; loaded: number; total?: number })
+	| (BaseMessage<"progress"> & IProgress)
 	| BaseMessage<"exit">
 	| (BaseMessage<"current_save"> & { name: string | null })
 	| (BaseMessage<"packet"> & { buffer: ArrayBuffer | Uint8Array })

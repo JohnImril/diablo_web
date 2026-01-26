@@ -1,13 +1,10 @@
 import { mapStackTrace } from "sourcemapped-stacktrace";
 
 import { buildErrorReportUrl, formatErrorReportBody } from "../../shared/errorReport";
-import type { IError } from "../../types";
+import type { ErrorReportPayload, IError } from "../../types";
 
-type ErrorReportInput = {
-	message: string;
-	stack?: string;
+type ErrorReportInput = ErrorReportPayload & {
 	saveUrl?: string;
-	retail?: boolean;
 };
 
 const ISSUE_URL = "https://github.com/JohnImril/diablo_web/issues/new";

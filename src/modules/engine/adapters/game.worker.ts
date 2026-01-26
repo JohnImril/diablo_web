@@ -7,7 +7,7 @@ import SpawnBinary from "./diabloSpawn.wasm?url";
 // @ts-ignore
 import SpawnModule from "./diabloSpawn.jscc";
 import websocket_open from "../../network/adapters/webSocketClient";
-import type { IWebSocketProxy } from "../../../types";
+import type { ProgressReporter, IWebSocketProxy } from "../../../types";
 import { fetchWithProgress } from "./fetchWithProgress";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
 
@@ -400,9 +400,9 @@ function call_api(func: string, ...params: (string | number)[]) {
 	});
 }
 
-function progress(text: string, loaded?: number, total?: number) {
+const progress: ProgressReporter = (text, loaded, total) => {
 	postToMain(withProtocol({ action: "progress", text, loaded: loaded as number, total: total as number }));
-}
+};
 
 const readFile = (file: File, progressCb?: (e: ProgressEvent<FileReader>) => void) =>
 	new Promise<ArrayBuffer>((resolve, reject) => {

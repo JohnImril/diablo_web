@@ -1,5 +1,7 @@
+import type { IProgress } from "../../types";
+
 export type RuntimeEventMap = {
-	progress: { text: string; loaded: number; total?: number };
+	progress: IProgress;
 	error: { message: string; stack?: string; saveUrl?: string };
 	ready: { startedAt: number };
 	exit: { reason?: string };

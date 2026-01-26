@@ -1,24 +1,22 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefObject } from "react";
 
 import { BELT, DIABLO, TOUCH } from "../../constants/controls";
-import type { GameFunction, IApi, IFileSystem } from "../../types";
-
-type Ref<T> = { current: T };
+import type { GameFunction, IApi, IFileSystem, IProgress } from "../../types";
 
 export type UiApiOptions = {
 	fs: Promise<IFileSystem>;
-	canvasRef: Ref<HTMLCanvasElement | null>;
-	keyboardRef: Ref<HTMLInputElement | null>;
-	cursorPosRef: Ref<{ x: number; y: number }>;
-	showKeyboardRef: Ref<CSSProperties | null>;
-	maxKeyboardRef: Ref<number>;
-	keyboardNumRef: Ref<number>;
-	touchButtonsRef: Ref<(HTMLDivElement | null)[]>;
-	touchCtxRef: Ref<(CanvasRenderingContext2D | null)[]>;
-	touchBeltRef: Ref<[number, number, number]>;
+	canvasRef: RefObject<HTMLCanvasElement | null>;
+	keyboardRef: RefObject<HTMLInputElement | null>;
+	cursorPosRef: RefObject<{ x: number; y: number }>;
+	showKeyboardRef: RefObject<CSSProperties | null>;
+	maxKeyboardRef: RefObject<number>;
+	keyboardNumRef: RefObject<number>;
+	touchButtonsRef: RefObject<(HTMLDivElement | null)[]>;
+	touchCtxRef: RefObject<(CanvasRenderingContext2D | null)[]>;
+	touchBeltRef: RefObject<[number, number, number]>;
 	setKeyboardStyle: (style: CSSProperties | null) => void;
 	onError: (message: string, stack?: string) => void;
-	onProgress: (progress: { text: string; loaded: number; total: number }) => void;
+	onProgress: (progress: IProgress) => void;
 	onExit: () => void;
 	setCurrentSave: (name: string) => void;
 };

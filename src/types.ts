@@ -12,6 +12,14 @@ export interface IWebRTCConnection {
 	send(packet: ArrayBuffer | Uint8Array): void;
 }
 
+export type ProgressReporter = (text: string, loaded?: number, total?: number) => void;
+
+export type ErrorReportPayload = {
+	message: string;
+	stack?: string;
+	retail?: boolean;
+};
+
 export interface IGameHandles {
 	worker?: Worker;
 	webrtc?: IWebRTCConnection | null;
@@ -26,7 +34,7 @@ export interface IApi {
 	setCursorPos: (x: number, y: number) => void;
 	openKeyboard: (rect: number[] | null) => void;
 	onError: (error: string, stack?: string) => void;
-	onProgress: (progress: { text: string; loaded: number; total: number }) => void;
+	onProgress: (progress: IProgress) => void;
 	onExit: () => void;
 	setCurrentSave: (name: string) => void;
 }
@@ -75,6 +83,15 @@ export interface IProgress {
 	loaded: number;
 	total?: number;
 }
+
+export type FileDropHandlers = {
+	onDropFile: (file: File) => void;
+	onDroppingChange?: (count: number) => void;
+};
+
+export type FileDropRuntime = {
+	attachFileDrop: (opts: FileDropHandlers) => () => void;
+};
 
 export interface ITouchOther {
 	id: number;

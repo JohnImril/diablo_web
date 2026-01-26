@@ -1,8 +1,7 @@
-type ErrorReportInput = {
-	message: string;
-	stack?: string;
+import type { ErrorReportPayload } from "../types";
+
+type ErrorReportInput = ErrorReportPayload & {
 	appVersion: string;
-	retail?: boolean;
 	userAgent: string;
 };
 

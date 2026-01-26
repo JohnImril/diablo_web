@@ -1,6 +1,6 @@
 import { useState, useEffect, type ChangeEvent, useCallback } from "react";
 import cn from "classnames";
-import type { IProgress } from "../../types";
+import type { IProgress, ProgressReporter } from "../../types";
 import LoadingComponent from "../../components/LoadingComponent/LoadingComponent";
 
 import "./CompressMpq.css";
@@ -10,7 +10,7 @@ interface IProps {
 	setCompressFile: (file: File | null) => void;
 	setCompress: (compress: boolean) => void;
 	onError: (message: string, stack: string) => void;
-	runCompress: (file: File, progress: (text: string, loaded?: number, total?: number) => void) => Promise<Blob>;
+	runCompress: (file: File, progress: ProgressReporter) => Promise<Blob>;
 	downloadBlob: (filename: string, blob: Blob) => string;
 	revokeBlobUrl: (url: string) => void;
 }

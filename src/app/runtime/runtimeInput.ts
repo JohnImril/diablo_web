@@ -1,11 +1,11 @@
+import type { RefObject } from "react";
+
 import { createDomInput } from "../../modules/input/adapters";
 import type { InputCommand, InputMods } from "../../modules/input";
 import type { EngineInputContext } from "../../modules/engine/core/inputMapping";
 import type { GameHandleLike } from "../../modules/engine/core/applyEngineIntent";
 import { DIABLO, TOUCH, KEYS, MODS, MOUSE, BELT, PAN } from "../../constants/controls";
-import type { ITouchOther } from "../../types";
-
-type Ref<T> = { current: T };
+import type { FileDropHandlers, ITouchOther } from "../../types";
 
 export type RuntimeInputOptions = {
 	getTarget?: () => Document | Window | HTMLElement | null;
@@ -14,15 +14,15 @@ export type RuntimeInputOptions = {
 	getGameHandle: () => GameHandleLike | null;
 	setIsTouchMode: (value: boolean) => void;
 	refs: {
-		canvas: Ref<HTMLCanvasElement | null>;
-		keyboard: Ref<HTMLInputElement | null>;
-		element: Ref<HTMLElement | null>;
-		showKeyboard: Ref<unknown>;
-		maxKeyboard: Ref<number>;
-		keyboardNum: Ref<number>;
-		cursorPos: Ref<{ x: number; y: number }>;
-		touchButtons: Ref<(HTMLDivElement | null)[]>;
-		touchBelt: Ref<[number, number, number]>;
+		canvas: RefObject<HTMLCanvasElement | null>;
+		keyboard: RefObject<HTMLInputElement | null>;
+		element: RefObject<HTMLElement | null>;
+		showKeyboard: RefObject<unknown>;
+		maxKeyboard: RefObject<number>;
+		keyboardNum: RefObject<number>;
+		cursorPos: RefObject<{ x: number; y: number }>;
+		touchButtons: RefObject<(HTMLDivElement | null)[]>;
+		touchBelt: RefObject<[number, number, number]>;
 	};
 };
 
@@ -379,11 +379,6 @@ export function createRuntimeInputController(opts: RuntimeInputOptions) {
 		handleKeyboardInput,
 	};
 }
-
-type FileDropHandlers = {
-	onDropFile: (file: File) => void;
-	onDroppingChange?: (count: number) => void;
-};
 
 export function attachFileDrop({ onDropFile, onDroppingChange }: FileDropHandlers): () => void {
 	let dropping = 0;
