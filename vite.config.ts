@@ -94,7 +94,7 @@ export default defineConfig({
 		}),
 	],
 	define: {
-		__APP_VERSION__: JSON.stringify(pkg.version),
+		"import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
 	},
 	build: {
 		minify: "terser",

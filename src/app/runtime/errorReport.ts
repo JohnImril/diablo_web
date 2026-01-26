@@ -19,7 +19,7 @@ export function createErrorReport({ message, stack, saveUrl, retail }: ErrorRepo
 			const reportBody = formatErrorReportBody({
 				message,
 				stack: displayStack ?? stack,
-				appVersion: __APP_VERSION__,
+				appVersion: import.meta.env.VITE_APP_VERSION,
 				retail,
 				userAgent: navigator.userAgent,
 			});
