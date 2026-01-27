@@ -3,6 +3,10 @@ import type { IWebSocketProxy } from "../../../types";
 type WebSocketHandler = (data: ArrayBuffer | string) => void;
 type WebSocketFinisher = (code: number) => void;
 
+const MAX_OUTBOX_MESSAGES = 256;
+const MAX_OUTBOX_BYTES = 14 * 1024 * 1024;
+const CONNECT_TIMEOUT_MS = 15000;
+
 async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	const socket = new WebSocket(url);
 	socket.binaryType = "arraybuffer";
@@ -17,9 +21,17 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	});
 
 	await new Promise<void>((resolve, reject) => {
-		const onError = () => reject(1);
+		const to = setTimeout(() => {
+			socket.removeEventListener("error", onError);
+			reject(1);
+		}, CONNECT_TIMEOUT_MS);
+		const onError = () => {
+			clearTimeout(to);
+			reject(1);
+		};
 		socket.addEventListener("error", onError);
 		socket.addEventListener("open", () => {
+			clearTimeout(to);
 			socket.removeEventListener("error", onError);
 			resolve();
 		});
@@ -60,24 +72,59 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 export default function websocket_open(url: string, handler: WebSocketHandler, finisher: WebSocketFinisher) {
 	let ws: WebSocket | null = null;
 	let batch: Uint8Array[] | null = [];
+	let batchBytes = 0;
 	let intr: number | null = null;
+	let finished = false;
+	let overflowLogged = false;
+
+	const finish = (code: number) => {
+		if (finished) return;
+		finished = true;
+		finisher(code);
+	};
+
+	const handleOverflow = (reason: string) => {
+		if (!overflowLogged) {
+			overflowLogged = true;
+			console.warn(`[ws-client] outbox overflow: ${reason}`, {
+				messages: batch?.length ?? 0,
+				bytes: batchBytes,
+			});
+		}
+		batch = null;
+		batchBytes = 0;
+		try {
+			ws?.close(1009, "outbox overflow");
+		} catch {
+			/* empty */
+		}
+		finish(1);
+	};
 
 	const proxy: IWebSocketProxy = {
 		get readyState() {
 			return ws ? ws.readyState : 0;
 		},
 		send(msg: Uint8Array) {
-			batch!.push(msg.slice());
+			if (!batch) {
+				return;
+			}
+			const cloned = msg.slice();
+			batch.push(cloned);
+			batchBytes += cloned.byteLength;
+			if (batch.length > MAX_OUTBOX_MESSAGES || batchBytes > MAX_OUTBOX_BYTES) {
+				handleOverflow("pending messages exceeded limits");
+			}
 		},
 		close() {
 			if (intr) {
 				clearInterval(intr);
 				intr = null;
 			}
+			batch = null;
+			batchBytes = 0;
 			if (ws) {
 				ws.close();
-			} else {
-				batch = null;
 			}
 		},
 	};
@@ -105,14 +152,17 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 					ws!.send(buffer);
 
 					batch!.length = 0;
+					batchBytes = 0;
 				}, 100);
 			} else {
 				ws.close();
 			}
-			finisher(0);
+			finish(0);
 		},
 		(err) => {
-			finisher(err);
+			batch = null;
+			batchBytes = 0;
+			finish(err);
 		}
 	);
 	return proxy;

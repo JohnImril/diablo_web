@@ -28,6 +28,8 @@ interface PeerData {
 const PeerID = (name: string) => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
 const Options: PeerOptions = { port: 443, secure: true, debug: import.meta.env.PROD ? 0 : 3 };
 const MAX_PLRS = 4;
+const MAX_RTC_PENDING_MESSAGES = 256;
+const MAX_RTC_PENDING_BYTES = 14 * 1024 * 1024;
 
 let PeerClass: typeof import("peerjs").default | null = null;
 
@@ -235,11 +237,34 @@ const createWebRTCClient = (
 ) => {
 	let conn: DataConnection | undefined;
 	let pending: (ArrayBuffer | Uint8Array)[] | null = [];
+	let pendingBytes = 0;
 	let myplr: number | undefined;
+	let overflowLogged = false;
 
 	const send = (packet: ArrayBuffer | Uint8Array) => {
 		if (pending) {
 			pending.push(packet);
+			pendingBytes += packet instanceof Uint8Array ? packet.byteLength : packet.byteLength;
+			if (
+				pending.length > MAX_RTC_PENDING_MESSAGES ||
+				pendingBytes > MAX_RTC_PENDING_BYTES
+			) {
+				if (!overflowLogged) {
+					overflowLogged = true;
+					console.warn("[webrtc-client] pending overflow", {
+						messages: pending.length,
+						bytes: pendingBytes,
+					});
+				}
+				pending = null;
+				pendingBytes = 0;
+				try {
+					conn?.close();
+				} catch {
+					/* empty */
+				}
+				onClose();
+			}
 		} else {
 			conn?.send(packet);
 		}
@@ -276,6 +301,8 @@ const createWebRTCClient = (
 				})
 			);
 			onClose();
+			pending = null;
+			pendingBytes = 0;
 			unreg();
 		};
 
@@ -292,6 +319,7 @@ const createWebRTCClient = (
 				conn?.send(pkt);
 			}
 			pending = null;
+			pendingBytes = 0;
 			conn?.off("open", onOpen);
 		};
 
@@ -328,6 +356,8 @@ const createWebRTCClient = (
 
 			conn?.on("close", () => {
 				onClose();
+				pending = null;
+				pendingBytes = 0;
 			});
 		};
 
