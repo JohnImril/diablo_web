@@ -12,6 +12,7 @@ import { readFileAsArrayBuffer } from "../../../shared/buffers";
 import { resolveWsUrl } from "../../../shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
+import { MAX_MPQ_SIZE } from "../../../constants/files";
 
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
@@ -74,6 +75,9 @@ const createRemoteFile = (url: string) => {
 	}
 
 	const byteLength = parseInt(request.getResponseHeader("Content-Length") || "0");
+	if (byteLength > MAX_MPQ_SIZE) {
+		throw Error("Remote file is too large");
+	}
 	const buffer = new Uint8Array(byteLength);
 	const chunks = new Uint8Array(((byteLength + ChunkSize - 1) >> 20) | 0);
 

@@ -5,6 +5,7 @@ export interface IFileSystem {
 	clear: () => Promise<void>;
 	download: (name: string) => Promise<void>;
 	upload: (file: File) => Promise<void>;
+	// Caller must revoke the returned ObjectURL via URL.revokeObjectURL.
 	fileUrl: (name: string) => Promise<string | undefined>;
 }
 
