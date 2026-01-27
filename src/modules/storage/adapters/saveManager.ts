@@ -10,37 +10,88 @@ export type SaveManagerOptions = {
 };
 
 export function createSaveManager({ fs, onSavesChanged }: SaveManagerOptions) {
+	type SaveCacheEntry = {
+		data: Uint8Array;
+		info: IPlayerInfo | null;
+	};
+	const saveCache = new Map<string, SaveCacheEntry>();
+
+	const listSaveNames = async (): Promise<string[]> => {
+		const fsInstance = await fs;
+		const names = new Set<string>();
+		if (fsInstance.getSaveMeta) {
+			const meta = await fsInstance.getSaveMeta();
+			for (const name of Object.keys(meta)) {
+				names.add(name);
+			}
+		}
+		for (const name of fsInstance.files.keys()) {
+			if (isSaveFile(name)) {
+				names.add(name);
+			}
+		}
+		return sortSaveNames([...names]);
+	};
+
 	const listSaves = async (): Promise<Record<string, IPlayerInfo | null>> => {
 		const fsInstance = await fs;
 		const saves: Record<string, IPlayerInfo | null> = {};
+		const meta = fsInstance.getSaveMeta ? await fsInstance.getSaveMeta() : null;
 
-		sortSaveNames([...fsInstance.files.keys()].filter((name) => isSaveFile(name))).forEach((name) => {
+		const names = await listSaveNames();
+		for (const name of names) {
+			const fromMeta = meta?.[name];
+			if (fromMeta !== undefined) {
+				const saveName = extractSaveName(name);
+				if (saveName) {
+					if (!fsInstance.files.has(name)) {
+						if (fsInstance.deleteSaveMeta) {
+							await fsInstance.deleteSaveMeta(name);
+						}
+						continue;
+					}
+					saves[saveName] = fromMeta;
+					continue;
+				}
+			}
 			const file = fsInstance.files.get(name);
 			const saveName = extractSaveName(name);
-			if (file && saveName) {
-				saves[saveName] = getPlayerName(toArrayBuffer(file.buffer), saveName);
+			if (!file || !saveName) continue;
+			const cached = saveCache.get(name);
+			if (cached && cached.data === file) {
+				saves[saveName] = cached.info;
+				continue;
 			}
-		});
+			const info = getPlayerName(toArrayBuffer(file.buffer), saveName);
+			saveCache.set(name, { data: file, info });
+			if (fsInstance.setSaveMeta) {
+				await fsInstance.setSaveMeta(name, info);
+			}
+			saves[saveName] = info;
+		}
 
 		return saves;
 	};
 
 	const notifySavesChanged = async () => {
 		if (!onSavesChanged) return;
-		const saves = await listSaves();
-		await onSavesChanged(Object.keys(saves));
+		const names = await listSaveNames();
+		await onSavesChanged(names);
 	};
 
 	const importSave = async (file: File) => {
 		const fsInstance = await fs;
 		await fsInstance.upload(file);
+		saveCache.delete(file.name.toLowerCase());
 		await notifySavesChanged();
 	};
 
 	const deleteSave = async (name: string) => {
 		const fsInstance = await fs;
-		await fsInstance.delete(name.toLowerCase());
-		fsInstance.files.delete(name.toLowerCase());
+		const key = name.toLowerCase();
+		saveCache.delete(key);
+		await fsInstance.delete(key);
+		fsInstance.files.delete(key);
 		await notifySavesChanged();
 	};
 
@@ -60,5 +111,5 @@ export function createSaveManager({ fs, onSavesChanged }: SaveManagerOptions) {
 		await fsInstance.download(name);
 	};
 
-	return { listSaves, importSave, deleteSave, downloadSave, loadSave };
+	return { listSaveNames, listSaves, importSave, deleteSave, downloadSave, loadSave };
 }

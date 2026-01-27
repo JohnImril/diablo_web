@@ -283,8 +283,8 @@ export function createGameRuntime() {
 	const importSave = (file: File) => saveManager?.importSave(file);
 	const notifySavesChanged = async () => {
 		if (!saveManager) return;
-		const saves = await saveManager.listSaves();
-		emit("savesChanged", { names: Object.keys(saves) });
+		const names = await saveManager.listSaveNames();
+		emit("savesChanged", { names });
 	};
 
 	const ensureStorageReady = async () => {

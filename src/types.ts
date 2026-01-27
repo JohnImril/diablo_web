@@ -7,6 +7,10 @@ export interface IFileSystem {
 	upload: (file: File) => Promise<void>;
 	// Caller must revoke the returned ObjectURL via URL.revokeObjectURL.
 	fileUrl: (name: string) => Promise<string | undefined>;
+	getSaveMeta?: () => Promise<Record<string, IPlayerInfo | null>>;
+	setSaveMeta?: (name: string, info: IPlayerInfo | null) => Promise<void>;
+	deleteSaveMeta?: (name: string) => Promise<void>;
+	clearSaveMeta?: () => Promise<void>;
 }
 
 export interface IWebRTCConnection {
