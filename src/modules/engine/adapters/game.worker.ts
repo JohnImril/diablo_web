@@ -9,13 +9,14 @@ import SpawnModule from "./diabloSpawn.jscc";
 import websocket_open from "../../network/adapters/webSocketClient";
 import type { ProgressReporter, IWebSocketProxy } from "../../../types";
 import { readFileAsArrayBuffer } from "../../../shared/buffers";
+import { resolveWsUrl } from "../../../shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
 
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8787/ws";
+const WS_URL = resolveWsUrl();
 
 const worker: WorkerContext = self as unknown as WorkerContext;
 
