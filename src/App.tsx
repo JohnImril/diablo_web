@@ -15,6 +15,7 @@ import { useErrorHandling } from "./app/uiHooks/useErrorHandling";
 import { useFileDrop } from "./app/uiHooks/useFileDrop";
 import { useTouchControls } from "./app/uiHooks/useTouchControls";
 import { DIABLO, TOUCH } from "./constants/controls";
+import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "./constants/files";
 import type { GameFunction, IPlayerInfo, IProgress } from "./types";
 
 import "./base.css";
@@ -156,6 +157,12 @@ const App = () => {
 
 				if (!name.endsWith(".mpq") && !name.endsWith(".sv")) {
 					alert("Please select a valid .mpq file (or spawn.mpq file)");
+					return;
+				}
+				const maxSize = name.endsWith(".sv") ? MAX_SV_SIZE : MAX_MPQ_SIZE;
+				if (file.size > maxSize) {
+					const maxLabel = name.endsWith(".sv") ? "10 MB" : "1 GB";
+					alert(`File is too large. Maximum allowed size is ${maxLabel}.`);
 					return;
 				}
 			}

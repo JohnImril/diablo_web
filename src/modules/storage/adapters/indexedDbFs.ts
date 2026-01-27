@@ -3,6 +3,7 @@ import type { IDBPDatabase } from "idb";
 import type { IFileSystem } from "../../../types";
 import { readFileAsArrayBuffer } from "../../../shared/buffers";
 import { triggerDownload } from "./download";
+import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "../../../constants/files";
 
 export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());
@@ -27,6 +28,11 @@ async function downloadSaves(db: IDBPDatabase<unknown>) {
 const readFile = (file: File): Promise<ArrayBuffer> => readFileAsArrayBuffer(file);
 
 async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Array>, file: File) {
+	const name = file.name.toLowerCase();
+	const maxSize = name.endsWith(".sv") ? MAX_SV_SIZE : MAX_MPQ_SIZE;
+	if (file.size > maxSize) {
+		throw new Error(`File is too large. Maximum allowed size is ${name.endsWith(".sv") ? "10 MB" : "1 GB"}.`);
+	}
 	const data = new Uint8Array(await readFile(file));
 	files.set(file.name.toLowerCase(), data);
 	await db.put("files", data, file.name.toLowerCase());
@@ -60,8 +66,10 @@ export default async function createIndexedDbFs(): Promise<IFileSystem> {
 			}
 		}
 
-		window.DownloadFile = (name: string) => downloadFile(db, name);
-		window.DownloadSaves = () => downloadSaves(db);
+		if (import.meta.env.DEV) {
+			window.DownloadFile = (name: string) => downloadFile(db, name);
+			window.DownloadSaves = () => downloadSaves(db);
+		}
 
 		return {
 			files,
@@ -94,8 +102,10 @@ export default async function createIndexedDbFs(): Promise<IFileSystem> {
 		};
 	} catch (e) {
 		console.error("Error initializing IndexedDB", e);
-		window.DownloadFile = () => console.error("IndexedDB is not supported");
-		window.DownloadSaves = () => console.error("IndexedDB is not supported");
+		if (import.meta.env.DEV) {
+			window.DownloadFile = () => console.error("IndexedDB is not supported");
+			window.DownloadSaves = () => console.error("IndexedDB is not supported");
+		}
 
 		return {
 			files: new Map<string, Uint8Array>(),

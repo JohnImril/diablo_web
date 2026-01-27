@@ -5,6 +5,7 @@ import ListFile from "./listFile.txt";
 import { fetchWithProgress } from "../../engine/adapters/fetchWithProgress";
 import type { ProgressReporter } from "../../../types";
 import { readFileAsArrayBuffer } from "../../../shared/buffers";
+import { MAX_MPQ_SIZE } from "../../../constants/files";
 
 const MPQ_SIZE = 156977;
 const LIST_SIZE = 75542;
@@ -58,6 +59,9 @@ function runWorker(data: unknown, transfer: Transferable[], progress: (value: nu
 }
 
 export default async function compress(mpq: File, progress: ProgressReporter) {
+	if (mpq.size > MAX_MPQ_SIZE) {
+		throw new Error("MPQ file is too large (max 1 GB)");
+	}
 	progress("Loading...");
 	const files: IFileLoad[] = [];
 

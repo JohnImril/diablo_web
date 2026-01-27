@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import cn from "classnames";
 
 import type { IError } from "../../types";
@@ -11,6 +12,13 @@ interface IProps {
 
 const ErrorComponent = ({ error, saveName }: IProps) => {
 	const { message = "Unknown error", reportUrl, save: saveUrl } = error;
+	useEffect(() => {
+		return () => {
+			if (saveUrl) {
+				URL.revokeObjectURL(saveUrl);
+			}
+		};
+	}, [saveUrl]);
 
 	return (
 		<section
@@ -43,7 +51,14 @@ const ErrorComponent = ({ error, saveName }: IProps) => {
 
 			{saveUrl && (
 				<p className="error-component__save-wrapper">
-					<a className={cn("d1-link", "text-ruby")} href={saveUrl} download={saveName}>
+					<a
+						className={cn("d1-link", "text-ruby")}
+						href={saveUrl}
+						download={saveName}
+						onClick={() => {
+							setTimeout(() => URL.revokeObjectURL(saveUrl), 0);
+						}}
+					>
 						Download save file
 					</a>
 				</p>
