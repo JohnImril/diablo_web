@@ -8,7 +8,7 @@ import type {
 	IJoinPacket,
 	IMessagePacket,
 	ITurnPacket,
-} from "../../../types";
+} from "types";
 
 type BasePayload =
 	| IInfoPacket

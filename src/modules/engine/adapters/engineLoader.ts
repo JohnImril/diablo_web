@@ -3,8 +3,8 @@ import init_sound from "./sound";
 import load_spawn from "./spawnLoader";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
 import { createWorkerClient } from "./workerClient";
-import type { GameFunction, IApi, IAudioApi, IWebRTCConnection } from "../../../types";
-import { toArrayBuffer } from "../../../shared/buffers";
+import type { GameFunction, IApi, IAudioApi, IWebRTCConnection } from "types";
+import { toArrayBuffer } from "shared/buffers";
 
 interface IRenderBatch {
 	bitmap?: ImageBitmap;

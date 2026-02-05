@@ -1,13 +1,27 @@
 import { defineConfig } from "vite";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import { VitePWA } from "vite-plugin-pwa";
 import pkg from "./package.json";
 
 const BASE = "/diablo_web/";
+const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
 	base: BASE,
+	resolve: {
+		alias: {
+			app: path.resolve(ROOT_DIR, "src/app"),
+			components: path.resolve(ROOT_DIR, "src/components"),
+			constants: path.resolve(ROOT_DIR, "src/constants"),
+			icons: path.resolve(ROOT_DIR, "src/icons"),
+			modules: path.resolve(ROOT_DIR, "src/modules"),
+			shared: path.resolve(ROOT_DIR, "src/shared"),
+			types: path.resolve(ROOT_DIR, "src/types"),
+		},
+	},
 	plugins: [
 		react({
 			babel: {

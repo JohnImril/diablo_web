@@ -1,4 +1,4 @@
-import { clickDownloadLink } from "../../../shared/download";
+import { clickDownloadLink } from "shared/download";
 
 export const triggerDownload = (url: string, name: string) => {
 	clickDownloadLink(url, name);

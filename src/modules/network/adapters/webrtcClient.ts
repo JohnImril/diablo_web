@@ -7,9 +7,9 @@ import {
 	server_packet,
 	RejectionReason,
 } from "../core/packetCodec";
-import type { IDisconnectPacket, IGameOptions, IInfoPacket, IMessagePacket, ITurnPacket } from "../../../types";
-import { toUint8 } from "../../../shared/buffers";
-import type { AnyBuf } from "../../../shared/buffers";
+import type { IDisconnectPacket, IGameOptions, IInfoPacket, IMessagePacket, ITurnPacket } from "types";
+import { toUint8 } from "shared/buffers";
+import type { AnyBuf } from "shared/buffers";
 import type { Packet, PacketBatch } from "../core/packetTypes";
 
 type MessageHandler = (packet: AnyBuf) => void;

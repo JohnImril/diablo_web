@@ -1,11 +1,11 @@
-import { decrypt, encrypt, hash, path_name } from "../../../shared/parsers/saveFile";
+import { decrypt, encrypt, hash, path_name } from "shared/parsers/saveFile";
 import Worker from "./mpqCmp.worker.js?worker";
 import MpqBinary from "./mpqCmp.wasm?url";
 import ListFile from "./listFile.txt";
 import { fetchWithProgress } from "../../engine/adapters/fetchWithProgress";
-import type { ProgressReporter } from "../../../types";
-import { readFileAsArrayBuffer } from "../../../shared/buffers";
-import { MAX_MPQ_SIZE } from "../../../constants/files";
+import type { ProgressReporter } from "types";
+import { readFileAsArrayBuffer } from "shared/buffers";
+import { MAX_MPQ_SIZE } from "constants/files";
 
 const MPQ_SIZE = 156977;
 const LIST_SIZE = 75542;

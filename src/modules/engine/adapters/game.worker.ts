@@ -7,12 +7,12 @@ import SpawnBinary from "./diabloSpawn.wasm?url";
 // @ts-ignore
 import SpawnModule from "./diabloSpawn.jscc";
 import websocket_open from "../../network/adapters/webSocketClient";
-import type { ProgressReporter, IWebSocketProxy } from "../../../types";
-import { readFileAsArrayBuffer } from "../../../shared/buffers";
-import { resolveWsUrl } from "../../../shared/wsUrl";
+import type { ProgressReporter, IWebSocketProxy } from "types";
+import { readFileAsArrayBuffer } from "shared/buffers";
+import { resolveWsUrl } from "shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
-import { MAX_MPQ_SIZE } from "../../../constants/files";
+import { MAX_MPQ_SIZE } from "constants/files";
 
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;

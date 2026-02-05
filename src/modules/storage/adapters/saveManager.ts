@@ -1,6 +1,6 @@
-import getPlayerName from "../../../shared/parsers/saveFile";
-import type { IFileSystem, IPlayerInfo } from "../../../types";
-import { toArrayBuffer } from "../../../shared/buffers";
+import getPlayerName from "shared/parsers/saveFile";
+import type { IFileSystem, IPlayerInfo } from "types";
+import { toArrayBuffer } from "shared/buffers";
 import { extractSaveName, isSaveFile, sortSaveNames } from "../core/saveRules";
 import { downloadFile } from "./download";
 
