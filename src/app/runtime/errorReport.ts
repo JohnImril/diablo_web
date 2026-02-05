@@ -1,4 +1,4 @@
-import { mapStackTrace } from "sourcemapped-stacktrace";
+import { mapStackTrace } from "../../utils/stacktrace/mapStackTrace";
 
 import { buildErrorReportUrl, formatErrorReportBody } from "../../shared/errorReport";
 import type { ErrorReportPayload, IError } from "../../types";
