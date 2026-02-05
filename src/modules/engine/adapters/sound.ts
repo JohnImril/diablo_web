@@ -1,6 +1,6 @@
-import type { IAudioApi } from "../../../types";
-import { toArrayBuffer } from "../../../shared/buffers";
-import type { AnyBuf } from "../../../shared/buffers";
+import type { IAudioApi } from "types";
+import { toArrayBuffer } from "shared/buffers";
+import type { AnyBuf } from "shared/buffers";
 
 interface ISound {
 	buffer: Promise<AudioBuffer>;

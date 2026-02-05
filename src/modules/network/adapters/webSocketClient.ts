@@ -1,4 +1,4 @@
-import type { IWebSocketProxy } from "../../../types";
+import type { IWebSocketProxy } from "types";
 
 type WebSocketHandler = (data: ArrayBuffer | string) => void;
 type WebSocketFinisher = (code: number) => void;

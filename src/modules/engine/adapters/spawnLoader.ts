@@ -1,4 +1,4 @@
-import type { IApi, IFileSystem } from "../../../types";
+import type { IApi, IFileSystem } from "types";
 import { fetchWithProgress } from "./fetchWithProgress";
 
 const SpawnSizes = [50274091, 25830791];

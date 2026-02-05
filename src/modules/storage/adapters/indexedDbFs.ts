@@ -1,10 +1,10 @@
 import { openDB } from "idb";
 import type { IDBPDatabase } from "idb";
-import type { IFileSystem, IPlayerInfo } from "../../../types";
-import getPlayerName from "../../../shared/parsers/saveFile";
-import { readFileAsArrayBuffer, toArrayBuffer } from "../../../shared/buffers";
+import type { IFileSystem, IPlayerInfo } from "types";
+import getPlayerName from "shared/parsers/saveFile";
+import { readFileAsArrayBuffer, toArrayBuffer } from "shared/buffers";
 import { triggerDownload } from "./download";
-import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "../../../constants/files";
+import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "constants/files";
 
 export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());

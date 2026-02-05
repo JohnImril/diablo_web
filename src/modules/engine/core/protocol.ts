@@ -1,4 +1,4 @@
-import type { IProgress } from "../../../types";
+import type { IProgress } from "types";
 
 export const PROTOCOL_VERSION = 1;
 
