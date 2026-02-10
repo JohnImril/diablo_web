@@ -429,10 +429,20 @@ export function ensureTouchBeltCanvases(
 	for (const slotIdx of TOUCH.BELT_SLOTS) {
 		const buttonIndex = TOUCH.BUTTON_START_BELT + slotIdx;
 		const el = touchButtons.current[buttonIndex];
-		if (!el || touchCtx.current[slotIdx]) continue;
-		const canvas = document.createElement("canvas");
-		canvas.width = canvas.height = BELT.ICON_SIZE;
-		el.appendChild(canvas);
+		if (!el) continue;
+
+		const currentCtx = touchCtx.current[slotIdx];
+		const currentCanvas = currentCtx?.canvas;
+		if (currentCanvas?.isConnected && currentCanvas.parentElement === el) continue;
+
+		let canvas = el.querySelector("canvas");
+		if (!canvas) {
+			canvas = document.createElement("canvas");
+			el.appendChild(canvas);
+		}
+
+		canvas.width = BELT.ICON_SIZE;
+		canvas.height = BELT.ICON_SIZE;
 		touchCtx.current[slotIdx] = canvas.getContext("2d");
 	}
 }
