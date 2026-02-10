@@ -4,8 +4,8 @@ body,
 	overflow: hidden;
 	position: absolute;
 	inset: 0;
-	color: #ddd;
-	background-color: #000;
+	color: var(--d1-ivory-soft);
+	background-color: var(--d1-pitch);
 }
 .app--dropping {
 	background:
@@ -112,7 +112,7 @@ body,
 	pointer-events: auto;
 	mask-size: 100% 100%;
 	border-radius: var(--bevel);
-	background-color: #444;
+	background-color: var(--d1-ui-steel);
 	background-blend-mode: color;
 }
 .app__touch-ui .app__touch-button:active {
@@ -166,7 +166,7 @@ body,
 	position: absolute;
 	inset: 0;
 	border-radius: var(--slot-radius);
-	box-shadow: inset 0 0 1em 1.5em #000;
+	box-shadow: inset 0 0 1em 1.5em var(--d1-pitch);
 }
 
 .app__touch-ui--fkeys-left .app__touch-button,
@@ -199,21 +199,6 @@ body,
 	top: 85vh;
 }
 
-.app__touch-ui--fkeys-left .app__touch-button--3 {
-	top: 0;
-	transform: translate(-50%, 0);
-}
-.app__touch-ui--fkeys-left .app__touch-button--4 {
-	top: 60%;
-}
-.app__touch-ui--fkeys-right .app__touch-button--5 {
-	top: 0;
-	transform: translate(-50%, 0);
-}
-.app__touch-ui--fkeys-right .app__touch-button--6 {
-	top: 60%;
-}
-
 .app__touch-ui--mods .app__touch-button--0 {
 	mask-image: url(./icons/move.svg);
 }
@@ -229,13 +214,19 @@ body,
 .app__touch-ui--mods .app__touch-button--4 {
 	mask-image: url(./icons/f6.svg);
 }
-.app__touch-ui--fkeys-left .app__touch-button--3 {
+.app__touch-ui--fkeys-left .app__touch-button--3,
+.app__touch-ui--fkeys-right .app__touch-button--5 {
 	top: 0;
 	transform: translate(-50%, 0);
+}
+.app__touch-ui--fkeys-left .app__touch-button--4,
+.app__touch-ui--fkeys-right .app__touch-button--6 {
+	top: 60%;
+}
+.app__touch-ui--fkeys-left .app__touch-button--3 {
 	mask-image: url(./icons/f5.svg);
 }
 .app__touch-ui--fkeys-left .app__touch-button--4 {
-	top: 60%;
 	mask-image: url(./icons/f6.svg);
 }
 .app__touch-ui--fkeys-right .app__touch-button--5 {
