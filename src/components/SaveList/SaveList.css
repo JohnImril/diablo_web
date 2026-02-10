@@ -44,7 +44,7 @@
 	letter-spacing: 0.2px;
 }
 .save-list__player-info {
-	color: #b7b7b7;
+	color: var(--d1-text-muted);
 	overflow-wrap: break-word;
 	font-size: 14px;
 	opacity: 0.95;

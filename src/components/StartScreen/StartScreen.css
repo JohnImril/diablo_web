@@ -6,7 +6,7 @@
 .start-screen__description {
 	margin: 12px 0;
 	line-height: 1.45;
-	color: #e5e5e5;
+	color: var(--d1-ivory-dim);
 	text-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
 }
 

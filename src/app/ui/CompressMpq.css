@@ -1,14 +1,14 @@
 .compress-mpq {
 	font-size: 18px;
 	text-align: center;
-	color: #eee;
+	color: var(--d1-ivory);
 }
 
 .compress-mpq__description,
 .compress-mpq__message {
 	margin: 12px 0;
 	line-height: 1.45;
-	color: #e5e5e5;
+	color: var(--d1-ivory-dim);
 	text-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
 }
 
