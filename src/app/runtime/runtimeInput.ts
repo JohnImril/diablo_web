@@ -90,16 +90,16 @@ export function createRuntimeInputController(opts: RuntimeInputOptions) {
 	const handleKeyboardInput = (blur: boolean) => {
 		if (!refs.showKeyboard.current || !refs.keyboard.current) return;
 		const text = refs.keyboard.current.value;
-		let valid = "";
-		if (refs.maxKeyboard.current > 0) {
-			valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, refs.maxKeyboard.current);
-		} else {
-			const maxValue = -refs.maxKeyboard.current;
-			if (/^\d*$/.test(text)) {
-				refs.keyboardNum.current = Math.min(text.length ? parseInt(text, 10) : 0, maxValue);
-			}
-			valid = refs.keyboardNum.current ? refs.keyboardNum.current.toString() : "";
-		}
+		const valid =
+			refs.maxKeyboard.current > 0
+				? (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, refs.maxKeyboard.current)
+				: (() => {
+						const maxValue = -refs.maxKeyboard.current;
+						if (/^\d*$/.test(text)) {
+							refs.keyboardNum.current = Math.min(text.length ? parseInt(text, 10) : 0, maxValue);
+						}
+						return refs.keyboardNum.current ? refs.keyboardNum.current.toString() : "";
+					})();
 
 		if (text !== valid && refs.keyboard.current) {
 			refs.keyboard.current.value = valid;

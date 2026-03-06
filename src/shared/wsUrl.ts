@@ -33,7 +33,7 @@ export function resolveWsUrl(): string {
 	} catch (error) {
 		const message = "VITE_WS_URL is not a valid URL";
 		logConfigError(message, { value: envUrl, error });
-		throw new Error(message);
+		throw new Error(message, { cause: error });
 	}
 
 	if (parsed.protocol !== "ws:" && parsed.protocol !== "wss:") {
