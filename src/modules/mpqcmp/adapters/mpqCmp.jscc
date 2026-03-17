@@ -81,11 +81,12 @@ if (ENVIRONMENT_IS_NODE) {
   // Note that we pollute the global namespace here, otherwise we break in node
   var nodeFS;
   var nodePath;
+  var nodeRequire = Function('return require')();
 
   Module['read'] = function shell_read(filename, binary) {
     var ret;
-      if (!nodeFS) nodeFS = require('fs');
-      if (!nodePath) nodePath = require('path');
+      if (!nodeFS) nodeFS = nodeRequire('fs');
+      if (!nodePath) nodePath = nodeRequire('path');
       filename = nodePath['normalize'](filename);
       ret = nodeFS['readFileSync'](filename);
     return binary ? ret : ret.toString();
@@ -2414,11 +2415,4 @@ Module['ready'] = new Promise(function (resolve, reject) {
 }
 );
 })();
-if (typeof exports === 'object' && typeof module === 'object')
-    module.exports = MpqCmp;
-  else if (typeof define === 'function' && define['amd'])
-    define([], function() { return MpqCmp; });
-  else if (typeof exports === 'object')
-    exports["MpqCmp"] = MpqCmp;
-  
-  export default MpqCmp;
+export default MpqCmp;

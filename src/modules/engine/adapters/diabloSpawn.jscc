@@ -102,11 +102,12 @@ if (ENVIRONMENT_IS_NODE) {
   // Note that we pollute the global namespace here, otherwise we break in node
   var nodeFS;
   var nodePath;
+  var nodeRequire = Function('return require')();
 
   read_ = function shell_read(filename, binary) {
     var ret;
-      if (!nodeFS) nodeFS = require('fs');
-      if (!nodePath) nodePath = require('path');
+      if (!nodeFS) nodeFS = nodeRequire('fs');
+      if (!nodePath) nodePath = nodeRequire('path');
       filename = nodePath['normalize'](filename);
       ret = nodeFS['readFileSync'](filename);
     return binary ? ret : ret.toString();
@@ -2986,11 +2987,4 @@ Module['ready'] = new Promise(function (resolve, reject) {
 }
 );
 })();
-if (typeof exports === 'object' && typeof module === 'object')
-      module.exports = DiabloSpawn;
-    else if (typeof define === 'function' && define['amd'])
-      define([], function() { return DiabloSpawn; });
-    else if (typeof exports === 'object')
-      exports["DiabloSpawn"] = DiabloSpawn;
-
-  export default DiabloSpawn;
+export default DiabloSpawn;
