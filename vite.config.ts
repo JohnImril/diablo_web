@@ -1,13 +1,17 @@
 import { defineConfig } from "vite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import { VitePWA } from "vite-plugin-pwa";
 import pkg from "./package.json";
 
 const BASE = "/diablo_web/";
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const reactCompilerOptions = {
+	presets: [reactCompilerPreset()],
+} as Parameters<typeof babel>[0];
 
 export default defineConfig({
 	base: BASE,
@@ -23,11 +27,8 @@ export default defineConfig({
 		},
 	},
 	plugins: [
-		react({
-			babel: {
-				plugins: [["babel-plugin-react-compiler"]],
-			},
-		}),
+		react(),
+		babel(reactCompilerOptions),
 		wasm(),
 		VitePWA({
 			base: BASE,
