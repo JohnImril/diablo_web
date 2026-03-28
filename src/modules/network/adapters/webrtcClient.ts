@@ -96,10 +96,7 @@ const createWebRTCServer = (
 				);
 				break;
 			case client_packet.turn.code:
-				send(
-					~(1 << id),
-					toUint8(write_packet(server_packet.turn, { id, turn: (pkt as ITurnPacket).turn }))
-				);
+				send(~(1 << id), toUint8(write_packet(server_packet.turn, { id, turn: (pkt as ITurnPacket).turn })));
 				break;
 			default:
 				throw new Error(`invalid packet ${code}`);
@@ -215,11 +212,9 @@ const createWebRTCServer = (
 			onClose();
 		});
 
-		peer.on("disconnected", () => {
-		});
+		peer.on("disconnected", () => {});
 
-		peer.on("close", () => {
-		});
+		peer.on("close", () => {});
 	};
 
 	void init(cookie);
@@ -245,10 +240,7 @@ const createWebRTCClient = (
 		if (pending) {
 			pending.push(packet);
 			pendingBytes += packet instanceof Uint8Array ? packet.byteLength : packet.byteLength;
-			if (
-				pending.length > MAX_RTC_PENDING_MESSAGES ||
-				pendingBytes > MAX_RTC_PENDING_BYTES
-			) {
+			if (pending.length > MAX_RTC_PENDING_MESSAGES || pendingBytes > MAX_RTC_PENDING_BYTES) {
 				if (!overflowLogged) {
 					overflowLogged = true;
 					console.warn("[webrtc-client] pending overflow", {

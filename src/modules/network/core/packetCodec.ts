@@ -225,10 +225,9 @@ export const server_packet: ServerPacketMap = (() => {
 	const map = {
 		info: {
 			code: 0x32,
-			read: (reader: buffer_reader) => ({ version: reader.read32() } as IInfoPacket),
+			read: (reader: buffer_reader) => ({ version: reader.read32() }) as IInfoPacket,
 			size: 4,
-			write: (writer: buffer_writer, packet: PacketPayload) =>
-				writer.write32((packet as IInfoPacket).version),
+			write: (writer: buffer_writer, packet: PacketPayload) => writer.write32((packet as IInfoPacket).version),
 		},
 
 		game_list: {
@@ -342,7 +341,7 @@ export const client_packet: ClientPacketMap = (() => {
 	const map = {
 		info: {
 			code: 0x31,
-			read: (reader: buffer_reader) => ({ version: reader.read32() } as IInfoPacket),
+			read: (reader: buffer_reader) => ({ version: reader.read32() }) as IInfoPacket,
 			size: 4,
 			write: (writer: buffer_writer, packet: PacketPayload) => writer.write32((packet as IInfoPacket).version),
 		},
@@ -368,7 +367,11 @@ export const client_packet: ClientPacketMap = (() => {
 			},
 			write: (writer: buffer_writer, packet: PacketPayload) => {
 				const game = packet as IGameOptions;
-				return writer.write32(game.cookie).write_str(game.name).write_str(game.password).write32(game.difficulty!);
+				return writer
+					.write32(game.cookie)
+					.write_str(game.name)
+					.write_str(game.password)
+					.write32(game.difficulty!);
 			},
 		},
 
@@ -418,10 +421,9 @@ export const client_packet: ClientPacketMap = (() => {
 
 		turn: {
 			code: 0x02,
-			read: (reader: buffer_reader) => ({ turn: reader.read32() } as ITurnPacket),
+			read: (reader: buffer_reader) => ({ turn: reader.read32() }) as ITurnPacket,
 			size: 4,
-			write: (writer: buffer_writer, packet: PacketPayload) =>
-				writer.write32((packet as ITurnPacket).turn),
+			write: (writer: buffer_writer, packet: PacketPayload) => writer.write32((packet as ITurnPacket).turn),
 		},
 	} satisfies Omit<ClientPacketMap, "batch">;
 

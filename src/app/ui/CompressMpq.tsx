@@ -15,14 +15,25 @@ interface IProps {
 	revokeBlobUrl: (url: string) => void;
 }
 
-const CompressMpq = ({ file, setCompressFile, setCompress, onError, runCompress, downloadBlob, revokeBlobUrl }: IProps) => {
+const CompressMpq = ({
+	file,
+	setCompressFile,
+	setCompress,
+	onError,
+	runCompress,
+	downloadBlob,
+	revokeBlobUrl,
+}: IProps) => {
 	const [url, setUrl] = useState<string | null>(null);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
 
-	const onDone = useCallback((blob: Blob) => {
-		const fileUrl = downloadBlob("DIABDAT.MPQ", blob);
-		setUrl(fileUrl);
-	}, [downloadBlob]);
+	const onDone = useCallback(
+		(blob: Blob) => {
+			const fileUrl = downloadBlob("DIABDAT.MPQ", blob);
+			setUrl(fileUrl);
+		},
+		[downloadBlob]
+	);
 
 	const onErrorHandler = useCallback(
 		(message: string, stack: string) => {
@@ -59,7 +70,7 @@ const CompressMpq = ({ file, setCompressFile, setCompress, onError, runCompress,
 			})
 			.catch((error: unknown) => {
 				const message = error instanceof Error ? error.message : String(error);
-				const stack = error instanceof Error ? error.stack ?? "" : "";
+				const stack = error instanceof Error ? (error.stack ?? "") : "";
 				onErrorHandler(message, stack);
 			});
 

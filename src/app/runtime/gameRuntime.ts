@@ -114,7 +114,8 @@ export function createGameRuntime() {
 
 	const start = (opts: GameRuntimeStartOptions): Promise<GameFunction> => {
 		lastStartOptions = opts;
-		if (state.lifecycle === "running" || state.lifecycle === "loading") return Promise.resolve(gameHandle as GameFunction);
+		if (state.lifecycle === "running" || state.lifecycle === "loading")
+			return Promise.resolve(gameHandle as GameFunction);
 		if (!saveManager) initStorage(opts.storage);
 		setLifecycle("loading");
 		return loadGame(opts.api, opts.file, opts.spawn, {
@@ -189,8 +190,10 @@ export function createGameRuntime() {
 		events.clear();
 	};
 
-	const on = <K extends keyof RuntimeEventMap>(event: K, handler: RuntimeEventHandler<K>) => events.on(event, handler);
-	const emit = <K extends keyof RuntimeEventMap>(event: K, payload: RuntimeEventMap[K]) => events.emit(event, payload);
+	const on = <K extends keyof RuntimeEventMap>(event: K, handler: RuntimeEventHandler<K>) =>
+		events.on(event, handler);
+	const emit = <K extends keyof RuntimeEventMap>(event: K, payload: RuntimeEventMap[K]) =>
+		events.emit(event, payload);
 	const subscribe = <K extends keyof RuntimeEventMap>(event: K, handler: RuntimeEventHandler<K>) => {
 		const unsubscribe = on(event, handler);
 		registerCleanup(unsubscribe);

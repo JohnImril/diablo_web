@@ -63,11 +63,15 @@ const WORKER_TO_MAIN_TYPES = [
 export function isMainToWorkerMessage(data: unknown): data is MainToWorkerMessage {
 	if (!data || typeof data !== "object") return false;
 	const msg = data as { v?: unknown; type?: unknown };
-	return typeof msg.v === "number" && MAIN_TO_WORKER_TYPES.includes(msg.type as (typeof MAIN_TO_WORKER_TYPES)[number]);
+	return (
+		typeof msg.v === "number" && MAIN_TO_WORKER_TYPES.includes(msg.type as (typeof MAIN_TO_WORKER_TYPES)[number])
+	);
 }
 
 export function isWorkerToMainMessage(data: unknown): data is WorkerToMainMessage {
 	if (!data || typeof data !== "object") return false;
 	const msg = data as { v?: unknown; type?: unknown };
-	return typeof msg.v === "number" && WORKER_TO_MAIN_TYPES.includes(msg.type as (typeof WORKER_TO_MAIN_TYPES)[number]);
+	return (
+		typeof msg.v === "number" && WORKER_TO_MAIN_TYPES.includes(msg.type as (typeof WORKER_TO_MAIN_TYPES)[number])
+	);
 }

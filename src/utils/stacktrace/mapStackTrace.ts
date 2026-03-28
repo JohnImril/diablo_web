@@ -70,7 +70,7 @@ const sharedPositionCache = new Map<string, MappedPosition | null>();
 export function mapStackTrace(
 	stack: string,
 	optionsOrCallback?: MapStackTraceOptions | MapStackTraceCallback,
-	callback?: MapStackTraceCallback,
+	callback?: MapStackTraceCallback
 ): Promise<string[]> {
 	const { options, cb } = normalizeArgs(optionsOrCallback, callback);
 	const promise = mapStackTraceInternal(stack, options).catch(() => stack.split(/\r?\n/));
@@ -114,7 +114,7 @@ async function mapStackTraceInternal(stack: string, options: MapStackTraceOption
 			});
 
 			return formatFrame(frame);
-		}),
+		})
 	);
 
 	return mappedLines;
@@ -122,7 +122,7 @@ async function mapStackTraceInternal(stack: string, options: MapStackTraceOption
 
 function normalizeArgs(
 	optionsOrCallback?: MapStackTraceOptions | MapStackTraceCallback,
-	callback?: MapStackTraceCallback,
+	callback?: MapStackTraceCallback
 ): { options: MapStackTraceOptions; cb?: MapStackTraceCallback } {
 	if (typeof optionsOrCallback === "function") {
 		return { options: {}, cb: optionsOrCallback };
@@ -194,7 +194,7 @@ function buildParsedFrame(
 	name: string | undefined,
 	source: string,
 	lineStr: string,
-	columnStr: string,
+	columnStr: string
 ): ParsedFrame | null {
 	if (!source || source.includes("native")) {
 		return null;
@@ -221,7 +221,7 @@ async function mapFrame(
 		positionCache: Map<string, MappedPosition | null>;
 		consumerCache: Map<string, SimpleSourceMapConsumer | null>;
 		consumerPromiseCache: Map<string, Promise<SimpleSourceMapConsumer | null>>;
-	},
+	}
 ): Promise<MappedPosition> {
 	const { options, seenFiles, positionCache, consumerCache, consumerPromiseCache } = context;
 	const maxFileCount = options.maxFileCount ?? DEFAULT_MAX_FILE_COUNT;
@@ -269,7 +269,7 @@ async function getConsumer(
 	uri: string,
 	options: MapStackTraceOptions,
 	consumerCache: Map<string, SimpleSourceMapConsumer | null>,
-	consumerPromiseCache: Map<string, Promise<SimpleSourceMapConsumer | null>>,
+	consumerPromiseCache: Map<string, Promise<SimpleSourceMapConsumer | null>>
 ): Promise<SimpleSourceMapConsumer | null> {
 	const cached = consumerCache.get(uri);
 	if (cached !== undefined) {
@@ -424,7 +424,10 @@ function byteLength(value: string): number {
 	return value.length;
 }
 
-function getBuffer(): { from: (data: string, encoding: "base64") => { toString: (enc: "utf-8") => string }; byteLength: (data: string) => number } | null {
+function getBuffer(): {
+	from: (data: string, encoding: "base64") => { toString: (enc: "utf-8") => string };
+	byteLength: (data: string) => number;
+} | null {
 	const globalWithBuffer = globalThis as unknown as {
 		Buffer?: {
 			from: (data: string, encoding: "base64") => { toString: (enc: "utf-8") => string };

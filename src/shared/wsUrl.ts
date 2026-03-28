@@ -1,7 +1,6 @@
 const DEFAULT_WS_URL = "ws://127.0.0.1:8787/ws";
 
-const isLocalhost = (hostname?: string) =>
-	hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+const isLocalhost = (hostname?: string) => hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
 const logConfigError = (message: string, details?: Record<string, unknown>) => {
 	if (details) {
