@@ -7,16 +7,15 @@
 		"module": "ESNext",
 		"types": ["vite/client"],
 		"skipLibCheck": true,
-		"baseUrl": ".",
 		"paths": {
-			"app/*": ["src/app/*"],
-			"components/*": ["src/components/*"],
-			"constants/*": ["src/constants/*"],
-			"icons/*": ["src/icons/*"],
-			"modules/*": ["src/modules/*"],
-			"shared/*": ["src/shared/*"],
-			"types": ["src/types"],
-			"types/*": ["src/types/*"]
+			"app/*": ["./src/app/*"],
+			"components/*": ["./src/components/*"],
+			"constants/*": ["./src/constants/*"],
+			"icons/*": ["./src/icons/*"],
+			"modules/*": ["./src/modules/*"],
+			"shared/*": ["./src/shared/*"],
+			"types": ["./src/types"],
+			"types/*": ["./src/types/*"]
 		},
 
 		"moduleResolution": "bundler",
