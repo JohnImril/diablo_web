@@ -4,11 +4,12 @@
 }
 
 .save-list__items {
-	border: 1px solid rgba(201, 163, 74, 0.45);
+	border: 1px solid var(--d1-gold-mid);
 	border-radius: 6px;
 	text-align: left;
 	background:
-		linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.2)), linear-gradient(#181818, #131313);
+		linear-gradient(180deg, var(--d1-white-faint), var(--d1-ink-soft)),
+		linear-gradient(var(--d1-save-list-bg-top), var(--d1-save-list-bg-bot));
 	overflow: hidden;
 	margin-top: 8px;
 }
@@ -20,8 +21,9 @@
 	justify-content: space-between;
 	align-items: center;
 	background:
-		linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(0, 0, 0, 0.25)), linear-gradient(#1a1a1a, #141414);
-	border-bottom: 1px solid rgba(201, 163, 74, 0.12);
+		linear-gradient(180deg, var(--d1-white-faint), var(--d1-ink-soft)),
+		linear-gradient(var(--d1-save-list-item-bg-top), var(--d1-save-list-item-bg-bot));
+	border-bottom: 1px solid var(--d1-gold-faint);
 	transition:
 		background 0.15s ease,
 		filter 0.12s ease;
@@ -31,7 +33,8 @@
 }
 .save-list__item:hover {
 	background:
-		linear-gradient(180deg, rgba(233, 175, 72, 0.08), rgba(0, 0, 0, 0.28)), linear-gradient(#202020, #161616);
+		linear-gradient(180deg, var(--d1-frame-faint), var(--d1-ink-soft)),
+		linear-gradient(var(--d1-save-list-item-hover-bg-top), var(--d1-save-list-item-hover-bg-bot));
 }
 
 .save-list__item-info {

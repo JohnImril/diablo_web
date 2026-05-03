@@ -7,7 +7,7 @@
 	margin: 12px 0;
 	line-height: 1.45;
 	color: var(--d1-ivory-dim);
-	text-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+	text-shadow: 0 0 6px var(--d1-ink-muted);
 }
 
 .start-screen__button {
