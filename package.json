@@ -1,7 +1,7 @@
 {
 	"name": "diablo_web",
 	"private": true,
-	"version": "1.5.1",
+	"version": "1.5.2",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -31,13 +31,8 @@
 		"globals": "^17.6.0",
 		"prettier": "^3.8.3",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.59.1",
+		"typescript-eslint": "^8.59.2",
 		"vite": "^8.0.10",
-		"vite-plugin-pwa": "^1.2.0"
-	},
-	"overrides": {
-		"vite-plugin-pwa": {
-			"vite": "vite"
-		}
+		"vite-plugin-pwa": "^1.3.0"
 	}
 }
