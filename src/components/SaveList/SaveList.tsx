@@ -7,7 +7,6 @@ interface IProps {
 	saveNames: Record<string, IPlayerInfo | null>;
 	onDownload: (name: string) => void;
 	onDelete: (name: string) => void;
-	onSelect: (name: string) => void;
 	onUploadSave: (file: File) => void;
 	onBack: () => void;
 }
@@ -77,7 +76,7 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 				))}
 			</ul>
 
-			<form className="save-list__form">
+			<form>
 				<label htmlFor="loadSave" className={cn("save-list__button", "d1-btn")}>
 					Upload Save
 				</label>
