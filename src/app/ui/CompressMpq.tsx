@@ -129,7 +129,7 @@ const CompressMpq = ({
 				and uses better compression for regular files. To begin, click the button below or drop the MPQ onto the
 				page.
 			</p>
-			<form className="compress-mpq__form">
+			<form>
 				<label htmlFor="loadFile" className={cn("compress-mpq__button", "d1-btn")}>
 					Select MPQ
 				</label>

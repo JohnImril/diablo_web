@@ -53,7 +53,7 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 				</p>
 			)}
 
-			<form className="start-screen__form">
+			<form>
 				<label htmlFor="loadFile" className={cn("start-screen__button", "d1-btn")}>
 					Select MPQ
 				</label>

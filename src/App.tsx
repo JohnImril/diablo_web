@@ -34,7 +34,7 @@ const App = () => {
 	const [currentSaveName, setCurrentSaveName] = useState<string | undefined>(undefined);
 	const [hasSpawn, setHasSpawn] = useState(false);
 	const [saveNames, setSaveNames] = useState<false | Record<string, IPlayerInfo | null>>(false);
-	const [lifecycleState, dispatchLifecycle] = useReducer(transition, "idle" as LifecycleState);
+	const [, dispatchLifecycle] = useReducer(transition, "idle" as LifecycleState);
 
 	const cursorPos = useRef({ x: 0, y: 0 });
 	const game = useRef<GameFunction | null>(null);
@@ -225,11 +225,6 @@ const App = () => {
 		[showSaves, handleError, runtime, runUiCleanup, stopAndCleanup]
 	);
 
-	useEffect(() => {
-		const _debug = lifecycleState as string;
-		void _debug;
-	}, [lifecycleState]);
-
 	const onDrop = useCallback(
 		(file: File) => {
 			if (compress) {
@@ -278,9 +273,6 @@ const App = () => {
 						onDelete={async (name) => {
 							if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
 							await runtime.deleteSave(name);
-						}}
-						onSelect={() => {
-							/* empty */
 						}}
 						onUploadSave={start}
 						onBack={() => setShowSaves(false)}

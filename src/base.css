@@ -1,12 +1,6 @@
 :root {
 	--d1-black: #0b0b0b;
-	--d1-charcoal: #151515;
-	--d1-stone: #171717;
-	--d1-stone-2: #202020;
 	--d1-iron: #2c2c2c;
-	--d1-ash: #bfbfbf;
-	--d1-blood: #7a0a0a;
-	--d1-ruby-dark: #3a0a0a;
 	--d1-ruby: #a61212;
 	--d1-ruby-bright: #c51a1a;
 	--d1-ruby-light: #ff4d4d;
@@ -14,7 +8,6 @@
 	--d1-gold-bright: #e4c367;
 	--d1-gold-dim: #8f7440;
 	--d1-ember: #ff8a2a;
-	--d1-ember-dim: #b85b1b;
 	--d1-pitch: #000;
 	--d1-ivory-soft: #ddd;
 	--d1-ivory: #eee;
@@ -47,7 +40,6 @@
 	--d1-flame-soft: rgba(255, 60, 40, 0.18);
 	--d1-ember-faint: rgba(255, 180, 80, 0.05);
 	--d1-ember-glow: rgba(255, 200, 120, 0.04);
-	--d1-ember-deep: rgba(255, 80, 30, 0.08);
 	--d1-frame-faint: rgba(233, 175, 72, 0.08);
 	--d1-frame-soft: rgba(233, 175, 72, 0.18);
 	--d1-frame-mid: rgba(233, 175, 72, 0.25);
@@ -74,8 +66,6 @@
 	--d1-save-list-item-bg-bot: #141414;
 	--d1-save-list-item-hover-bg-top: #202020;
 	--d1-save-list-item-hover-bg-bot: #161616;
-	--frame-glow: 0 0 18px var(--d1-frame-mid), 0 0 4px var(--d1-frame-soft);
-	--torch-glow: 0 0 22px var(--d1-fire-soft), 0 0 60px var(--d1-ember-deep);
 	--bevel: 8px;
 	--slot-radius: 10%;
 }
@@ -83,13 +73,7 @@
 @supports (color: oklch(50% 0.1 40)) {
 	:root {
 		--d1-black: oklch(14.96% 0 89.88);
-		--d1-charcoal: oklch(19.57% 0 89.88);
-		--d1-stone: oklch(20.46% 0 89.88);
-		--d1-stone-2: oklch(24.35% 0 89.88);
 		--d1-iron: oklch(29.31% 0 89.88);
-		--d1-ash: oklch(80.47% 0 89.88);
-		--d1-blood: oklch(36.97% 0.1435 28.06);
-		--d1-ruby-dark: oklch(23.4% 0.0752 25.14);
 		--d1-ruby: oklch(46.28% 0.1794 28.04);
 		--d1-ruby-bright: oklch(52.69% 0.2024 27.87);
 		--d1-ruby-light: oklch(67.3% 0.2146 25.04);
@@ -97,7 +81,6 @@
 		--d1-gold-bright: oklch(82.71% 0.1177 89.98);
 		--d1-gold-dim: oklch(57.33% 0.0777 82.51);
 		--d1-ember: oklch(74.87% 0.173 53.99);
-		--d1-ember-dim: oklch(57.46% 0.14 49.74);
 		--d1-pitch: oklch(0% 0 0);
 		--d1-ivory-soft: oklch(89.75% 0 89.88);
 		--d1-ivory: oklch(94.91% 0 89.88);
@@ -129,7 +112,6 @@
 		--d1-flame-soft: color-mix(in oklch, var(--d1-ruby-light) 18%, transparent);
 		--d1-ember-faint: color-mix(in oklch, oklch(78.59% 0.1149 70.01) 5%, transparent);
 		--d1-ember-glow: color-mix(in oklch, oklch(84.5% 0.0897 75.14) 4%, transparent);
-		--d1-ember-deep: color-mix(in oklch, oklch(66.7% 0.2215 35.46) 8%, transparent);
 		--d1-frame-faint: color-mix(in oklch, oklch(79.61% 0.126 79.32) 8%, transparent);
 		--d1-frame-soft: color-mix(in oklch, oklch(79.61% 0.126 79.32) 18%, transparent);
 		--d1-frame-mid: color-mix(in oklch, oklch(79.61% 0.126 79.32) 25%, transparent);
@@ -169,13 +151,6 @@
 .text-ruby {
 	color: var(--d1-ruby-bright);
 }
-.hr {
-	height: 1px;
-	background: linear-gradient(90deg, transparent, var(--d1-gold-mid), transparent);
-	border: 0;
-	box-shadow: var(--frame-glow);
-}
-
 .d1-panel {
 	--panel-border: var(--d1-gold-dim);
 	--panel-inset-1: var(--d1-ink-deep);
