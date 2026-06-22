@@ -33,6 +33,10 @@ export function createRuntimeEventEmitter() {
 		}
 	};
 
+	const hasListeners = <K extends keyof RuntimeEventMap>(event: K) => {
+		return !!listeners.get(event)?.size;
+	};
+
 	const off = <K extends keyof RuntimeEventMap>(event: K, handler: Handler<RuntimeEventMap[K]>) => {
 		const handlers = listeners.get(event);
 		if (!handlers) return;
@@ -44,5 +48,5 @@ export function createRuntimeEventEmitter() {
 		listeners.clear();
 	};
 
-	return { on, off, emit, clear };
+	return { on, off, emit, hasListeners, clear };
 }

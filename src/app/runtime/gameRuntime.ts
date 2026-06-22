@@ -356,16 +356,17 @@ export function createGameRuntime() {
 		packetQueue = [];
 		webrtc = webrtcOpen((data) => {
 			const buffer = toArrayBuffer(data);
-			emit("netPacket", { data: buffer });
+			if (events.hasListeners("netPacket")) {
+				emit("netPacket", { data: buffer.slice(0) });
+			}
 			packetQueue.push(buffer);
 			if (packetQueue.length > 100) packetQueue.shift();
 		});
 		if (networkIntervalId != null) window.clearInterval(networkIntervalId);
 		networkIntervalId = window.setInterval(() => {
 			if (packetQueue.length) {
-				const batch = packetQueue.slice();
-				opts.workerClient.post(opts.toWorkerMessage({ action: "packetBatch", batch }));
-				packetQueue.length = 0;
+				const batch = packetQueue.splice(0, packetQueue.length);
+				opts.workerClient.post(opts.toWorkerMessage({ action: "packetBatch", batch }), batch);
 			}
 		}, 20);
 		return { webrtc, intervalId: networkIntervalId };

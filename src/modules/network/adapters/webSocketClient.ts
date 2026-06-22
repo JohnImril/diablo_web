@@ -6,6 +6,7 @@ type WebSocketFinisher = (code: number) => void;
 const MAX_OUTBOX_MESSAGES = 256;
 const MAX_OUTBOX_BYTES = 14 * 1024 * 1024;
 const CONNECT_TIMEOUT_MS = 15000;
+const FLUSH_INTERVAL_MS = 20;
 
 async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	const socket = new WebSocket(url);
@@ -73,7 +74,7 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 	let ws: WebSocket | null = null;
 	let batch: Uint8Array[] | null = [];
 	let batchBytes = 0;
-	let intr: number | null = null;
+	let flushTimerId: number | null = null;
 	let finished = false;
 	let overflowLogged = false;
 
@@ -91,6 +92,10 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 				bytes: batchBytes,
 			});
 		}
+		if (flushTimerId) {
+			clearTimeout(flushTimerId);
+			flushTimerId = null;
+		}
 		batch = null;
 		batchBytes = 0;
 		try {
@@ -99,6 +104,36 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 			/* empty */
 		}
 		finish(1);
+	};
+
+	const flush = () => {
+		flushTimerId = null;
+		if (!ws || !batch || !batch.length) {
+			return;
+		}
+		const size = batch.reduce((sum, msg) => sum + msg.byteLength, 3);
+		const buffer = new Uint8Array(size);
+		buffer[0] = 0;
+		buffer[1] = batch.length & 0xff;
+		buffer[2] = batch.length >> 8;
+
+		let pos = 3;
+		for (const msg of batch) {
+			buffer.set(msg, pos);
+			pos += msg.byteLength;
+		}
+
+		ws.send(buffer);
+
+		batch.length = 0;
+		batchBytes = 0;
+	};
+
+	const scheduleFlush = () => {
+		if (!ws || !batch || flushTimerId) {
+			return;
+		}
+		flushTimerId = setTimeout(flush, FLUSH_INTERVAL_MS);
 	};
 
 	const proxy: IWebSocketProxy = {
@@ -114,12 +149,14 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 			batchBytes += cloned.byteLength;
 			if (batch.length > MAX_OUTBOX_MESSAGES || batchBytes > MAX_OUTBOX_BYTES) {
 				handleOverflow("pending messages exceeded limits");
+				return;
 			}
+			scheduleFlush();
 		},
 		close() {
-			if (intr) {
-				clearInterval(intr);
-				intr = null;
+			if (flushTimerId) {
+				clearTimeout(flushTimerId);
+				flushTimerId = null;
 			}
 			batch = null;
 			batchBytes = 0;
@@ -133,27 +170,7 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 		(sock) => {
 			ws = sock;
 			if (batch) {
-				intr = setInterval(() => {
-					if (!batch!.length) {
-						return;
-					}
-					const size = batch!.reduce((sum, msg) => sum + msg.byteLength, 3);
-					const buffer = new Uint8Array(size);
-					buffer[0] = 0;
-					buffer[1] = batch!.length & 0xff;
-					buffer[2] = batch!.length >> 8;
-
-					let pos = 3;
-					for (const msg of batch!) {
-						buffer.set(msg, pos);
-						pos += msg.byteLength;
-					}
-
-					ws!.send(buffer);
-
-					batch!.length = 0;
-					batchBytes = 0;
-				}, 100);
+				scheduleFlush();
 			} else {
 				ws.close();
 			}
