@@ -7,6 +7,15 @@ on:
             - "**/*.md"
             - "docs/**"
     workflow_dispatch:
+        inputs:
+            storage_reset:
+                description: "Storage reset policy for this deployment"
+                required: true
+                default: "preserve_saves"
+                type: choice
+                options:
+                    - preserve_saves
+                    - reset_saves
 
 concurrency:
     group: "${{ github.workflow }}-${{ github.ref }}"
@@ -41,6 +50,9 @@ jobs:
               run: npm run build
               env:
                   VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+                  VITE_APP_BUILD_ID: ${{ github.sha }}
+                  VITE_APP_ASSET_DATA_EPOCH: ${{ vars.VITE_APP_ASSET_DATA_EPOCH || '1' }}
+                  VITE_APP_SAVE_DATA_EPOCH: ${{ github.event_name == 'workflow_dispatch' && inputs.storage_reset == 'reset_saves' && github.run_id || vars.VITE_APP_SAVE_DATA_EPOCH || '1' }}
 
             - name: Setup Pages
               uses: actions/configure-pages@v5

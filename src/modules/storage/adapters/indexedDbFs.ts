@@ -5,6 +5,25 @@ import getPlayerName from "shared/parsers/saveFile";
 import { readFileAsArrayBuffer, toArrayBuffer } from "shared/buffers";
 import { triggerDownload } from "./download";
 import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "constants/files";
+import { isSaveFile } from "../core/saveRules";
+
+const APP_ASSET_DATA_EPOCH = import.meta.env.VITE_APP_ASSET_DATA_EPOCH || "1";
+const APP_SAVE_DATA_EPOCH = import.meta.env.VITE_APP_SAVE_DATA_EPOCH || "1";
+const APP_BUILD_ID = import.meta.env.VITE_APP_BUILD_ID || import.meta.env.VITE_APP_VERSION;
+const APP_CACHE_NAMES = new Set(["assets-cache", "html-cache"]);
+const APP_CACHE_MARKERS = ["diablo-web", "diablo_web"];
+
+type AppStorageMeta = {
+	buildId: string;
+	assetDataEpoch: string | number;
+	saveDataEpoch: string | number;
+};
+
+const CURRENT_APP_STORAGE_META: AppStorageMeta = {
+	buildId: APP_BUILD_ID,
+	assetDataEpoch: APP_ASSET_DATA_EPOCH,
+	saveDataEpoch: APP_SAVE_DATA_EPOCH,
+};
 
 export async function downloadFile(db: IDBPDatabase<unknown>, name: string) {
 	const file = await db.get("files", name.toLowerCase());
@@ -39,13 +58,60 @@ async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Arr
 	await db.put("files", data, file.name.toLowerCase());
 }
 
+async function clearAppCaches() {
+	if (!("caches" in window)) return;
+	const names = await window.caches.keys();
+	await Promise.all(
+		names
+			.filter((name) => APP_CACHE_NAMES.has(name) || APP_CACHE_MARKERS.some((marker) => name.includes(marker)))
+			.map((name) => window.caches.delete(name))
+	);
+}
+
+async function deleteStoredFiles(
+	db: IDBPDatabase<unknown>,
+	shouldDelete: (name: string) => boolean,
+	files?: Map<string, Uint8Array>
+) {
+	const keys = await db.getAllKeys("files");
+	for (const key of keys) {
+		const name = String(key).toLowerCase();
+		if (!shouldDelete(name)) continue;
+		files?.delete(name);
+		await db.delete("files", key);
+	}
+}
+
+async function reconcileStoredAppState(db: IDBPDatabase<unknown>) {
+	const previous = (await db.get("app_meta", "current")) as AppStorageMeta | undefined;
+	const previousAssetDataEpoch = String(previous?.assetDataEpoch ?? "1");
+	const previousSaveDataEpoch = String(previous?.saveDataEpoch ?? "1");
+	const shouldClearAssetData =
+		!previous ||
+		previous.buildId !== CURRENT_APP_STORAGE_META.buildId ||
+		previousAssetDataEpoch !== CURRENT_APP_STORAGE_META.assetDataEpoch;
+	const shouldClearSaveData = previousSaveDataEpoch !== CURRENT_APP_STORAGE_META.saveDataEpoch;
+
+	if (shouldClearSaveData) {
+		await deleteStoredFiles(db, isSaveFile);
+		await db.clear("save_meta");
+	}
+
+	if (shouldClearAssetData) {
+		await deleteStoredFiles(db, (name) => !isSaveFile(name));
+		await clearAppCaches();
+	}
+
+	await db.put("app_meta", CURRENT_APP_STORAGE_META, "current");
+}
+
 export default async function createIndexedDbFs(): Promise<IFileSystem> {
 	try {
 		if (!("indexedDB" in window)) {
 			throw new Error("IndexedDB is not supported in this browser.");
 		}
 
-		const db = await openDB("diablo_fs", 3, {
+		const db = await openDB("diablo_fs", 4, {
 			upgrade(db, oldVersion) {
 				if (oldVersion < 1 && !db.objectStoreNames.contains("files")) {
 					db.createObjectStore("files");
@@ -56,8 +122,13 @@ export default async function createIndexedDbFs(): Promise<IFileSystem> {
 				if (!db.objectStoreNames.contains("save_meta")) {
 					db.createObjectStore("save_meta");
 				}
+				if (!db.objectStoreNames.contains("app_meta")) {
+					db.createObjectStore("app_meta");
+				}
 			},
 		});
+
+		await reconcileStoredAppState(db);
 
 		const files = new Map<string, Uint8Array>();
 		const saveMeta = new Map<string, IPlayerInfo | null>();

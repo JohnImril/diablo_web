@@ -9,6 +9,9 @@ import pkg from "./package.json";
 
 const BASE = "/diablo_web/";
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const BUILD_ID = process.env.VITE_APP_BUILD_ID ?? process.env.GITHUB_SHA ?? pkg.version;
+const ASSET_DATA_EPOCH = process.env.VITE_APP_ASSET_DATA_EPOCH ?? "1";
+const SAVE_DATA_EPOCH = process.env.VITE_APP_SAVE_DATA_EPOCH ?? "1";
 const reactCompilerOptions = {
 	presets: [reactCompilerPreset()],
 } as Parameters<typeof babel>[0];
@@ -69,6 +72,7 @@ export default defineConfig({
 				],
 			},
 			workbox: {
+				cacheId: "diablo-web",
 				cleanupOutdatedCaches: true,
 				runtimeCaching: [
 					{
@@ -110,6 +114,9 @@ export default defineConfig({
 	],
 	define: {
 		"import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
+		"import.meta.env.VITE_APP_BUILD_ID": JSON.stringify(BUILD_ID),
+		"import.meta.env.VITE_APP_ASSET_DATA_EPOCH": JSON.stringify(ASSET_DATA_EPOCH),
+		"import.meta.env.VITE_APP_SAVE_DATA_EPOCH": JSON.stringify(SAVE_DATA_EPOCH),
 	},
 	build: {
 		minify: "terser",
