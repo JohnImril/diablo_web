@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "byteOrder": "little-endian",
+  "vectors": [
+    { "name": "client-info-v1", "direction": "client-to-server", "hex": "3101000000" },
+    { "name": "server-info-v1", "direction": "server-to-client", "hex": "3201000000" },
+    { "name": "game-list-request", "direction": "client-to-server", "hex": "21" },
+    { "name": "client-turn-9", "direction": "client-to-server", "hex": "0209000000" },
+    { "name": "server-turn-player-2-9", "direction": "server-to-client", "hex": "020209000000" },
+    { "name": "message-player-2", "direction": "bidirectional", "hex": "0102020000000304" }
+  ]
+}
