@@ -30,13 +30,41 @@ export default defineConfig([
 				"error",
 				{
 					patterns: [
+						"modules/**/adapters/**",
 						"**/adapters/**",
+						"app/**",
 						"src/app/runtime/**",
+						"**/app/runtime/**",
 						"src/app/ui/**",
+						"**/app/ui/**",
 						"src/app/uiHooks/**",
+						"**/app/uiHooks/**",
 						"src/components/**",
+						"**/components/**",
 						"src/App.tsx",
 					],
+				},
+			],
+		},
+	},
+	{
+		files: ["src/modules/**/adapters/**/*.{ts,tsx}"],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					patterns: ["app/**", "**/app/**", "components/**", "**/components/**", "**/App.tsx"],
+				},
+			],
+		},
+	},
+	{
+		files: ["src/app/runtime/**/*.{ts,tsx}"],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					patterns: ["app/ui/**", "app/uiHooks/**", "components/**", "**/components/**", "**/App.tsx"],
 				},
 			],
 		},
@@ -52,7 +80,7 @@ export default defineConfig([
 			"no-restricted-imports": [
 				"error",
 				{
-					patterns: ["src/modules/**"],
+					patterns: ["src/modules/**", "modules/**", "**/modules/**"],
 				},
 			],
 		},

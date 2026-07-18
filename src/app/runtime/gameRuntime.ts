@@ -42,8 +42,18 @@ type WorkerStartResult = {
 
 export type GameRuntimeInputOptions = Omit<RuntimeInputOptions, "dispatchInput" | "setInputContext" | "getGameHandle">;
 export type StartWithFileResult =
-	| { status: "importedSave" }
-	| { status: "starting"; isRetail: boolean; promise: Promise<GameFunction> };
+	{ status: "importedSave" } | { status: "starting"; isRetail: boolean; promise: Promise<GameFunction> };
+
+export class RuntimeSessionCancelledError extends Error {
+	constructor() {
+		super("Game session was cancelled.");
+		this.name = "RuntimeSessionCancelledError";
+	}
+}
+
+export const isRuntimeSessionCancelledError = (error: unknown): error is RuntimeSessionCancelledError =>
+	error instanceof RuntimeSessionCancelledError;
+
 type StartWithFileOptions = {
 	file: File | null;
 	apiFactory: (fs: Promise<IFileSystem>) => IApi;
@@ -70,6 +80,9 @@ export function createGameRuntime() {
 	let packetQueue: ArrayBuffer[] = [];
 	let networkIntervalId: number | null = null;
 	let stopping = false;
+	let sessionSequence = 0;
+	let activeStartPromise: Promise<GameFunction> | null = null;
+	let rejectActiveStart: ((error: RuntimeSessionCancelledError) => void) | null = null;
 	const getGameHandle = () => gameHandle;
 
 	const registerCleanup = (handler: () => void) => {
@@ -114,41 +127,68 @@ export function createGameRuntime() {
 
 	const start = (opts: GameRuntimeStartOptions): Promise<GameFunction> => {
 		lastStartOptions = opts;
-		if (state.lifecycle === "running" || state.lifecycle === "loading")
-			return Promise.resolve(gameHandle as GameFunction);
+		if (state.lifecycle === "running" && gameHandle) return Promise.resolve(gameHandle);
+		if (state.lifecycle === "loading" && activeStartPromise) return activeStartPromise;
 		if (!saveManager) initStorage(opts.storage);
+		const sessionId = ++sessionSequence;
+		const isActiveSession = () => sessionId === sessionSequence;
 		setLifecycle("loading");
-		return loadGame(opts.api, opts.file, opts.spawn, {
-			startWorker,
+		const enginePromise = loadGame(opts.api, opts.file, opts.spawn, {
+			startWorker: (workerOptions) => {
+				if (!isActiveSession()) throw new RuntimeSessionCancelledError();
+				return startWorker(workerOptions);
+			},
 			stopWorker,
 			callbacks: {
-				onProgress: (payload) => emit("progress", payload),
-				onError: (payload) => emit("error", payload),
-				onReady: (payload) => emit("ready", payload),
-				onExit: (payload) => emit("exit", payload),
-				onSaveChanged: (payload) => emit("saveChanged", payload),
+				onProgress: (payload) => isActiveSession() && emit("progress", payload),
+				onError: (payload) => isActiveSession() && emit("error", payload),
+				onReady: (payload) => isActiveSession() && emit("ready", payload),
+				onExit: (payload) => isActiveSession() && emit("exit", payload),
+				onSaveChanged: (payload) => isActiveSession() && emit("saveChanged", payload),
 			},
 			initNetworkBridge,
 			handleWorkerPacket,
 			handleWorkerPacketBatch,
-			stop,
-		}).then(
-			(loaded) => {
-				gameHandle = loaded;
-				startInput();
-				setLifecycle("running");
-				return loaded;
-			},
-			(error) => {
-				setLifecycle("idle");
-				return Promise.reject(error);
-			}
-		);
+			stop: () => isActiveSession() && stop(),
+		});
+
+		activeStartPromise = new Promise<GameFunction>((resolve, reject) => {
+			rejectActiveStart = reject;
+			enginePromise.then(
+				(loaded) => {
+					if (!isActiveSession()) {
+						reject(new RuntimeSessionCancelledError());
+						return;
+					}
+					activeStartPromise = null;
+					rejectActiveStart = null;
+					gameHandle = loaded;
+					startInput();
+					setLifecycle("running");
+					resolve(loaded);
+				},
+				(error) => {
+					if (!isActiveSession()) {
+						reject(new RuntimeSessionCancelledError());
+						return;
+					}
+					activeStartPromise = null;
+					rejectActiveStart = null;
+					setLifecycle("idle");
+					reject(error);
+				}
+			);
+		});
+		return activeStartPromise;
 	};
 
 	const stop = () => {
 		if (stopping || state.lifecycle === "exited" || state.lifecycle === "idle") return;
 		stopping = true;
+		sessionSequence += 1;
+		rejectActiveStart?.(new RuntimeSessionCancelledError());
+		rejectActiveStart = null;
+		activeStartPromise = null;
 		stopInput();
 		stopWorker();
 		if (networkIntervalId != null) {
@@ -177,6 +217,11 @@ export function createGameRuntime() {
 	};
 
 	const dispose = () => {
+		if (state.lifecycle !== "idle" && state.lifecycle !== "exited") stop();
+		sessionSequence += 1;
+		rejectActiveStart?.(new RuntimeSessionCancelledError());
+		rejectActiveStart = null;
+		activeStartPromise = null;
 		for (const handler of Array.from(cleanupHandlers)) {
 			try {
 				handler();

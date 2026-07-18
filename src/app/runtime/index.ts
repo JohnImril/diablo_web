@@ -1,3 +1,3 @@
-export { createGameRuntime } from "./gameRuntime";
+export { createGameRuntime, isRuntimeSessionCancelledError } from "./gameRuntime";
 export type { GameRuntimeStartOptions, GameRuntimeState } from "./gameRuntime";
 export type { LifecycleState } from "./runtimeState";
