@@ -11,7 +11,11 @@ import type { ProgressReporter, IWebSocketProxy } from "types";
 import { readFileAsArrayBuffer } from "shared/buffers";
 import { resolveWsUrl } from "shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
-import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
+import {
+	isMainToWorkerMessage,
+	PROTOCOL_VERSION,
+	type WorkerToMainMessage,
+} from "../core/protocol";
 import { MAX_MPQ_SIZE } from "constants/files";
 
 const DiabloSize = 1466809;
@@ -505,7 +509,11 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 	}, 50);
 }
 
-worker.addEventListener("message", ({ data }: MessageEvent<MainToWorkerMessage>) => {
+worker.addEventListener("message", ({ data }: MessageEvent<unknown>) => {
+	if (!isMainToWorkerMessage(data)) {
+		onError(new Error("Main thread protocol mismatch."));
+		return;
+	}
 	switch (data.action) {
 		case "init":
 			files = data.files;

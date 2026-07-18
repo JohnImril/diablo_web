@@ -8,7 +8,7 @@ import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
 import TouchControls from "./components/TouchControls/TouchControls";
 import VirtualKeyboard from "./components/VirtualKeyboard/VirtualKeyboard";
-import { createGameRuntime } from "./app/runtime";
+import { createGameRuntime, isRuntimeSessionCancelledError } from "./app/runtime";
 import { transition } from "./app/runtime/lifecycleMachine";
 import type { LifecycleState } from "./app/runtime/runtimeState";
 import { useErrorHandling } from "./app/uiHooks/useErrorHandling";
@@ -216,6 +216,7 @@ const App = () => {
 					};
 				},
 				(err) => {
+					if (isRuntimeSessionCancelledError(err)) return;
 					handleError(err.message, err.stack);
 					setLoading(false);
 					dispatchLifecycle("FAIL");
