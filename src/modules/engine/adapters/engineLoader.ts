@@ -3,7 +3,7 @@ import init_sound from "./sound";
 import load_spawn from "./spawnLoader";
 import { PROTOCOL_VERSION, type MainToWorkerMessage, type WorkerToMainMessage } from "../core/protocol";
 import { createWorkerClient } from "./workerClient";
-import type { GameFunction, IApi, IAudioApi, IWebRTCConnection } from "types";
+import type { BeltData, GameFunction, IApi, IAudioApi, IProgress, IWebRTCConnection } from "types";
 import { toArrayBuffer } from "shared/buffers";
 
 interface IRenderBatch {
@@ -11,7 +11,7 @@ interface IRenderBatch {
 	images: { x: number; y: number; w: number; h: number; data: Uint8ClampedArray }[];
 	text: { x: number; y: number; text: string; color: number }[];
 	clip?: { x0: number; y0: number; x1: number; y1: number };
-	belt: number[];
+	belt: BeltData;
 }
 
 function onRender(api: IApi, ctx: CanvasRenderingContext2D | ImageBitmapRenderingContext | null, batch: IRenderBatch) {
@@ -59,7 +59,7 @@ function testOffscreen() {
 }
 
 type EngineLoadCallbacks = {
-	onProgress?: (payload: { text: string; loaded: number; total?: number }) => void;
+	onProgress?: (payload: IProgress) => void;
 	onError?: (payload: { message: string; stack?: string }) => void;
 	onReady?: (payload: { startedAt: number }) => void;
 	onExit?: (payload: { reason?: string }) => void;
@@ -153,14 +153,14 @@ async function do_load_game(
 			}
 			let resolved = false;
 
-			const emitProgress = (payload: { text: string; loaded: number; total?: number }) => {
+			const emitProgress = (payload: IProgress) => {
 				if (runtime?.callbacks?.onProgress) {
 					runtime.callbacks.onProgress(payload);
 				} else {
 					api.onProgress({
 						text: payload.text,
 						loaded: payload.loaded,
-						total: payload.total as number,
+						total: payload.total,
 					});
 				}
 			};
@@ -243,7 +243,7 @@ async function do_load_game(
 						break;
 
 					case "progress":
-						emitProgress({ text: data.text, loaded: data.loaded, total: data.total as number });
+						emitProgress({ text: data.text, loaded: data.loaded, total: data.total });
 						break;
 
 					case "exit":

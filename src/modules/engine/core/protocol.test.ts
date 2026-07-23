@@ -23,6 +23,45 @@ describe("engine worker protocol guards", () => {
 		expect(isWorkerToMainMessage({ ...envelope("loaded"), action: "exit" })).toBe(false);
 	});
 
+	it("accepts every main-to-worker payload emitted by the runtime", () => {
+		const packet = new ArrayBuffer(4);
+		const messages = [
+			{ ...envelope("init"), files: new Map<string, Uint8Array>(), mpq: null, spawn: true, offscreen: false },
+			{ ...envelope("event"), func: "DApi_Render", params: [1, "value"] },
+			{ ...envelope("packet"), buffer: new Uint8Array(4) },
+			{ ...envelope("packetBatch"), batch: [packet] },
+		];
+
+		for (const message of messages) {
+			expect(isMainToWorkerMessage(message), message.action).toBe(true);
+		}
+	});
+
+	it("accepts every non-render worker payload emitted by the WASM adapter", () => {
+		const packet = new ArrayBuffer(4);
+		const messages = [
+			envelope("loaded"),
+			envelope("exit"),
+			{ ...envelope("current_save"), name: "single_0.sv" },
+			{ ...envelope("current_save"), name: null },
+			{ ...envelope("fs"), func: "update", params: ["single_0.sv", new Uint8Array(4)] },
+			{ ...envelope("fs"), func: "delete", params: ["single_0.sv"] },
+			{ ...envelope("cursor"), x: 10, y: 20 },
+			{ ...envelope("keyboard"), rect: [0, 0, 640, 480, 16] },
+			{ ...envelope("keyboard"), rect: null },
+			{ ...envelope("audio"), func: "create_sound_raw", params: [1, new Float32Array(4), 4, 1, 22050] },
+			{ ...envelope("audioBatch"), batch: [{ func: "play_sound", params: [1, 100, 0, 0] }] },
+			{ ...envelope("packet"), buffer: new Uint8Array(4) },
+			{ ...envelope("packetBatch"), batch: [packet] },
+			{ ...envelope("error"), error: "failure", stack: "stack" },
+			{ ...envelope("failed"), error: "failure" },
+		];
+
+		for (const message of messages) {
+			expect(isWorkerToMainMessage(message), message.action).toBe(true);
+		}
+	});
+
 	it("rejects malformed render buffers", () => {
 		const render = {
 			...envelope("render"),
@@ -45,6 +84,28 @@ describe("engine worker protocol guards", () => {
 				batch: {
 					belt: null,
 					images: [],
+					text: [],
+					clip: null,
+				},
+			})
+		).toBe(true);
+	});
+
+	it("accepts the signed belt buffer produced by HEAP32", () => {
+		expect(
+			isWorkerToMainMessage({
+				...envelope("render"),
+				batch: {
+					belt: new Int32Array([3, 3, -1, -1, -1, -1, -1, -1]),
+					images: [
+						{
+							x: 0,
+							y: 0,
+							w: 640,
+							h: 480,
+							data: new Uint8Array(640 * 480 * 4),
+						},
+					],
 					text: [],
 					clip: null,
 				},

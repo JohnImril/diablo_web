@@ -52,9 +52,9 @@ let renderBatch: {
 	images: { x: number; y: number; w: number; h: number; data: Uint8Array }[];
 	text: { x: number; y: number; text: string; color: number }[];
 	clip: { x0: number; y0: number; x1: number; y1: number } | null;
-	belt: Uint8Array | null;
+	belt: Int32Array | null;
 } | null = null;
-let drawBelt: Uint8Array | null = null;
+let drawBelt: Int32Array | null = null;
 let is_spawn = false;
 let websocket: IWebSocketProxy | null = null;
 
@@ -261,7 +261,7 @@ const DApi_renderLegacy = {
 		renderBatch = null;
 	},
 
-	draw_belt(items: Uint8Array) {
+	draw_belt(items: Int32Array) {
 		drawBelt = items.slice();
 	},
 };
@@ -310,7 +310,7 @@ const DApi_renderOffscreen = {
 		}
 	},
 
-	draw_belt(items: Uint8Array) {
+	draw_belt(items: Int32Array) {
 		drawBelt = items.slice();
 	},
 };
@@ -411,7 +411,7 @@ function call_api(func: string, ...params: (string | number)[]) {
 }
 
 const progress: ProgressReporter = (text, loaded, total) => {
-	postToMain(withProtocol({ action: "progress", text, loaded: loaded as number, total: total as number }));
+	postToMain(withProtocol({ action: "progress", text, loaded, total }));
 };
 
 const readFile = (file: File, progressCb?: (e: ProgressEvent<EventTarget>) => void) =>

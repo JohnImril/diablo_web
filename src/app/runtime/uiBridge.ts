@@ -1,7 +1,7 @@
 import type { CSSProperties, RefObject } from "react";
 
 import { BELT, DIABLO, TOUCH } from "../../constants/controls";
-import type { GameFunction, IApi, IFileSystem, IProgress } from "../../types";
+import type { BeltData, GameFunction, IApi, IFileSystem, IProgress } from "../../types";
 
 export type UiApiOptions = {
 	fs: Promise<IFileSystem>;
@@ -43,7 +43,7 @@ export function createUiApi({
 	setCurrentSave,
 	getGameHandle,
 }: UiApiRuntimeOptions): IApi {
-	const updateBelt = (belt: number[]) => {
+	const updateBelt = (belt: BeltData) => {
 		const game = getGameHandle();
 		if (!game) return;
 		const canvas = canvasRef.current;
