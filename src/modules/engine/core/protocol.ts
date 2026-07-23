@@ -10,6 +10,8 @@ const isBinary = (value: unknown): value is ArrayBuffer | Uint8Array =>
 const isStringOrNumber = (value: unknown): value is string | number => isString(value) || isNumber(value);
 const isNumberList = (value: unknown): value is number[] | Uint8Array =>
 	(Array.isArray(value) && value.every(isNumber)) || value instanceof Uint8Array;
+const isOptionalNumber = (value: unknown): value is number | undefined =>
+	value === undefined || isNumber(value);
 
 type BaseMessage<Type extends string> = {
 	v: number;
@@ -80,7 +82,7 @@ function hasValidEnvelope(data: unknown, types: readonly string[]): data is Reco
 }
 
 function isRenderBatch(value: unknown): boolean {
-	if (!isObject(value) || !isNumberList(value.belt)) return false;
+	if (!isObject(value) || (value.belt !== null && !isNumberList(value.belt))) return false;
 	if ("bitmap" in value && value.bitmap != null) return typeof value.bitmap === "object";
 	if (!Array.isArray(value.images) || !Array.isArray(value.text)) return false;
 	return (
@@ -152,8 +154,8 @@ export function isWorkerToMainMessage(data: unknown): data is WorkerToMainMessag
 		case "progress":
 			return (
 				isString(data.text) &&
-				isNumber(data.loaded) &&
-				(data.total === undefined || isNumber(data.total))
+				isOptionalNumber(data.loaded) &&
+				isOptionalNumber(data.total)
 			);
 		case "current_save":
 			return data.name === null || isString(data.name);
