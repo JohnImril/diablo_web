@@ -8,8 +8,11 @@ const isString = (value: unknown): value is string => typeof value === "string";
 const isBinary = (value: unknown): value is ArrayBuffer | Uint8Array =>
 	value instanceof ArrayBuffer || value instanceof Uint8Array;
 const isStringOrNumber = (value: unknown): value is string | number => isString(value) || isNumber(value);
-const isNumberList = (value: unknown): value is number[] | Uint8Array =>
-	(Array.isArray(value) && value.every(isNumber)) || value instanceof Uint8Array;
+const isNumberList = (value: unknown): boolean => {
+	if (Array.isArray(value)) return value.every(isNumber);
+	if (!ArrayBuffer.isView(value) || value instanceof DataView) return false;
+	return Array.from(value as unknown as ArrayLike<unknown>).every(isNumber);
+};
 const isOptionalNumber = (value: unknown): value is number | undefined =>
 	value === undefined || isNumber(value);
 

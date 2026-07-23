@@ -18,6 +18,7 @@ export interface IWebRTCConnection {
 }
 
 export type ProgressReporter = (text: string, loaded?: number, total?: number) => void;
+export type BeltData = number[] | Int32Array | null;
 
 export type ErrorReportPayload = {
 	message: string;
@@ -33,7 +34,7 @@ export interface IGameHandles {
 }
 
 export interface IApi {
-	updateBelt: (belt: number[]) => void;
+	updateBelt: (belt: BeltData) => void;
 	canvas: HTMLCanvasElement;
 	fs: Promise<IFileSystem>;
 	setCursorPos: (x: number, y: number) => void;
@@ -85,7 +86,7 @@ export interface IError {
 
 export interface IProgress {
 	text: string;
-	loaded: number;
+	loaded?: number;
 	total?: number;
 }
 
