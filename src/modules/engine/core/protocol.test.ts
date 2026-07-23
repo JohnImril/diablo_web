@@ -8,6 +8,14 @@ describe("engine worker protocol guards", () => {
 	it("accepts valid messages", () => {
 		expect(isMainToWorkerMessage({ ...envelope("event"), func: "tick", params: [1, "value"] })).toBe(true);
 		expect(isWorkerToMainMessage({ ...envelope("progress"), text: "Loading", loaded: 1, total: 2 })).toBe(true);
+		expect(
+			isWorkerToMainMessage({
+				...envelope("progress"),
+				text: "Initializing...",
+				loaded: undefined,
+				total: undefined,
+			})
+		).toBe(true);
 	});
 
 	it("rejects incompatible or inconsistent envelopes", () => {
@@ -28,5 +36,19 @@ describe("engine worker protocol guards", () => {
 		expect(isWorkerToMainMessage(render)).toBe(false);
 		render.batch.images[0].data = new Uint8Array(16);
 		expect(isWorkerToMainMessage(render)).toBe(true);
+	});
+
+	it("accepts render batches without a belt update", () => {
+		expect(
+			isWorkerToMainMessage({
+				...envelope("render"),
+				batch: {
+					belt: null,
+					images: [],
+					text: [],
+					clip: null,
+				},
+			})
+		).toBe(true);
 	});
 });
