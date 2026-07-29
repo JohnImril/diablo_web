@@ -1,0 +1,81 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"ignorePatterns": ["dist", "dev-dist"],
+	"plugins": ["react", "typescript"],
+	"categories": {
+		"correctness": "error"
+	},
+	"env": {
+		"browser": true
+	},
+	"rules": {
+		"typescript/no-explicit-any": "warn",
+		"react/exhaustive-deps": "warn",
+		"react/rules-of-hooks": "error",
+		"react/only-export-components": ["warn", { "allowConstantExport": true }]
+	},
+	"overrides": [
+		{
+			"files": ["src/modules/**/core/**/*.{ts,tsx}"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": [
+							"modules/**/adapters/**",
+							"**/adapters/**",
+							"app/**",
+							"src/app/runtime/**",
+							"**/app/runtime/**",
+							"src/app/ui/**",
+							"**/app/ui/**",
+							"src/app/uiHooks/**",
+							"**/app/uiHooks/**",
+							"src/components/**",
+							"**/components/**",
+							"src/App.tsx"
+						]
+					}
+				]
+			}
+		},
+		{
+			"files": ["src/modules/**/adapters/**/*.{ts,tsx}"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": ["app/**", "**/app/**", "components/**", "**/components/**", "**/App.tsx"]
+					}
+				]
+			}
+		},
+		{
+			"files": ["src/app/runtime/**/*.{ts,tsx}"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": ["app/ui/**", "app/uiHooks/**", "components/**", "**/components/**", "**/App.tsx"]
+					}
+				]
+			}
+		},
+		{
+			"files": [
+				"src/App.tsx",
+				"src/app/ui/**/*.{ts,tsx}",
+				"src/app/uiHooks/**/*.{ts,tsx}",
+				"src/components/**/*.{ts,tsx}"
+			],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": ["src/modules/**", "modules/**", "**/modules/**"]
+					}
+				]
+			}
+		}
+	]
+}
