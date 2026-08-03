@@ -1,4 +1,4 @@
-import type { InputCommand, InputMods } from "../core/commands";
+import { toEngineKeyCode, type InputCommand, type InputMods } from "../core/commands";
 
 export type DomInputCallbacks = {
 	onMouseMove?: (event: MouseEvent) => void;
@@ -102,7 +102,7 @@ export function createDomInput(opts: DomInputOptions) {
 			type: "KeyDown",
 			code: event.code,
 			key: event.key,
-			keyCode: event.keyCode,
+			engineKeyCode: toEngineKeyCode(event.code),
 			repeat: event.repeat,
 			mods: toMods(event),
 		});
@@ -113,7 +113,7 @@ export function createDomInput(opts: DomInputOptions) {
 			type: "KeyUp",
 			code: event.code,
 			key: event.key,
-			keyCode: event.keyCode,
+			engineKeyCode: toEngineKeyCode(event.code),
 			repeat: event.repeat,
 			mods: toMods(event),
 		});
