@@ -29,9 +29,9 @@ export function mapInputToEngine(cmd: InputCommand, ctx: EngineInputContext): En
 	const mods = resolveMods(cmd.mods ?? ctx.modifiers);
 	switch (cmd.type) {
 		case "KeyDown":
-			return { kind: "call", name: "DApi_Key", args: [0, mods, cmd.keyCode] };
+			return { kind: "call", name: "DApi_Key", args: [0, mods, cmd.engineKeyCode] };
 		case "KeyUp":
-			return { kind: "call", name: "DApi_Key", args: [1, mods, cmd.keyCode] };
+			return { kind: "call", name: "DApi_Key", args: [1, mods, cmd.engineKeyCode] };
 		case "MouseMove":
 			return {
 				kind: "call",

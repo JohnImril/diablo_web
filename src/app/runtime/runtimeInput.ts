@@ -27,8 +27,7 @@ export type RuntimeInputOptions = {
 };
 
 const clamp = (num: number, min: number, max: number) => Math.min(Math.max(num, min), max);
-const FKEY_KEYCODES = Array.from({ length: 8 }, (_, i) => 112 + i);
-const KEYDOWN_PREVENT_DEFAULT = new Set<number>([8, 9, ...FKEY_KEYCODES]);
+const KEYDOWN_PREVENT_DEFAULT = new Set(["Backspace", "Tab", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"]);
 const isFKeyButton = (idx: number) => idx >= TOUCH.BUTTON_START_FKEY_LEFT;
 
 export function createRuntimeInputController(opts: RuntimeInputOptions) {
@@ -269,9 +268,10 @@ export function createRuntimeInputController(opts: RuntimeInputOptions) {
 		const game = opts.getGameHandle();
 		if (!game) return;
 		if (!refs.showKeyboard.current && e.key.length === 1) game("DApi_Char", e.key.charCodeAt(0));
-		if ([8, 13].includes(e.keyCode)) game("DApi_Char", e.keyCode);
+		if (e.key === "Backspace") game("DApi_Char", 8);
+		if (e.key === "Enter") game("DApi_Char", 13);
 		clearSelection();
-		if (!refs.showKeyboard.current && KEYDOWN_PREVENT_DEFAULT.has(e.keyCode)) {
+		if (!refs.showKeyboard.current && KEYDOWN_PREVENT_DEFAULT.has(e.key)) {
 			e.preventDefault();
 		}
 	};

@@ -5,7 +5,7 @@ import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import { VitePWA } from "vite-plugin-pwa";
-import pkg from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 
 const BASE = "/diablo_web/";
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
