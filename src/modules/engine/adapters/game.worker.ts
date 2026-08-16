@@ -19,8 +19,8 @@ import {
 } from "../core/protocol";
 import { MAX_MPQ_SIZE } from "constants/files";
 
-const DiabloSize = 1466809;
-const SpawnSize = 1337416;
+const DiabloSize = 1364619;
+const SpawnSize = 1215907;
 
 const WS_URL = resolveWsUrl();
 
