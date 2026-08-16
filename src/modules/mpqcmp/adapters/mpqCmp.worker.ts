@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import MpqModule from "./mpqCmp.jscc";
+import { loadEmscriptenModule } from "shared/emscriptenModule";
 
 const worker: Worker & { DApi?: IDApi } = self as unknown as Worker & { DApi?: IDApi };
 
@@ -51,7 +52,9 @@ async function run({ binary, mpq, input, offset, blockSize }: IWorkerMessageData
 		throw new Error("Invalid arguments passed to the worker");
 	}
 
-	const wasm = await MpqModule({ wasmBinary: binary }).ready;
+	const wasm = await loadEmscriptenModule<MpqWasmApi, { wasmBinary: ArrayBuffer }>(MpqModule, {
+		wasmBinary: binary,
+	});
 
 	input_file = new Uint8Array(mpq);
 	input_offset = offset;
@@ -97,4 +100,10 @@ interface IDApi {
 	put_file_size(size: number): void;
 	put_file_contents(array: Uint8Array, offset: number): void;
 	progress(done: number, total: number): void;
+}
+
+interface MpqWasmApi {
+	_DApi_Alloc(size: number): number;
+	_DApi_Compress(size: number, blockSize: number, count: number, input: number): number;
+	HEAPU32: Uint32Array;
 }

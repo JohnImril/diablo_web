@@ -282,7 +282,13 @@ async function do_load_game(
 			};
 
 			const handleError = (event: ErrorEvent) => {
-				void event;
+				const error = event.error instanceof Error ? event.error : new Error(event.message || "Engine worker failed.");
+				if (!resolved) {
+					resolved = true;
+					reject(error);
+					return;
+				}
+				emitError({ message: error.message, stack: error.stack });
 			};
 
 			workerClient.onMessage(handleMessage);

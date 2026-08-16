@@ -9,6 +9,7 @@ import SpawnModule from "./diabloSpawn.jscc";
 import websocket_open from "../../network/adapters/webSocketClient";
 import type { ProgressReporter, IWebSocketProxy } from "types";
 import { readFileAsArrayBuffer } from "shared/buffers";
+import { loadEmscriptenModule } from "shared/emscriptenModule";
 import { resolveWsUrl } from "shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
 import {
@@ -18,8 +19,8 @@ import {
 } from "../core/protocol";
 import { MAX_MPQ_SIZE } from "constants/files";
 
-const DiabloSize = 1466809;
-const SpawnSize = 1337416;
+const DiabloSize = 1364619;
+const SpawnSize = 1215907;
 
 const WS_URL = resolveWsUrl();
 
@@ -425,9 +426,9 @@ async function initWasm(spawn: boolean, progressCb: (e: { loaded: number; total?
 		progressCb({ loaded, total })
 	);
 
-	const result = await (spawn ? SpawnModule : DiabloModule)({
+	const result = await loadEmscriptenModule(spawn ? SpawnModule : DiabloModule, {
 		wasmBinary: binary,
-	}).ready;
+	});
 
 	progressCb({ loaded: 2000000 });
 	return result as WasmApi;
