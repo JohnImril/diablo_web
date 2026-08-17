@@ -7,6 +7,7 @@ const MAX_OUTBOX_MESSAGES = 256;
 const MAX_OUTBOX_BYTES = 14 * 1024 * 1024;
 const CONNECT_TIMEOUT_MS = 15000;
 const FLUSH_INTERVAL_MS = 20;
+const TURN_PACKET_CODE = 0x02;
 
 async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	const socket = new WebSocket(url);
@@ -136,6 +137,19 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 		flushTimerId = setTimeout(flush, FLUSH_INTERVAL_MS);
 	};
 
+	const sendLatencySensitive = (msg: Uint8Array<ArrayBuffer>) => {
+		if (!ws || ws.readyState !== WebSocket.OPEN || msg[0] !== TURN_PACKET_CODE) {
+			return false;
+		}
+		if (flushTimerId) {
+			clearTimeout(flushTimerId);
+			flushTimerId = null;
+		}
+		flush();
+		ws.send(msg);
+		return true;
+	};
+
 	const proxy: IWebSocketProxy = {
 		get readyState() {
 			return ws ? ws.readyState : 0;
@@ -144,7 +158,10 @@ export default function websocket_open(url: string, handler: WebSocketHandler, f
 			if (!batch) {
 				return;
 			}
-			const cloned = msg.slice();
+			const cloned = new Uint8Array(msg);
+			if (sendLatencySensitive(cloned)) {
+				return;
+			}
 			batch.push(cloned);
 			batchBytes += cloned.byteLength;
 			if (batch.length > MAX_OUTBOX_MESSAGES || batchBytes > MAX_OUTBOX_BYTES) {
