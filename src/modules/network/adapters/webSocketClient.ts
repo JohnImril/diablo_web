@@ -18,17 +18,28 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	socket.addEventListener("message", ({ data }: MessageEvent) => {
 		if (versionCbk) {
 			versionCbk(data);
+			return;
 		}
 		handler(data);
 	});
 
+	const closeSocket = () => {
+		try {
+			socket.close();
+		} catch {
+			/* empty */
+		}
+	};
+
 	await new Promise<void>((resolve, reject) => {
 		const to = setTimeout(() => {
 			socket.removeEventListener("error", onError);
+			closeSocket();
 			reject(1);
 		}, CONNECT_TIMEOUT_MS);
 		const onError = () => {
 			clearTimeout(to);
+			closeSocket();
 			reject(1);
 		};
 		socket.addEventListener("error", onError);
@@ -42,6 +53,7 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 	await new Promise<void>((resolve, reject) => {
 		const to = setTimeout(() => {
 			versionCbk = null;
+			closeSocket();
 			reject(1);
 		}, 5000);
 
@@ -54,6 +66,7 @@ async function do_websocket_open(url: string, handler: WebSocketHandler) {
 				if (version === 1) {
 					resolve();
 				} else {
+					closeSocket();
 					reject(2);
 				}
 			}
