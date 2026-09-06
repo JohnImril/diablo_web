@@ -7,7 +7,9 @@ type Listener = (event: { data?: ArrayBuffer }) => void;
 class MockWebSocket {
 	static readonly OPEN = 1;
 	static instances: MockWebSocket[] = [];
+	static version = 1;
 	readonly sent: Uint8Array[] = [];
+	closed = false;
 	readyState = MockWebSocket.OPEN;
 	binaryType = "";
 	private readonly listeners = new Map<string, Listener[]>();
@@ -15,7 +17,7 @@ class MockWebSocket {
 	constructor(_url: string) {
 		MockWebSocket.instances.push(this);
 		queueMicrotask(() => this.emit("open"));
-		setTimeout(() => this.emit("message", new Uint8Array([0x32, 1, 0, 0, 0]).buffer), 0);
+		setTimeout(() => this.emit("message", new Uint8Array([0x32, MockWebSocket.version, 0, 0, 0]).buffer), 0);
 	}
 
 	addEventListener(type: string, listener: Listener) {
@@ -35,7 +37,9 @@ class MockWebSocket {
 		this.sent.push(new Uint8Array(data));
 	}
 
-	close() {}
+	close() {
+		this.closed = true;
+	}
 
 	private emit(type: string, data?: ArrayBuffer) {
 		for (const listener of this.listeners.get(type) ?? []) listener({ data });
@@ -45,6 +49,7 @@ class MockWebSocket {
 describe("websocket client", () => {
 	beforeEach(() => {
 		MockWebSocket.instances = [];
+		MockWebSocket.version = 1;
 		vi.stubGlobal("WebSocket", MockWebSocket);
 	});
 
@@ -52,8 +57,19 @@ describe("websocket client", () => {
 		vi.unstubAllGlobals();
 	});
 
+	it("closes the socket when the server protocol version is unsupported", async () => {
+		MockWebSocket.version = 2;
+		const finisher = vi.fn();
+		websocketOpen("ws://example.test/ws", () => {}, finisher);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(MockWebSocket.instances[0].closed).toBe(true);
+		expect(finisher).toHaveBeenCalledWith(2);
+	});
+
 	it("flushes queued traffic before sending turn packets immediately", async () => {
-		const proxy = websocketOpen("ws://example.test/ws", () => {}, () => {});
+		const handler = vi.fn();
+		const proxy = websocketOpen("ws://example.test/ws", handler, () => {});
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		const socket = (proxy as unknown as { readyState: number }).readyState;
@@ -68,5 +84,6 @@ describe("websocket client", () => {
 			new Uint8Array([0x00, 1, 0, 0x01, 0xaa]),
 			new Uint8Array([0x02, 0xbb]),
 		]);
+		expect(handler).not.toHaveBeenCalled();
 	});
 });

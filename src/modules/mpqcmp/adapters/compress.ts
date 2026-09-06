@@ -36,14 +36,18 @@ function runWorker(data: unknown, transfer: Transferable[], progress: (value: nu
 	return new Promise<IWorkerResult>((resolve, reject) => {
 		try {
 			const worker = new Worker();
+			const finish = (callback: () => void) => {
+				worker.terminate();
+				callback();
+			};
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
 					case "result":
-						resolve({ buffer: data.buffer, blocks: data.blocks });
+						finish(() => resolve({ buffer: data.buffer, blocks: data.blocks }));
 						break;
 					case "error":
-						reject({ message: data.error, stack: data.stack });
+						finish(() => reject({ message: data.error, stack: data.stack }));
 						break;
 					case "progress":
 						progress(data.value);

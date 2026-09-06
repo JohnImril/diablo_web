@@ -122,6 +122,7 @@ export default defineConfig({
 		sourcemap: false,
 		rollupOptions: {
 			output: {
+				assetFileNames: "assets/[hash][extname]",
 				manualChunks(id) {
 					if (id.includes("peerjs")) return "peer";
 				},
