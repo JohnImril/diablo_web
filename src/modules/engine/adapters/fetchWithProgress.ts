@@ -3,7 +3,12 @@ export async function fetchWithProgress(
 	onProgress?: (loaded: number, total?: number) => void,
 	init?: RequestInit
 ): Promise<ArrayBuffer> {
-	const res = await fetch(url, init);
+	const resolved = new URL(url, window.location.origin);
+	if (resolved.origin !== window.location.origin) {
+		throw new Error("fetchWithProgress: cross-origin URLs are not allowed");
+	}
+
+	const res = await fetch(resolved, init);
 	if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
 	const total = Number(res.headers.get("content-length") ?? 0);
