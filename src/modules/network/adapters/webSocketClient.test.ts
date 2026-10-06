@@ -51,10 +51,12 @@ describe("websocket client", () => {
 		MockWebSocket.instances = [];
 		MockWebSocket.version = 1;
 		vi.stubGlobal("WebSocket", MockWebSocket);
+		vi.stubEnv("VITE_APP_VERSION", "1.6.1");
 	});
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+		vi.unstubAllEnvs();
 	});
 
 	it("closes the socket when the server protocol version is unsupported", async () => {
