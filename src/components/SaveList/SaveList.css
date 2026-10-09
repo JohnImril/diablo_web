@@ -1,6 +1,15 @@
 .save-list {
+	margin: 0;
 	font-size: 15px;
 	text-align: center;
+}
+
+.save-list::backdrop {
+	background: var(--d1-ink-mid);
+}
+
+.save-list__items:empty {
+	display: none;
 }
 
 .save-list__items {

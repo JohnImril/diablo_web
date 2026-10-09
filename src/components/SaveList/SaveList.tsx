@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import cn from "classnames";
 import type { IPlayerInfo } from "../../types";
 
@@ -13,16 +14,53 @@ interface IProps {
 
 const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IProps) => {
 	const plrClass = ["Warrior", "Rogue", "Sorcerer"];
+	const dialogRef = useRef<HTMLDialogElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const uploadButtonRef = useRef<HTMLButtonElement>(null);
+	const saves = Object.entries(saveNames);
+
+	useEffect(() => {
+		const dialog = dialogRef.current;
+		if (!dialog) return;
+		dialog.showModal();
+		return () => {
+			dialog.close();
+			// The start screen is mounted again after this dialog is removed.
+			requestAnimationFrame(() => {
+				if (document.querySelector("dialog.save-list[open]")) return;
+				const target =
+					document.querySelector<HTMLElement>("[data-save-manager-trigger]") ??
+					document.querySelector<HTMLElement>(".start-screen__button--primary");
+				target?.focus();
+			});
+		};
+	}, []);
+
+	useEffect(() => {
+		// Deleting a focused row must leave keyboard focus inside the dialog.
+		if (
+			dialogRef.current?.open &&
+			(document.activeElement === dialogRef.current || !dialogRef.current.contains(document.activeElement))
+		) {
+			uploadButtonRef.current?.focus();
+		}
+	}, [saveNames]);
 
 	return (
-		<section
+		<dialog
+			ref={dialogRef}
 			className={cn("save-list", "u-center-abs", "u-modal", "u-scrollbar-gold", "d1-panel")}
-			role="dialog"
 			aria-modal="true"
 			aria-label="Manage save files"
+			onCancel={(event) => {
+				event.preventDefault();
+				onBack();
+			}}
 		>
+			<h2>Manage Saves</h2>
+			{saves.length === 0 && <p role="status">No saves yet. Upload a save file or go back to start playing.</p>}
 			<ul className="save-list__items">
-				{Object.entries(saveNames).map(([name, info]) => (
+				{saves.map(([name, info]) => (
 					<li key={name} className="save-list__item">
 						<div className="save-list__item-info">
 							<div className={cn("save-list__item-name", "text-gold")}>{name}</div>
@@ -76,15 +114,21 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 				))}
 			</ul>
 
-			<form>
-				<label htmlFor="loadSave" className={cn("save-list__button", "d1-btn")}>
+			<div>
+				<button
+					ref={uploadButtonRef}
+					type="button"
+					className={cn("save-list__button", "d1-btn")}
+					onClick={() => fileInputRef.current?.click()}
+				>
 					Upload Save
-				</label>
+				</button>
 				<input
+					ref={fileInputRef}
 					accept=".sv"
 					type="file"
-					id="loadSave"
-					style={{ display: "none" }}
+					hidden
+					aria-label="Choose a Diablo save file"
 					onChange={(e) => {
 						const files = e.target.files;
 						if (files && files.length > 0) {
@@ -93,12 +137,12 @@ const SaveList = ({ saveNames, onDownload, onDelete, onUploadSave, onBack }: IPr
 						}
 					}}
 				/>
-			</form>
+			</div>
 
 			<button type="button" className={cn("save-list__button", "d1-btn", "d1-btn--gold")} onClick={onBack}>
 				Back
 			</button>
-		</section>
+		</dialog>
 	);
 };
 

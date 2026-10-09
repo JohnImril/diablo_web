@@ -54,7 +54,14 @@ const App = () => {
 	const touchCtx = useRef<(CanvasRenderingContext2D | null)[]>(Array(TOUCH.BELT_BUTTON_COUNT).fill(null));
 	const touchBelt = useRef<[number, number, number]>([-1, -1, -1]);
 
-	const { error, onError } = useErrorHandling();
+	const { error, onError: reportError } = useErrorHandling();
+	const onError = useCallback(
+		(...args: Parameters<typeof reportError>) => {
+			setShowSaves(false);
+			reportError(...args);
+		},
+		[reportError]
+	);
 	const {
 		status: updateStatus,
 		updating,
@@ -314,9 +321,9 @@ const App = () => {
 			</section>
 
 			<section className="app__body-v" aria-live="polite" inert={updating}>
-				{showSaves && typeof saveNames === "object" && (
+				{showSaves && (
 					<SaveList
-						saveNames={saveNames as Record<string, IPlayerInfo | null>}
+						saveNames={saveNames || {}}
 						onDownload={(name) => {
 							runtime.downloadSave(name);
 						}}
