@@ -329,9 +329,11 @@ body,
 	z-index: 100;
 	max-width: calc(100% - 24px);
 	padding: 8px 12px;
-	background: #18120a;
-	border: 1px solid #a08040;
-	color: #efd9a4;
+	background: linear-gradient(#262b36, #101217);
+	border: 1px solid #745333;
+	border-radius: 2px;
+	font-family: Georgia, "Times New Roman", serif;
+	color: #d3cec5;
 	font-size: 14px;
 	text-align: center;
 	pointer-events: auto;
@@ -352,7 +354,7 @@ body,
 	z-index: 200;
 	display: grid;
 	place-items: center;
-	background: #000b;
+	background: #101217e6;
 	padding: 16px;
 }
 .app__update-overlay .d1-panel {
@@ -364,8 +366,8 @@ body,
 	display: inline-block;
 	width: 28px;
 	height: 28px;
-	border: 3px solid #69502c;
-	border-top-color: #efd9a4;
+	border: 2px solid #745333;
+	border-top-color: #e4c367;
 	border-radius: 50%;
 	animation: update-spin 1s linear infinite;
 }
@@ -392,4 +394,25 @@ body,
 .app__save-backups a {
 	display: block;
 	margin: 8px 0;
+}
+
+.app:not(.app--started) {
+	background:
+		linear-gradient(90deg, #101217ed, #10121799),
+		url("./components/StartScreen/gothic-village-dusk.webp") right center / cover no-repeat;
+	font:
+		15px/1.55 Georgia,
+		"Times New Roman",
+		serif;
+}
+.app__update-notice {
+	max-height: calc(100svh - 24px);
+	overflow-y: auto;
+}
+.app__save-backups {
+	text-align: left;
+	overflow-wrap: anywhere;
+	font:
+		13px/1.75 Arial,
+		sans-serif;
 }

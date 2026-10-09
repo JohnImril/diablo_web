@@ -1,21 +1,15 @@
 .loading-component {
 	text-align: center;
-	letter-spacing: 1px;
-	font-size: 32px;
 }
-
 .loading-component__text {
-	animation: d1-pulse 2s ease-in-out infinite;
 	display: inline-block;
+	color: #dec080;
+	font:
+		24px/1.4 "Palatino Linotype",
+		Georgia,
+		serif;
+	text-shadow: none;
 }
-
 .loading-component__progress {
-	display: block;
-	margin-top: 18px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.loading-component__text {
-		animation: none;
-	}
+	margin-top: 24px;
 }

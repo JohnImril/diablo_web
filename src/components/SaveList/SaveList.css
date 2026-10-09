@@ -1,11 +1,11 @@
 .save-list {
-	font-size: 18px;
+	font-size: 15px;
 	text-align: center;
 }
 
 .save-list__items {
 	border: 1px solid var(--d1-gold-mid);
-	border-radius: 6px;
+	border-radius: 2px;
 	text-align: left;
 	background:
 		linear-gradient(180deg, var(--d1-white-faint), var(--d1-ink-soft)),
@@ -62,8 +62,8 @@
 	display: block;
 	margin: 12px auto 0;
 	width: 11em;
-	font-size: clamp(18px, 2.2vw, 28px);
-	line-height: 1.15;
+	font-size: 18px;
+	line-height: 1.25;
 }
 
 @media (max-width: 560px) {
@@ -82,5 +82,35 @@
 @media (prefers-reduced-motion: reduce) {
 	.save-list__button {
 		transition: none;
+	}
+}
+
+.save-list__item {
+	padding: 12px 16px;
+	gap: 16px;
+	background: #181b23;
+}
+.save-list__item:hover {
+	background: #262b36;
+}
+.save-list__item-name {
+	color: #dec080;
+	overflow-wrap: anywhere;
+}
+.save-list__player-info {
+	font:
+		13px/1.65 Arial,
+		sans-serif;
+}
+.save-list__buttons {
+	flex-shrink: 0;
+	gap: 8px;
+}
+@media (max-width: 400px) {
+	.save-list__item {
+		flex-wrap: wrap;
+	}
+	.save-list__buttons {
+		margin-left: auto;
 	}
 }
