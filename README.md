@@ -44,8 +44,10 @@ Game files and saves are stored locally in the current browser/profile through I
 service. Export saves before clearing browser data or moving to another browser or device.
 
 - **Export:** open **Manage Saves** on the start screen and download the saves you want to keep.
-- **Import:** use the upload control in **Manage Saves**, or drop a `.sv` file onto the start screen.
-  **Manage Saves** appears when saves are available.
+- **First import:** if **Manage Saves** is not visible yet, drag a `.sv` file from your computer and drop it
+  onto the start screen (the screen with **Play Free Demo** and **Load Your MPQ**). After the save is imported,
+  **Manage Saves** appears.
+- **Import more saves:** use the upload control in **Manage Saves**, or drop another `.sv` file onto the start screen.
 - **Loading errors:** use **Reload and Try Again** when offered to return to the start screen without clearing
   browser data. If reload cannot proceed, keep the page open, download any saves offered, and retry.
 
@@ -85,7 +87,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for module boundaries, entrypoints, and
 
 ### Prerequisites
 
-- Node.js 22 (used by the GitHub Actions deployment workflow) and npm.
+- Node.js 24 LTS (used by the GitHub Actions CI and deployment workflows) and npm.
 - A browser with WebAssembly, Web Workers, and IndexedDB support.
 - Shareware data or your own retail MPQ to play locally.
 
@@ -136,8 +138,9 @@ Open the preview URL printed in the terminal.
 The client runs on static hosting; a game backend is not required for the demo or local single-player game.
 The base path is `/diablo_web/` in [vite.config.ts](./vite.config.ts), matching the GitHub Pages demo.
 
-The [deployment workflow](./.github/workflows/deploy.yml) installs dependencies with `npm ci`, runs linting,
-builds the client, and publishes `dist/` to GitHub Pages. Markdown-only changes are excluded from automatic deployment.
+The [deployment workflow](./.github/workflows/deploy.yml) installs dependencies with `npm ci`, runs linting and tests,
+builds the client, and publishes `dist/` to GitHub Pages through the `github-pages` environment.
+Markdown-only changes are excluded from automatic deployment.
 For another hosting path, update the Vite base configuration accordingly.
 
 For a simpler deployment-oriented variant, see
