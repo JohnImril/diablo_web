@@ -1,4 +1,4 @@
-# Diablo Web — The original Diablo, playable in your browser.
+# Diablo Web - The original Diablo, playable in your browser.
 
 ![Diablo Web screenshot](./public/screenshot.png)
 
@@ -27,10 +27,10 @@ improvement; landscape gives the game more room.
 
 ### Game Data
 
-| Mode | Data file | How to play |
-| --- | --- | --- |
-| Free shareware demo | `spawn.mpq` | Choose **Play Free Demo**; the app downloads the archive on first use. |
-| Full game | `DIABDAT.MPQ` | Choose **Load Your MPQ** or drop your own archive onto the start screen. |
+| Mode                | Data file     | How to play                                                              |
+| ------------------- | ------------- | ------------------------------------------------------------------------ |
+| Free shareware demo | `spawn.mpq`   | Choose **Play Free Demo**; the app downloads the archive on first use.   |
+| Full game           | `DIABDAT.MPQ` | Choose **Load Your MPQ** or drop your own archive onto the start screen. |
 
 The demo contains limited content. Retail game data is not included. Use a legal copy of Diablo to obtain
 `DIABDAT.MPQ`; see [Diablo on GOG](https://www.gog.com/game/diablo).
@@ -68,13 +68,13 @@ The browser client separates React UI from runtime orchestration, domain logic, 
 
 ### Source Layout
 
-| Path | Responsibility |
-| --- | --- |
-| `src/app/runtime/` | Sessions, lifecycle, events, input orchestration, and UI bridge |
-| `src/modules/<domain>/core/` | Pure domain logic, types, and mappings |
-| `src/modules/<domain>/adapters/` | Engine, worker, DOM, storage, and network side effects |
-| `src/components/`, `src/app/ui/`, `src/app/uiHooks/` | React UI and hooks |
-| `src/shared/` | Shared helpers and parsers |
+| Path                                                 | Responsibility                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| `src/app/runtime/`                                   | Sessions, lifecycle, events, input orchestration, and UI bridge |
+| `src/modules/<domain>/core/`                         | Pure domain logic, types, and mappings                          |
+| `src/modules/<domain>/adapters/`                     | Engine, worker, DOM, storage, and network side effects          |
+| `src/components/`, `src/app/ui/`, `src/app/uiHooks/` | React UI and hooks                                              |
+| `src/shared/`                                        | Shared helpers and parsers                                      |
 
 The main flow is to prepare browser storage, load the selected game data, initialize the WASM engine through the
 worker bridge, then route input, rendering, and runtime events while the session runs.
