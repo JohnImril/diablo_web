@@ -12,7 +12,7 @@ interface IProps {
 const LoadingComponent = ({ title, progress }: IProps) => {
 	return (
 		<section
-			className={cn("loading-component", "u-center-abs", "u-modal")}
+			className={cn("loading-component", "u-center-abs", "u-modal", "d1-panel")}
 			aria-busy="true"
 			aria-live="polite"
 			aria-label={progress?.text || title}

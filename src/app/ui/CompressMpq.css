@@ -1,5 +1,5 @@
 .compress-mpq {
-	font-size: 18px;
+	font-size: 15px;
 	text-align: center;
 	color: var(--d1-ivory);
 }
@@ -9,15 +9,15 @@
 	margin: 12px 0;
 	line-height: 1.45;
 	color: var(--d1-ivory-dim);
-	text-shadow: 0 0 6px var(--d1-ink-muted);
+	font-family: Arial, sans-serif;
 }
 
 .compress-mpq__button {
 	display: block;
 	margin: 12px auto 0;
 	width: 11em;
-	font-size: clamp(18px, 2.2vw, 28px);
-	line-height: 1.15;
+	font-size: 18px;
+	line-height: 1.25;
 	user-select: none;
 }
 
