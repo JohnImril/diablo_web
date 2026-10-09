@@ -222,7 +222,9 @@ async function do_load_game(
 						break;
 
 					case "fs":
-						(fs as unknown as Record<string, (...args: unknown[]) => void>)[data.func](...data.params);
+						void (fs as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>)
+							[data.func](...data.params)
+							.catch((error) => emitError({ message: `Unable to save game data: ${String(error)}` }));
 						break;
 
 					case "cursor":
@@ -282,7 +284,8 @@ async function do_load_game(
 			};
 
 			const handleError = (event: ErrorEvent) => {
-				const error = event.error instanceof Error ? event.error : new Error(event.message || "Engine worker failed.");
+				const error =
+					event.error instanceof Error ? event.error : new Error(event.message || "Engine worker failed.");
 				if (!resolved) {
 					resolved = true;
 					reject(error);

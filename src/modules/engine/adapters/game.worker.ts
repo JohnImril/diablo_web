@@ -12,12 +12,9 @@ import { readFileAsArrayBuffer } from "shared/buffers";
 import { loadEmscriptenModule } from "shared/emscriptenModule";
 import { resolveWsUrl } from "shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
-import {
-	isMainToWorkerMessage,
-	PROTOCOL_VERSION,
-	type WorkerToMainMessage,
-} from "../core/protocol";
-import { MAX_MPQ_SIZE } from "constants/files";
+import { isMainToWorkerMessage, PROTOCOL_VERSION, type WorkerToMainMessage } from "../core/protocol";
+import { createRemoteFile } from "./remoteFile";
+import { isSaveFile } from "../../storage/core/saveRules";
 
 const DiabloSize = 1364619;
 const SpawnSize = 1215907;
@@ -58,6 +55,8 @@ let renderBatch: {
 let drawBelt: Int32Array | null = null;
 let is_spawn = false;
 let websocket: IWebSocketProxy | null = null;
+let quiesced = false;
+let renderTimer: ReturnType<typeof setInterval> | undefined;
 
 function onError(err: unknown, action: "error" | "failed" = "error") {
 	if (err instanceof Error) {
@@ -67,80 +66,6 @@ function onError(err: unknown, action: "error" | "failed" = "error") {
 	}
 }
 
-const ChunkSize = 1 << 20;
-
-type RemoteFile = ReturnType<typeof createRemoteFile>;
-
-const createRemoteFile = (url: string) => {
-	const request = new XMLHttpRequest();
-	request.open("HEAD", url, false);
-	request.send();
-	if (request.status < 200 || request.status >= 300) {
-		throw Error("Failed to load remote file");
-	}
-
-	const byteLength = parseInt(request.getResponseHeader("Content-Length") || "0");
-	if (byteLength > MAX_MPQ_SIZE) {
-		throw Error("Remote file is too large");
-	}
-	const buffer = new Uint8Array(byteLength);
-	const chunks = new Uint8Array(((byteLength + ChunkSize - 1) >> 20) | 0);
-
-	const ensureRange = (start: number, end: number) => {
-		let chunk0 = (start / ChunkSize) | 0;
-		let chunk1 = ((end + ChunkSize - 1) / ChunkSize) | 0;
-		let missing0 = chunk1;
-		let missing1 = chunk0;
-
-		for (let i = chunk0; i < chunk1; ++i) {
-			if (!chunks[i]) {
-				missing0 = Math.min(missing0, i);
-				missing1 = Math.max(missing1, i);
-			}
-		}
-
-		if (missing0 > missing1) return;
-
-		const rangeRequest = new XMLHttpRequest();
-		rangeRequest.open("GET", url, false);
-		rangeRequest.setRequestHeader(
-			"Range",
-			`bytes=${missing0 * ChunkSize}-${Math.min(missing1 * ChunkSize + ChunkSize - 1, byteLength - 1)}`
-		);
-		rangeRequest.responseType = "arraybuffer";
-		rangeRequest.send();
-		if (rangeRequest.status < 200 || rangeRequest.status >= 300) {
-			throw Error("Failed to load remote file");
-		}
-
-		const header = rangeRequest.getResponseHeader("Content-Range");
-		let offset = 0;
-		const match = header?.match(/bytes (\d+)-(\d+)\/(\d+)/);
-		if (match) {
-			offset = parseInt(match[1]);
-		}
-
-		buffer.set(new Uint8Array(rangeRequest.response), offset);
-		chunk0 = ((offset + ChunkSize - 1) / ChunkSize) | 0;
-		chunk1 = ((offset + rangeRequest.response.byteLength + ChunkSize - 1) / ChunkSize) | 0;
-		for (let i = chunk0; i < chunk1; ++i) {
-			chunks[i] = 1;
-		}
-	};
-
-	const subarray = (start: number, end: number) => {
-		ensureRange(start, end);
-		return buffer.subarray(start, end);
-	};
-
-	return {
-		byteLength,
-		url,
-		buffer,
-		chunks,
-		subarray,
-	};
-};
 
 const DApi: IDApi = {
 	exit_error(error: string) {
@@ -168,14 +93,16 @@ const DApi: IDApi = {
 	get_file_contents(path: string, array: Uint8Array, offset: number) {
 		const data = files?.get(path.toLowerCase());
 		if (data) {
-			array.set(data.subarray(offset, offset + array.byteLength));
+			if (data instanceof Uint8Array) array.set(data.subarray(offset, offset + array.byteLength));
+			else data.readInto(array, offset);
 		}
 	},
 
 	put_file_contents(path: string, array: Uint8Array) {
 		path = path.toLowerCase();
-		files?.set(path, array);
-		postToMain(withProtocol({ action: "fs", func: "update", params: [path, array] }));
+		const snapshot = array.slice();
+		files?.set(path, snapshot);
+		postToMain(withProtocol({ action: "fs", func: "update", params: [path, snapshot] }));
 	},
 
 	remove_file(path: string) {
@@ -367,6 +294,7 @@ worker.DApi = DApi as typeof DApi;
 let wasm: WasmApi | null = null;
 
 function try_api(func: () => void) {
+	if (quiesced) return;
 	try {
 		func();
 	} catch (e) {
@@ -455,7 +383,7 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 						? import.meta.env.BASE_URL.slice(0, -1)
 						: import.meta.env.BASE_URL;
 
-			files!.set(name, createRemoteFile(`${base}/${name}`));
+			files!.set(name, await createRemoteFile(`${base}/${name}`));
 		}
 	}
 
@@ -485,6 +413,7 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 		: Promise.resolve<ArrayBuffer | null>(null);
 
 	const [wasmResult, mpqBuf] = await Promise.all([loadWasm, loadMpq]);
+	if (quiesced) return;
 	wasm = wasmResult;
 
 	if (mpqBuf) {
@@ -505,7 +434,7 @@ async function init_game(mpq: File | null, spawn: boolean, offscreen: boolean) {
 		parseInt(vers![3])
 	);
 
-	setInterval(() => {
+	renderTimer = setInterval(() => {
 		call_api("DApi_Render", Math.floor(performance.now()));
 	}, 50);
 }
@@ -516,6 +445,16 @@ worker.addEventListener("message", ({ data }: MessageEvent<unknown>) => {
 		return;
 	}
 	switch (data.action) {
+		case "quiesce": {
+			quiesced = true;
+			clearInterval(renderTimer);
+			const saves = new Map<string, Uint8Array>();
+			for (const [name, bytes] of files ?? []) {
+				if (isSaveFile(name) && bytes instanceof Uint8Array) saves.set(name, bytes.slice());
+			}
+			postToMain(withProtocol({ action: "quiesced", requestId: data.requestId, saves }));
+			break;
+		}
 		case "init":
 			files = data.files;
 			init_game(data.mpq, data.spawn, data.offscreen).then(
@@ -547,7 +486,7 @@ worker.addEventListener("message", ({ data }: MessageEvent<unknown>) => {
 
 export default null;
 
-type FileMap = Map<string, Uint8Array | RemoteFile>;
+type FileMap = Map<string, Uint8Array | Awaited<ReturnType<typeof createRemoteFile>>>;
 
 interface WorkerContext extends Worker {
 	DApi: typeof DApi;

@@ -1,7 +1,7 @@
 {
 	"name": "diablo_web",
 	"private": true,
-	"version": "1.6.2",
+	"version": "1.6.3",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -28,7 +28,7 @@
 		"oxlint": "^1.87.0",
 		"prettier": "^3.9.9",
 		"typescript": "^7.0.2",
-		"vite": "^8.3.3",
+		"vite": "^8.3.4",
 		"vite-plugin-pwa": "^2.0.0",
 		"vitest": "^5.0.3"
 	}

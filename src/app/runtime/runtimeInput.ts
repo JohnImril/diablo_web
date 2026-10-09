@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { runOptionalBrowserAction } from "../../shared/browserActions";
 
 import { createDomInput } from "../../modules/input/adapters";
 import type { InputCommand, InputMods } from "../../modules/input";
@@ -246,7 +247,7 @@ export function createRuntimeInputController(opts: RuntimeInputOptions) {
 			opts.setIsTouchMode(false);
 		}
 		if (!pointerLocked() && window.innerHeight === screen.height) {
-			refs.canvas.current.requestPointerLock();
+			runOptionalBrowserAction(() => refs.canvas.current?.requestPointerLock?.());
 		}
 		const { x, y } = getMousePos(e);
 		opts.setInputContext({
@@ -329,7 +330,8 @@ export function createRuntimeInputController(opts: RuntimeInputOptions) {
 				setTouchMod(TOUCH.RMB, false);
 			}
 		}
-		if (!document.fullscreenElement) refs.element.current?.requestFullscreen();
+		if (!document.fullscreenElement && document.fullscreenEnabled)
+			runOptionalBrowserAction(() => refs.element.current?.requestFullscreen?.());
 	};
 
 	const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -344,7 +346,7 @@ export function createRuntimeInputController(opts: RuntimeInputOptions) {
 	};
 
 	const handleResize = () => {
-		document.exitPointerLock();
+		runOptionalBrowserAction(() => document.exitPointerLock?.());
 	};
 
 	const domInput = createDomInput({

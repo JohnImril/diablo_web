@@ -36,8 +36,8 @@ export default defineConfig({
 		VitePWA({
 			base: BASE,
 			scope: BASE,
-			registerType: "autoUpdate",
-			injectRegister: "script-defer",
+			registerType: "prompt",
+			injectRegister: false,
 			includeAssets: [
 				"favicon.ico",
 				"apple-touch-icon.png",
@@ -72,38 +72,10 @@ export default defineConfig({
 				],
 			},
 			workbox: {
+				// Keep HTML and hashed assets in the same installed version, including offline.
 				cacheId: "diablo-web",
 				cleanupOutdatedCaches: true,
-				runtimeCaching: [
-					{
-						urlPattern: new RegExp(`^${BASE}assets/`),
-						handler: "CacheFirst",
-						options: {
-							cacheName: "assets-cache",
-							expiration: {
-								maxEntries: 200,
-								maxAgeSeconds: 60 * 60 * 24 * 365,
-							},
-							cacheableResponse: {
-								statuses: [0, 200],
-							},
-						},
-					},
-					{
-						urlPattern: ({ request }) => request.mode === "navigate",
-						handler: "NetworkFirst",
-						options: {
-							cacheName: "html-cache",
-							expiration: {
-								maxEntries: 20,
-								maxAgeSeconds: 60 * 60 * 24,
-							},
-							cacheableResponse: {
-								statuses: [0, 200],
-							},
-						},
-					},
-				],
+				globPatterns: ["**/*.{js,css,html,wasm,txt}"],
 			},
 
 			devOptions: {
@@ -120,11 +92,18 @@ export default defineConfig({
 	build: {
 		minify: "terser",
 		sourcemap: false,
-		rollupOptions: {
+		rolldownOptions: {
 			output: {
 				assetFileNames: "assets/[hash][extname]",
-				manualChunks(id) {
-					if (id.includes("peerjs")) return "peer";
+				codeSplitting: {
+					groups: [
+						{
+							debugName: "peer",
+							name(id) {
+								return id.includes("peerjs") ? "peer" : null;
+							},
+						},
+					],
 				},
 			},
 		},
