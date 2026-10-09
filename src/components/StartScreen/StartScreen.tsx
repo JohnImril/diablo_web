@@ -82,6 +82,7 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 								disabled={disabled}
 								type="button"
 								className="start-screen__saves d1-link"
+								data-save-manager-trigger
 								onClick={onOpenSaves}
 							>
 								Manage Saves
