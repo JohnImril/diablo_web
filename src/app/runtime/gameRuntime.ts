@@ -1,3 +1,4 @@
+import { createSaveBackups } from "./saveBackups";
 import { applyEngineIntent } from "../../modules/engine/core/applyEngineIntent";
 import { createWorkerClient, loadGame, SpawnSizes } from "../../modules/engine/adapters";
 import type { WorkerToMainMessage, MainToWorkerMessage } from "../../modules/engine/core/protocol";
@@ -8,6 +9,7 @@ import type { GameFunction, IApi, IFileSystem, IWebRTCConnection, ProgressReport
 import { toArrayBuffer } from "../../shared/buffers";
 import { createSaveManager, type SaveManagerOptions } from "../../modules/storage/adapters";
 import createIndexedDbFs from "../../modules/storage/adapters/indexedDbFs";
+import { pendingStorageWrites } from "../../modules/storage/core/pendingWrites";
 import { compressMpq as compressMpqAdapter } from "../../modules/mpqcmp/adapters";
 import { createRuntimeEventEmitter, type RuntimeEventMap } from "./runtimeEvents";
 import type { LifecycleState } from "./runtimeState";
@@ -42,7 +44,8 @@ type WorkerStartResult = {
 
 export type GameRuntimeInputOptions = Omit<RuntimeInputOptions, "dispatchInput" | "setInputContext" | "getGameHandle">;
 export type StartWithFileResult =
-	{ status: "importedSave" } | { status: "starting"; isRetail: boolean; promise: Promise<GameFunction> };
+	| { status: "importedSave"; promise: Promise<void> }
+	| { status: "starting"; isRetail: boolean; promise: Promise<GameFunction> };
 
 export class RuntimeSessionCancelledError extends Error {
 	constructor() {
@@ -327,6 +330,23 @@ export function createGameRuntime() {
 
 	const getSaves = () => saveManager?.listSaves();
 	const deleteSave = (name: string) => saveManager?.deleteSave(name);
+	const getSaveBackups = async () => {
+		if (!fsPromise) throw new Error("Save storage is unavailable");
+		return createSaveBackups((await fsPromise).files);
+	};
+	const prepareForUpdate = async () => {
+		stopInput();
+		if (!workerClient && state.lifecycle === "loading") stop();
+		if (workerClient) {
+			// Worker messages are ordered: all file operations preceding this barrier
+			// have already been submitted to storage when quiesce resolves. Replaying
+			// its snapshot could overwrite newer saves or resurrect another tab's deletions.
+			await workerClient.quiesce();
+		}
+		pendingStorageWrites.retryFailed();
+		await pendingStorageWrites.flush();
+		stop();
+	};
 	const downloadSave = (name: string) => saveManager?.downloadSave(name);
 	const importSave = (file: File) => saveManager?.importSave(file);
 	const notifySavesChanged = async () => {
@@ -345,8 +365,7 @@ export function createGameRuntime() {
 
 	const startWithFile = ({ file, apiFactory, onBeforeStart }: StartWithFileOptions): StartWithFileResult => {
 		if (file && /\.sv$/i.test(file.name)) {
-			importSave(file);
-			return { status: "importedSave" };
+			return { status: "importedSave", promise: Promise.resolve(importSave(file)) };
 		}
 
 		if (!getFileSystem()) initStorage();
@@ -465,6 +484,8 @@ export function createGameRuntime() {
 		getSaves,
 		deleteSave,
 		downloadSave,
+		getSaveBackups,
+		prepareForUpdate,
 		importSave,
 		notifySavesChanged,
 		ensureStorageReady,

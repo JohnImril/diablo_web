@@ -6,21 +6,17 @@ import { readFileAsArrayBuffer, toArrayBuffer } from "shared/buffers";
 import { triggerDownload } from "./download";
 import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "constants/files";
 import { isSaveFile } from "../core/saveRules";
+import { pendingStorageWrites } from "../core/pendingWrites";
 
 const APP_ASSET_DATA_EPOCH = import.meta.env.VITE_APP_ASSET_DATA_EPOCH || "1";
 const APP_SAVE_DATA_EPOCH = import.meta.env.VITE_APP_SAVE_DATA_EPOCH || "1";
-const APP_BUILD_ID = import.meta.env.VITE_APP_BUILD_ID || import.meta.env.VITE_APP_VERSION;
-const APP_CACHE_NAMES = new Set(["assets-cache", "html-cache"]);
-const APP_CACHE_MARKERS = ["diablo-web", "diablo_web"];
 
 type AppStorageMeta = {
-	buildId: string;
 	assetDataEpoch: string | number;
 	saveDataEpoch: string | number;
 };
 
 const CURRENT_APP_STORAGE_META: AppStorageMeta = {
-	buildId: APP_BUILD_ID,
 	assetDataEpoch: APP_ASSET_DATA_EPOCH,
 	saveDataEpoch: APP_SAVE_DATA_EPOCH,
 };
@@ -58,16 +54,6 @@ async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Arr
 	await db.put("files", data, file.name.toLowerCase());
 }
 
-async function clearAppCaches() {
-	if (!("caches" in window)) return;
-	const names = await window.caches.keys();
-	await Promise.all(
-		names
-			.filter((name) => APP_CACHE_NAMES.has(name) || APP_CACHE_MARKERS.some((marker) => name.includes(marker)))
-			.map((name) => window.caches.delete(name))
-	);
-}
-
 async function deleteStoredFiles(
 	db: IDBPDatabase<unknown>,
 	shouldDelete: (name: string) => boolean,
@@ -86,10 +72,7 @@ async function reconcileStoredAppState(db: IDBPDatabase<unknown>) {
 	const previous = (await db.get("app_meta", "current")) as AppStorageMeta | undefined;
 	const previousAssetDataEpoch = String(previous?.assetDataEpoch ?? "1");
 	const previousSaveDataEpoch = String(previous?.saveDataEpoch ?? "1");
-	const shouldClearAssetData =
-		!previous ||
-		previous.buildId !== CURRENT_APP_STORAGE_META.buildId ||
-		previousAssetDataEpoch !== CURRENT_APP_STORAGE_META.assetDataEpoch;
+	const shouldClearAssetData = previousAssetDataEpoch !== CURRENT_APP_STORAGE_META.assetDataEpoch;
 	const shouldClearSaveData = previousSaveDataEpoch !== CURRENT_APP_STORAGE_META.saveDataEpoch;
 
 	if (shouldClearSaveData) {
@@ -99,13 +82,14 @@ async function reconcileStoredAppState(db: IDBPDatabase<unknown>) {
 
 	if (shouldClearAssetData) {
 		await deleteStoredFiles(db, (name) => !isSaveFile(name));
-		await clearAppCaches();
+		// Workbox owns its versioned caches. Deleting them here removes the
+		// freshly installed app assets and navigation fallback needed offline.
 	}
 
 	await db.put("app_meta", CURRENT_APP_STORAGE_META, "current");
 }
 
-export default async function createIndexedDbFs(): Promise<IFileSystem> {
+async function createIndexedDbFs(): Promise<IFileSystem> {
 	try {
 		if (!("indexedDB" in window)) {
 			throw new Error("IndexedDB is not supported in this browser.");
@@ -204,9 +188,10 @@ export default async function createIndexedDbFs(): Promise<IFileSystem> {
 				}
 			},
 			fileUrl: async (name: string) => {
-				const file = await db.get("files", name.toLowerCase());
+				// Memory contains the latest save even when persistence failed.
+				const file = files.get(name.toLowerCase());
 				if (file) {
-					const blob = new Blob([file], {
+					const blob = new Blob([toArrayBuffer(file)], {
 						type: "binary/octet-stream",
 					});
 					return URL.createObjectURL(blob);
@@ -225,14 +210,76 @@ export default async function createIndexedDbFs(): Promise<IFileSystem> {
 			window.DownloadSaves = () => console.error("IndexedDB is not supported");
 		}
 
-		return {
-			files: new Map<string, Uint8Array>(),
-			update: () => Promise.resolve(),
-			delete: () => Promise.resolve(),
-			clear: () => Promise.resolve(),
-			download: () => Promise.resolve(),
-			upload: () => Promise.resolve(),
-			fileUrl: () => Promise.resolve(undefined),
-		};
+		throw e;
 	}
+}
+
+export default function createTrackedIndexedDbFs(): Promise<IFileSystem> {
+	return pendingStorageWrites.track(
+		createIndexedDbFs().then((fs) => {
+			const update = fs.update;
+			const remove = fs.delete;
+			const clear = fs.clear;
+			const upload = fs.upload;
+			const recoverFile = (name: string) => {
+				const data = fs.files.get(name);
+				return data ? update(name, data) : remove(name);
+			};
+			const trackFile = <T>(name: string, operation: Promise<T>) => {
+				const key = name.toLowerCase();
+				return pendingStorageWrites.track(operation, `file:${key}`, () => recoverFile(key));
+			};
+			fs.update = (name, data) => trackFile(name, update(name, data));
+			fs.delete = (name) => trackFile(name, remove(name));
+			fs.upload = (file) => trackFile(file.name, upload(file));
+			const clearFiles = () =>
+				clear().then(() => {
+					pendingStorageWrites.resolveFailures("file:");
+					pendingStorageWrites.resolveFailures("meta:");
+				});
+			const recoverClear = async () => {
+				// A newer upload must survive retrying an earlier failed clear.
+				const current = new Map(fs.files);
+				try {
+					await clear();
+				} finally {
+					for (const [name, data] of current) fs.files.set(name, data);
+				}
+				await Promise.all([...current].map(([name, data]) => update(name, data)));
+				pendingStorageWrites.resolveFailures("file:");
+				pendingStorageWrites.resolveFailures("meta:");
+			};
+			fs.clear = () => pendingStorageWrites.track(clearFiles(), "clear", recoverClear);
+			const setMeta = fs.setSaveMeta;
+			const deleteMeta = fs.deleteSaveMeta;
+			const recoverMetadata = async (name: string) => {
+				const current = (await fs.getSaveMeta?.())?.[name.toLowerCase()];
+				if (current !== undefined) await setMeta?.(name, current);
+				else await deleteMeta?.(name);
+			};
+			if (setMeta)
+				fs.setSaveMeta = (name, info) =>
+					pendingStorageWrites.track(setMeta(name, info), `meta:${name.toLowerCase()}`, () =>
+						recoverMetadata(name)
+					);
+			if (deleteMeta)
+				fs.deleteSaveMeta = (name) =>
+					pendingStorageWrites.track(deleteMeta(name), `meta:${name.toLowerCase()}`, () =>
+						recoverMetadata(name)
+					);
+			const clearMeta = fs.clearSaveMeta;
+			if (clearMeta) {
+				const clearMetadata = () => clearMeta().then(() => pendingStorageWrites.resolveFailures("meta:"));
+				const recoverClearMetadata = async () => {
+					const current = await fs.getSaveMeta?.();
+					await clearMeta();
+					for (const [name, info] of Object.entries(current ?? {})) await setMeta?.(name, info);
+					pendingStorageWrites.resolveFailures("meta:");
+				};
+				fs.clearSaveMeta = () =>
+					pendingStorageWrites.track(clearMetadata(), "clear-meta", recoverClearMetadata);
+			}
+			return fs;
+		})
+	);
 }

@@ -8,9 +8,10 @@ import "./ErrorComponent.css";
 interface IProps {
 	error: IError;
 	saveName?: string;
+	onApplyUpdate?: () => void;
 }
 
-const ErrorComponent = ({ error, saveName }: IProps) => {
+const ErrorComponent = ({ error, saveName, onApplyUpdate }: IProps) => {
 	const { message = "Unknown error", reportUrl, save: saveUrl } = error;
 	useEffect(() => {
 		return () => {
@@ -61,6 +62,13 @@ const ErrorComponent = ({ error, saveName }: IProps) => {
 					>
 						Download save file
 					</a>
+				</p>
+			)}
+			{onApplyUpdate && (
+				<p className="error-component__footer">
+					<button type="button" className="d1-btn d1-btn--gold" onClick={onApplyUpdate}>
+						Update and reload
+					</button>
 				</p>
 			)}
 		</section>

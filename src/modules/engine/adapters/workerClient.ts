@@ -1,5 +1,5 @@
 import type { MainToWorkerMessage, WorkerToMainMessage } from "../core/protocol";
-import { isWorkerToMainMessage } from "../core/protocol";
+import { isWorkerToMainMessage, PROTOCOL_VERSION } from "../core/protocol";
 
 export type WorkerClientOptions = {
 	WorkerCtor: new () => Worker;
@@ -10,8 +10,42 @@ type ErrorHandler = (event: ErrorEvent) => void;
 
 export function createWorkerClient({ WorkerCtor }: WorkerClientOptions) {
 	let worker: Worker | null = null;
+	let failed = false;
 	const messageHandlers = new Set<MessageHandler>();
 	const errorHandlers = new Set<ErrorHandler>();
+	let requestId = 0;
+	const quiesce = (timeoutMs = 30_000) =>
+		new Promise<Map<string, Uint8Array>>((resolve, reject) => {
+			// The error handler terminates a failed worker, so it cannot produce
+			// further writes. Previously delivered writes still need the storage flush.
+			if (failed) {
+				resolve(new Map());
+				return;
+			}
+			const id = ++requestId;
+			const finish = (error?: Error, saves?: Map<string, Uint8Array>) => {
+				clearTimeout(timer);
+				messageHandlers.delete(onMessage);
+				errorHandlers.delete(onError);
+				if (error) reject(error);
+				else resolve(saves!);
+			};
+			const onMessage = (message: WorkerToMainMessage) => {
+				if (message.action === "quiesced" && message.requestId === id) finish(undefined, message.saves);
+			};
+			const onError = () => finish(undefined, new Map());
+			const timer = setTimeout(
+				() => finish(new Error("The engine did not confirm its save snapshot. Reload was blocked.")),
+				timeoutMs
+			);
+			messageHandlers.add(onMessage);
+			errorHandlers.add(onError);
+			try {
+				post({ v: PROTOCOL_VERSION, type: "quiesce", action: "quiesce", requestId: id });
+			} catch (error) {
+				finish(error instanceof Error ? error : new Error(String(error)));
+			}
+		});
 
 	const handleMessage = (event: MessageEvent) => {
 		const data = event.data;
@@ -28,6 +62,8 @@ export function createWorkerClient({ WorkerCtor }: WorkerClientOptions) {
 	};
 
 	const handleError = (event: ErrorEvent) => {
+		failed = true;
+		terminate();
 		for (const handler of errorHandlers) {
 			handler(event);
 		}
@@ -35,6 +71,7 @@ export function createWorkerClient({ WorkerCtor }: WorkerClientOptions) {
 
 	const start = () => {
 		if (worker) return worker;
+		failed = false;
 		worker = new WorkerCtor();
 		worker.addEventListener("message", handleMessage);
 		worker.addEventListener("error", handleError);
@@ -74,5 +111,5 @@ export function createWorkerClient({ WorkerCtor }: WorkerClientOptions) {
 		};
 	};
 
-	return { start, post, terminate, onMessage, onError };
+	return { start, post, terminate, onMessage, onError, quiesce };
 }

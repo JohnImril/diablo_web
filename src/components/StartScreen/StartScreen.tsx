@@ -5,13 +5,14 @@ import "./StartScreen.css";
 
 interface IProps {
 	hasSpawn: boolean;
+	disabled?: boolean;
 	start: (file?: File | null) => void;
 	saveNames: false | Record<string, IPlayerInfo | null>;
 	onCompressMpq: () => void;
 	onOpenSaves: () => void;
 }
 
-const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }: IProps) => {
+const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }: IProps) => {
 	const hasSaves = !!(saveNames && typeof saveNames === "object" && Object.keys(saveNames).length > 0);
 
 	return (
@@ -42,7 +43,7 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 					GoG
 				</a>
 				.{" "}
-				<button type="button" className="d1-link" onClick={onCompressMpq}>
+				<button disabled={disabled} type="button" className="d1-link" onClick={onCompressMpq}>
 					Click here to compress the MPQ, greatly reducing its size.
 				</button>
 			</p>
@@ -54,10 +55,11 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 			)}
 
 			<form>
-				<label htmlFor="loadFile" className={cn("start-screen__button", "d1-btn")}>
+				<label aria-disabled={disabled} htmlFor="loadFile" className={cn("start-screen__button", "d1-btn")}>
 					Select MPQ
 				</label>
 				<input
+					disabled={disabled}
 					accept=".mpq"
 					type="file"
 					id="loadFile"
@@ -72,6 +74,7 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 			</form>
 
 			<button
+				disabled={disabled}
 				type="button"
 				className={cn("start-screen__button", "d1-btn", "d1-btn--gold")}
 				onClick={() => start()}
@@ -81,6 +84,7 @@ const StartScreen = ({ hasSpawn, start, saveNames, onCompressMpq, onOpenSaves }:
 
 			{hasSaves && (
 				<button
+					disabled={disabled}
 					type="button"
 					className={cn("start-screen__button", "d1-btn", "d1-btn--gold")}
 					onClick={onOpenSaves}

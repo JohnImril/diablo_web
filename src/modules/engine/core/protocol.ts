@@ -13,8 +13,7 @@ const isNumberList = (value: unknown): boolean => {
 	if (!ArrayBuffer.isView(value) || value instanceof DataView) return false;
 	return Array.from(value as unknown as ArrayLike<unknown>).every(isNumber);
 };
-const isOptionalNumber = (value: unknown): value is number | undefined =>
-	value === undefined || isNumber(value);
+const isOptionalNumber = (value: unknown): value is number | undefined => value === undefined || isNumber(value);
 
 type BaseMessage<Type extends string> = {
 	v: number;
@@ -23,6 +22,7 @@ type BaseMessage<Type extends string> = {
 };
 
 export type MainToWorkerMessage =
+	| (BaseMessage<"quiesce"> & { requestId: number })
 	| (BaseMessage<"init"> & {
 			files: Map<string, Uint8Array>;
 			mpq: File | null;
@@ -41,6 +41,7 @@ export type MainToWorkerMessage =
 	  });
 
 export type WorkerToMainMessage =
+	| (BaseMessage<"quiesced"> & { requestId: number; saves: Map<string, Uint8Array> })
 	| BaseMessage<"loaded">
 	| (BaseMessage<"render"> & { batch: unknown })
 	| (BaseMessage<"audio"> & { func: string; params: unknown[] })
@@ -56,8 +57,9 @@ export type WorkerToMainMessage =
 	| (BaseMessage<"packet"> & { buffer: ArrayBuffer | Uint8Array })
 	| (BaseMessage<"packetBatch"> & { batch: ArrayBuffer[] });
 
-const MAIN_TO_WORKER_TYPES = ["init", "event", "packet", "packetBatch"] as const;
+const MAIN_TO_WORKER_TYPES = ["init", "event", "packet", "packetBatch", "quiesce"] as const;
 const WORKER_TO_MAIN_TYPES = [
+	"quiesced",
 	"loaded",
 	"render",
 	"audio",
@@ -76,12 +78,7 @@ const WORKER_TO_MAIN_TYPES = [
 
 function hasValidEnvelope(data: unknown, types: readonly string[]): data is Record<string, unknown> {
 	if (!isObject(data)) return false;
-	return (
-		data.v === PROTOCOL_VERSION &&
-		isString(data.type) &&
-		types.includes(data.type) &&
-		data.action === data.type
-	);
+	return data.v === PROTOCOL_VERSION && isString(data.type) && types.includes(data.type) && data.action === data.type;
 }
 
 function isRenderBatch(value: unknown): boolean {
@@ -103,11 +100,7 @@ function isRenderBatch(value: unknown): boolean {
 		}) &&
 		value.text.every(
 			(item) =>
-				isObject(item) &&
-				isNumber(item.x) &&
-				isNumber(item.y) &&
-				isString(item.text) &&
-				isNumber(item.color)
+				isObject(item) && isNumber(item.x) && isNumber(item.y) && isString(item.text) && isNumber(item.color)
 		)
 	);
 }
@@ -115,6 +108,8 @@ function isRenderBatch(value: unknown): boolean {
 export function isMainToWorkerMessage(data: unknown): data is MainToWorkerMessage {
 	if (!hasValidEnvelope(data, MAIN_TO_WORKER_TYPES)) return false;
 	switch (data.action) {
+		case "quiesce":
+			return isNumber(data.requestId);
 		case "init":
 			return (
 				data.files instanceof Map &&
@@ -136,6 +131,12 @@ export function isMainToWorkerMessage(data: unknown): data is MainToWorkerMessag
 export function isWorkerToMainMessage(data: unknown): data is WorkerToMainMessage {
 	if (!hasValidEnvelope(data, WORKER_TO_MAIN_TYPES)) return false;
 	switch (data.action) {
+		case "quiesced":
+			return (
+				isNumber(data.requestId) &&
+				data.saves instanceof Map &&
+				[...data.saves].every(([name, bytes]) => isString(name) && bytes instanceof Uint8Array)
+			);
 		case "loaded":
 		case "exit":
 			return true;
@@ -155,11 +156,7 @@ export function isWorkerToMainMessage(data: unknown): data is WorkerToMainMessag
 		case "failed":
 			return isString(data.error) && (data.stack === undefined || isString(data.stack));
 		case "progress":
-			return (
-				isString(data.text) &&
-				isOptionalNumber(data.loaded) &&
-				isOptionalNumber(data.total)
-			);
+			return isString(data.text) && isOptionalNumber(data.loaded) && isOptionalNumber(data.total);
 		case "current_save":
 			return data.name === null || isString(data.name);
 		case "packet":

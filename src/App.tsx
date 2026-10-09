@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useReducer, useMemo, type CSSProperties } from "react";
 import cn from "classnames";
 
+import UpdateNotice from "./app/ui/UpdateNotice";
+import { useAppUpdates } from "./app/uiHooks/useAppUpdates";
 import SaveList from "./components/SaveList/SaveList";
 import CompressMpq from "./app/ui/CompressMpq";
 import ErrorComponent from "./components/ErrorComponent/ErrorComponent";
@@ -16,6 +18,7 @@ import { useFileDrop } from "./app/uiHooks/useFileDrop";
 import { useTouchControls } from "./app/uiHooks/useTouchControls";
 import { DIABLO, TOUCH } from "./constants/controls";
 import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "./constants/files";
+import { appUpdates } from "./app/updates/pwaUpdates";
 import type { GameFunction, IPlayerInfo, IProgress } from "./types";
 
 import "./base.css";
@@ -24,6 +27,7 @@ import "./App.css";
 const App = () => {
 	const [started, setStarted] = useState(false);
 	const [loading, setLoading] = useState(false);
+	const [importingSave, setImportingSave] = useState(false);
 	const [progress, setProgress] = useState<IProgress | undefined>(undefined);
 	const [showSaves, setShowSaves] = useState(false);
 	const [compress, setCompress] = useState(false);
@@ -51,6 +55,11 @@ const App = () => {
 	const touchBelt = useRef<[number, number, number]>([-1, -1, -1]);
 
 	const { error, onError } = useErrorHandling();
+	const {
+		status: updateStatus,
+		updating,
+		available: updateAvailable,
+	} = useAppUpdates(started || loading || importingSave || compress || showSaves, !!error);
 	const runtime = useMemo(() => createGameRuntime(), []);
 	const handleError = useCallback(
 		(message: string, stack?: string) => {
@@ -59,18 +68,21 @@ const App = () => {
 				onError(message, stack, undefined, retail);
 				return;
 			}
-			runtime.getSaveUrl(saveName).then((saveUrl) => onError(message, stack, saveUrl, retail));
+			void runtime.getSaveUrl(saveName).then(
+				(saveUrl) => onError(message, stack, saveUrl, retail),
+				() => onError(message, stack, undefined, retail)
+			);
 		},
 		[onError, retail, runtime]
 	);
 	const updateSaves = useCallback(async () => {
-		const saves = await runtime.getSaves();
-		if (!saves || Object.keys(saves).length === 0) {
-			setSaveNames(false);
-			return;
+		try {
+			const saves = await runtime.getSaves();
+			setSaveNames(saves && Object.keys(saves).length > 0 ? saves : false);
+		} catch (error) {
+			handleError(`Unable to load saves: ${String(error)}`);
 		}
-		setSaveNames(saves);
-	}, [runtime]);
+	}, [runtime, handleError]);
 
 	const runUiCleanup = useCallback(() => {
 		cleanupRef.current = null;
@@ -88,6 +100,13 @@ const App = () => {
 		runtime.stop();
 		cleanup?.();
 	}, [runtime]);
+
+	const applyUpdate = useCallback(() => {
+		appUpdates.applyNow(async () => {
+			await runtime.prepareForUpdate();
+			stopAndCleanup();
+		});
+	}, [runtime, stopAndCleanup]);
 
 	useEffect(() => {
 		return () => stopAndCleanup();
@@ -136,22 +155,28 @@ const App = () => {
 
 	useEffect(() => {
 		let cancelled = false;
-		runtime.ensureStorageReady().then(({ hasSpawn }) => {
-			if (cancelled) return;
-			setHasSpawn(hasSpawn);
-		});
+		void runtime.ensureStorageReady().then(
+			({ hasSpawn }) => {
+				if (!cancelled) setHasSpawn(hasSpawn);
+			},
+			(error) => {
+				if (!cancelled) onError(`Unable to open save storage: ${String(error)}`);
+			}
+		);
 		return () => {
 			cancelled = true;
 		};
-	}, [runtime]);
+	}, [runtime, onError]);
 
 	const start = useCallback(
-		(file: File | null = null) => {
-			stopAndCleanup();
-
-			game.current = null;
-			dispatchLifecycle("RESET");
-
+		async (file: File | null = null) => {
+			if (
+				["available", "applying", "saving"].includes(appUpdates.getSnapshot()) &&
+				!started &&
+				!compress &&
+				!showSaves
+			)
+				return;
 			if (file) {
 				const name = file.name.toLowerCase();
 
@@ -167,7 +192,12 @@ const App = () => {
 				}
 			}
 
-			if (showSaves) return;
+			if (showSaves && !file?.name.toLowerCase().endsWith(".sv")) return;
+			if (!(await appUpdates.enterBusy())) return;
+
+			stopAndCleanup();
+			game.current = null;
+			dispatchLifecycle("RESET");
 
 			const startResult = runtime.startWithFile({
 				file,
@@ -193,13 +223,24 @@ const App = () => {
 						},
 					}),
 				onBeforeStart: ({ isRetail }) => {
+					appUpdates.setBusy(true);
 					setRetail(isRetail);
 					setLoading(true);
 					dispatchLifecycle("START");
 				},
 			});
 
-			if (startResult.status !== "starting") return;
+			if (startResult.status === "importedSave") {
+				setImportingSave(true);
+				try {
+					await startResult.promise;
+				} catch (error) {
+					handleError(`Unable to import save: ${String(error)}`);
+				} finally {
+					setImportingSave(false);
+				}
+				return;
+			}
 
 			startResult.promise.then(
 				(loaded) => {
@@ -223,18 +264,19 @@ const App = () => {
 				}
 			);
 		},
-		[showSaves, handleError, runtime, runUiCleanup, stopAndCleanup]
+		[started, compress, showSaves, handleError, runtime, runUiCleanup, stopAndCleanup]
 	);
 
 	const onDrop = useCallback(
 		(file: File) => {
+			if (updating) return;
 			if (compress) {
 				setCompressFile(file);
 			} else {
 				start(file);
 			}
 		},
-		[compress, start]
+		[compress, start, updating]
 	);
 
 	const { dropping } = useFileDrop(runtime, onDrop);
@@ -251,6 +293,13 @@ const App = () => {
 			ref={elementRef}
 			aria-label="Diablo Web"
 		>
+			<UpdateNotice
+				status={updateStatus}
+				started={started}
+				canRetry={!started && !loading && !importingSave && !compress && !showSaves}
+				onApply={applyUpdate}
+				loadBackups={runtime.getSaveBackups}
+			/>
 			<TouchControls enabled={started} touchButtons={touchButtons} />
 
 			<section className="app__body" aria-label="Game viewport">
@@ -264,7 +313,7 @@ const App = () => {
 				</div>
 			</section>
 
-			<section className="app__body-v" aria-live="polite">
+			<section className="app__body-v" aria-live="polite" inert={updating}>
 				{showSaves && typeof saveNames === "object" && (
 					<SaveList
 						saveNames={saveNames as Record<string, IPlayerInfo | null>}
@@ -292,17 +341,32 @@ const App = () => {
 					/>
 				)}
 
-				{error && <ErrorComponent error={error} saveName={currentSaveName} />}
+				{error && (
+					<ErrorComponent
+						error={error}
+						saveName={currentSaveName}
+						onApplyUpdate={updateAvailable ? applyUpdate : undefined}
+					/>
+				)}
 
 				{loading && !started && !error && <LoadingComponent title="Loading..." progress={progress} />}
 
 				{!started && !compress && !loading && !error && !showSaves && (
 					<StartScreen
 						hasSpawn={hasSpawn}
+						disabled={updating}
 						start={start}
 						saveNames={saveNames}
-						onCompressMpq={() => setCompress(true)}
-						onOpenSaves={() => setShowSaves((prev) => !prev)}
+						onCompressMpq={async () => {
+							if (updating) return;
+							if (!(await appUpdates.enterBusy())) return;
+							setCompress(true);
+						}}
+						onOpenSaves={async () => {
+							if (updating) return;
+							if (!(await appUpdates.enterBusy())) return;
+							setShowSaves(true);
+						}}
 					/>
 				)}
 			</section>
