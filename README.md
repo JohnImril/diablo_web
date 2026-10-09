@@ -1,121 +1,93 @@
-# Diablo Web
+# Diablo Web - The original Diablo, playable in your browser.
 
-![App Screenshot](./public/screenshot.png)
+![Diablo Web screenshot](./public/screenshot.png)
 
-**Diablo Web** is a browser-based Diablo / Diablo-like experience built with Vite, React, TypeScript, and
-WebAssembly. The project modernizes earlier browser work around DiabloWeb and devilution-based WebAssembly builds,
-with a cleaner frontend structure, current Node.js compatibility, browser storage support, and a deployment flow that
-targets static hosting.
+**[Play the Live Demo](https://johnimril.github.io/diablo_web/)**
 
-## Live Demo
+- **Play Free Demo** starts the limited shareware version. No purchase or local MPQ is required.
+- **Load Your MPQ** starts the full game with your own `DIABDAT.MPQ` from a legal copy of Diablo.
+  You can also drop the file onto the start screen.
 
-The current public build is available here:
+A React + TypeScript client built with Vite, integrating an existing WebAssembly version of the Diablo engine.
+It handles runtime lifecycle, canvas rendering, browser input, game files, and saves.
 
-[https://johnimril.github.io/diablo_web/](https://johnimril.github.io/diablo_web/)
+## Author
 
-## Overview
+Browser-client modernization by **[Nikita Maksimov](https://github.com/JohnImril)**.
+[Portfolio](https://nikitamaksimov.dev).
 
-This repository is the main browser client. It loads the game engine through WebAssembly, manages game data in the
-browser, renders to canvas, and wraps the runtime in a Vite + React application.
+My work includes the React/TypeScript shell, runtime orchestration and worker integration, browser storage and save
+management, and the build and static deployment setup. It builds on earlier browser and WebAssembly work; the
+original game, reconstructed engine, and initial WebAssembly port are credited in [Origins and Credits](#origins-and-credits).
 
-The project started from work around [DiabloWeb](https://github.com/d07RiV/diabloweb) by d07RiV and the
-[devilution](https://github.com/diasurgical/devilution) community. An intermediate Node.js 22-compatible fork is
-available at [JohnImril/diabloweb-beta](https://github.com/JohnImril/diabloweb-beta). Diablo Web then rebuilt the
-client shell around Vite and TypeScript while keeping the WebAssembly engine path central to the runtime.
+## Playing and Saving
 
-## Game Data Files
+Use a mouse and keyboard for the best experience. Touch controls are available, but mobile controls still need
+improvement; landscape gives the game more room.
 
-Diablo Web supports two game-data modes:
+### Game Data
 
-- `spawn.mpq` for the Diablo shareware data set.
-- `DIABDAT.MPQ` for the full game, if you own a legal copy of Diablo.
+| Mode                | Data file     | How to play                                                              |
+| ------------------- | ------------- | ------------------------------------------------------------------------ |
+| Free shareware demo | `spawn.mpq`   | Choose **Play Free Demo**; the app downloads the archive on first use.   |
+| Full game           | `DIABDAT.MPQ` | Choose **Load Your MPQ** or drop your own archive onto the start screen. |
 
-For local development, place the data file you want to use in `public/` before starting the app. The full retail data
-archive is not provided by this project. You are responsible for supplying only files that you are legally allowed to
-use.
+The demo contains limited content. Retail game data is not included. Use a legal copy of Diablo to obtain
+`DIABDAT.MPQ`; see [Diablo on GOG](https://www.gog.com/game/diablo).
 
-## Key Features
+To reduce an MPQ's size, open **Controls, limitations & game files** on the start screen and choose
+**Compress an MPQ to reduce its size**.
 
-- Browser-based Diablo / Diablo-like runtime using WebAssembly.
-- Vite-powered development and static production builds.
-- TypeScript application shell with React UI components.
-- Node.js 22-compatible dependency and build setup.
-- Support for shareware and full-game MPQ data files.
-- Browser-side save and file handling through the storage module.
-- Canvas-based rendering with runtime orchestration isolated from UI components.
-- Optional network adapters in the client codebase, kept separate from the experimental backend project described below.
+### Save Import and Export
 
-## Technical Highlights
+Game files and saves are stored locally in the current browser/profile through IndexedDB. There is no cloud-save
+service. Export saves before clearing browser data or moving to another browser or device.
 
-### WebAssembly
+- **Export:** open **Manage Saves** on the start screen and download the saves you want to keep.
+- **Import:** use the upload control in **Manage Saves**, or drop a `.sv` file onto the start screen.
+  **Manage Saves** appears when saves are available.
+- **Loading errors:** use **Reload and Try Again** when offered to return to the start screen without clearing
+  browser data. If reload cannot proceed, keep the page open, download any saves offered, and retry.
 
-The engine is loaded through WebAssembly modules under `src/modules/engine/`. A worker bridge coordinates initialization,
-progress reporting, MPQ loading, runtime messages, and canvas rendering.
+Online multiplayer is experimental. It is not finished support for ordinary play; see [Multiplayer](#multiplayer).
 
-### Vite
+## Engineering and Architecture
 
-Vite is used for the development server, asset handling, WebAssembly integration, and production bundling. The production
-build targets static hosting and uses the `/diablo_web/` base path configured in `vite.config.ts`.
+The browser client separates React UI from runtime orchestration, domain logic, and browser adapters:
 
-### TypeScript
+- **React + TypeScript + Vite:** UI components call runtime APIs and subscribe to events.
+  Vite handles development, WebAssembly assets, and production bundling.
+- **WebAssembly and workers:** the engine integration loads the existing WASM builds and bridges initialization,
+  MPQ data, progress, rendering, and engine messages between the worker and the browser client.
+- **Runtime lifecycle:** the runtime owns game sessions, startup and cancellation, worker cleanup, input handling,
+  and UI event delivery.
+- **Canvas and input:** browser input becomes typed commands, which are mapped to engine actions;
+  the UI bridge connects engine output to canvas rendering and browser controls.
+- **Browser storage:** IndexedDB adapters manage game files, save data and metadata, import/export,
+  and tracked storage writes. MPQ compression has a separate worker/WASM adapter.
 
-The client is written in TypeScript and organized around a lightweight domain structure:
+### Source Layout
 
-- `src/app/runtime/` for orchestration.
-- `src/modules/<domain>/core/` for pure domain logic.
-- `src/modules/<domain>/adapters/` for browser, worker, storage, and network side effects.
-- `src/components/` and `src/app/ui/` for React UI.
+| Path                                                 | Responsibility                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| `src/app/runtime/`                                   | Sessions, lifecycle, events, input orchestration, and UI bridge |
+| `src/modules/<domain>/core/`                         | Pure domain logic, types, and mappings                          |
+| `src/modules/<domain>/adapters/`                     | Engine, worker, DOM, storage, and network side effects          |
+| `src/components/`, `src/app/ui/`, `src/app/uiHooks/` | React UI and hooks                                              |
+| `src/shared/`                                        | Shared helpers and parsers                                      |
 
-### Node.js 22 Compatibility
+The main flow is to prepare browser storage, load the selected game data, initialize the WASM engine through the
+worker bridge, then route input, rendering, and runtime events while the session runs.
 
-Earlier compatibility issues with modern Node.js versions were resolved during the modernization work. The current
-project is intended to run on Node.js 22 or newer.
-
-## Architecture Overview
-
-The main runtime flow is:
-
-1. Start the Vite/React client.
-2. Load or import the selected MPQ data file.
-3. Initialize the WebAssembly engine through the worker bridge.
-4. Mount browser-side storage and save data.
-5. Route input, rendering, runtime events, and optional network messages through the app runtime.
-
-Additional notes are available in [ARCHITECTURE.md](./ARCHITECTURE.md).
-
-## Related Project: hellgate-ws
-
-[hellgate-ws](https://github.com/JohnImril/hellgate-ws/tree/main) is a related companion backend project. It is separate
-from this client repository and is not required to run Diablo Web locally.
-
-The original browser/WASM Diablo projects did not include a working online multiplayer backend. Only a limited API /
-binary protocol surface was available on the client/WASM side. To fill that missing layer, I designed and implemented
-**hellgate-ws** from scratch as a compact real-time multiplayer backend foundation.
-
-It is built on **Cloudflare Workers** and **Durable Objects** and provides:
-
-- WebSocket gateway.
-- Lobby / game directory.
-- Room-based multiplayer sessions.
-- Player slot management.
-- Message routing.
-- Custom binary protocol messaging.
-- Turn synchronization.
-
-`hellgate-ws` explores how online sessions, lobby discovery, room lifecycle, player ownership, message routing, and turn
-synchronization can be implemented for a Diablo-like browser/WASM game using modern edge infrastructure.
-
-The backend is not production-hardened yet and is maintained separately from this repository. It should be treated as a
-working multiplayer backend foundation for experimentation and further hardening, not as finished production multiplayer
-support in the main Diablo Web client.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for module boundaries, entrypoints, and the workflow for adding a feature.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 22 or newer.
-- npm.
-- A supported MPQ data file, if you want to run the game locally.
+- Node.js 22 (used by the GitHub Actions deployment workflow) and npm.
+- A browser with WebAssembly, Web Workers, and IndexedDB support.
+- Shareware data or your own retail MPQ to play locally.
 
 ### Installation
 
@@ -125,10 +97,11 @@ cd diablo_web
 npm install
 ```
 
-Place `spawn.mpq` or `DIABDAT.MPQ` in `public/` if your local checkout does not already contain the data file you want
-to use.
+For **Play Free Demo**, ensure `public/spawn.mpq` is available in your checkout. The demo loader requests this
+file from the app's static assets. For the full game, select your own `DIABDAT.MPQ` through **Load Your MPQ**;
+placing it in `public/` does not automatically select it.
 
-## Development
+### Development
 
 Start the Vite development server:
 
@@ -136,71 +109,74 @@ Start the Vite development server:
 npm run dev
 ```
 
-The app is served with the configured base path:
+Open [http://localhost:5173/diablo_web/](http://localhost:5173/diablo_web/).
+If the port is busy, use the URL printed by Vite.
 
-[http://localhost:5173/diablo_web/](http://localhost:5173/diablo_web/)
-
-Run linting with:
+Run the code checks:
 
 ```bash
 npm run lint
+npm test
 ```
 
-## Production Build
+### Production Build
 
-Create a production build:
+Build the client and preview the result locally:
 
 ```bash
 npm run build
-```
-
-The compiled output is written to `dist/`.
-
-Preview the production build locally:
-
-```bash
 npm run preview
 ```
 
+The build runs TypeScript checking before Vite bundling and writes the output to `dist/`.
+Open the preview URL printed in the terminal.
+
 ## Deployment
 
-The main project is configured for static deployment under `/diablo_web/`, matching the GitHub Pages demo path.
+The client runs on static hosting; a game backend is not required for the demo or local single-player game.
+The base path is `/diablo_web/` in [vite.config.ts](./vite.config.ts), matching the GitHub Pages demo.
+
+The [deployment workflow](./.github/workflows/deploy.yml) installs dependencies with `npm ci`, runs linting,
+builds the client, and publishes `dist/` to GitHub Pages. Markdown-only changes are excluded from automatic deployment.
+For another hosting path, update the Vite base configuration accordingly.
 
 For a simpler deployment-oriented variant, see
 [diablo_web_simple](https://github.com/JohnImril/diablo_web_simple).
 
-## Roadmap
+## Multiplayer
 
-- Continue improving WebAssembly loading, progress reporting, and runtime error handling.
-- Strengthen save import/export flows and browser storage reliability.
-- Improve mobile and touch controls.
-- Keep Vite, TypeScript, React, and Node.js compatibility current.
-- Clarify the boundary between local client networking experiments and any future backend integration.
-- Continue exploring online multiplayer through the separate `hellgate-ws` backend while keeping the client/backend
-  boundary explicit.
+[hellgate-ws](https://github.com/JohnImril/hellgate-ws/tree/main) is a separate experimental backend project for
+online multiplayer work. It is not required to launch Diablo Web. Client networking adapters and backend experiments
+should not be read as finished, production-ready multiplayer support.
 
-## Project Status
+## Status and Next Steps
 
-Diablo Web is an active browser-client modernization project. The main focus is keeping the WebAssembly-based Diablo
-runtime usable in a modern Vite/TypeScript application while preserving a clean path for local development and static
-deployment.
+The project focuses on modernizing the browser client around the existing Diablo WASM runtime.
+Current areas for improvement include:
 
-Multiplayer backend work is handled in the separate `hellgate-ws` project. It provides a working compact backend
-foundation for online multiplayer experiments, but it is not required to run the main client and should not be presented
-as finished production multiplayer support.
+- Loading feedback and runtime error handling.
+- Save import/export and browser storage reliability.
+- Mobile and touch controls.
+- Build-tool compatibility and the boundary between client networking and backend experiments.
 
-## Acknowledgements
+## Origins and Credits
 
-- [d07RiV/diabloweb](https://github.com/d07RiV/diabloweb) for the original browser project that inspired this work.
-- [diasurgical/devilution](https://github.com/diasurgical/devilution) for the community engine work that made modern
-  browser execution possible through WebAssembly.
+- **Diablo:** the original game by Blizzard North; game data, artwork, audio, and names belong to their respective owners.
+- **[devilution](https://github.com/diasurgical/devilution):** reconstruction of the original engine by GalaXyHaXz
+  and the devilution community.
+- **[DiabloWeb](https://github.com/d07RiV/diabloweb):** d07RiV's earlier browser client.
+  Its [engine fork](https://github.com/d07RiV/devilution) contains the earlier WebAssembly build work.
+- **[diabloweb-beta](https://github.com/JohnImril/diabloweb-beta):** the intermediate modernization fork
+  preceding this Vite/TypeScript client.
 
-## Legal Note
+Nikita Maksimov's contribution is the modernization and integration of the browser client described above.
+The original Diablo engine and earlier WebAssembly port are upstream work.
 
-Diablo and related names, artwork, audio, and game data belong to their respective owners. This project does not grant
-rights to any commercial game data. Use only MPQ files that you are legally permitted to use.
+## License and Game Data Rights
 
-## License
+This repository does not currently include a project license file. Licensing for the client, inherited code, and
+bundled WebAssembly artifacts still needs clarification; no blanket license is asserted here.
+Consult the upstream projects' notices, including
+[devilution's LICENSE.md](https://github.com/diasurgical/devilution/blob/master/LICENSE.md).
 
-No repository license file is currently included. Add an explicit license before accepting external contributions or
-redistributing packaged builds.
+This project does not grant rights to commercial game data. Supply only MPQ files you are legally permitted to use.

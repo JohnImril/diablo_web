@@ -75,7 +75,7 @@ export default defineConfig({
 				// Keep HTML and hashed assets in the same installed version, including offline.
 				cacheId: "diablo-web",
 				cleanupOutdatedCaches: true,
-				globPatterns: ["**/*.{js,css,html,wasm,txt}"],
+				globPatterns: ["**/*.{js,css,html,wasm,txt,webp}"],
 			},
 
 			devOptions: {

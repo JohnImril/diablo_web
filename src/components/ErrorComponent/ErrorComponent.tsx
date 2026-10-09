@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import cn from "classnames";
+import SaveBackups from "../../app/ui/SaveBackups";
 
 import type { IError } from "../../types";
 
@@ -9,10 +10,14 @@ interface IProps {
 	error: IError;
 	saveName?: string;
 	onApplyUpdate?: () => void;
+	onReload?: () => Promise<void>;
+	loadBackups?: () => Promise<{ name: string; blob: Blob }[]>;
 }
 
-const ErrorComponent = ({ error, saveName, onApplyUpdate }: IProps) => {
+const ErrorComponent = ({ error, saveName, onApplyUpdate, onReload, loadBackups }: IProps) => {
 	const { message = "Unknown error", reportUrl, save: saveUrl } = error;
+	const [reloading, setReloading] = useState(false);
+	const [reloadError, setReloadError] = useState<string>();
 	useEffect(() => {
 		return () => {
 			if (saveUrl) {
@@ -52,21 +57,40 @@ const ErrorComponent = ({ error, saveName, onApplyUpdate }: IProps) => {
 
 			{saveUrl && (
 				<p className="error-component__save-wrapper">
-					<a
-						className={cn("d1-link", "text-ruby")}
-						href={saveUrl}
-						download={saveName}
-						onClick={() => {
-							setTimeout(() => URL.revokeObjectURL(saveUrl), 0);
-						}}
-					>
+					<a className={cn("d1-link", "text-ruby")} href={saveUrl} download={saveName}>
 						Download save file
 					</a>
 				</p>
 			)}
+			{onReload && (
+				<div className="error-component__footer">
+					<p>Reload to return to the start screen. Browser saves and game files will not be cleared.</p>
+					<button
+						type="button"
+						className="d1-btn d1-btn--gold"
+						disabled={reloading}
+						onClick={async () => {
+							setReloading(true);
+							setReloadError(undefined);
+							try {
+								await onReload();
+							} catch {
+								setReloadError(
+									"Could not safely prepare a reload. Keep this page open, download your saves below, then try again. No browser data has been cleared."
+								);
+								setReloading(false);
+							}
+						}}
+					>
+						{reloading ? "Finishing storage writes…" : "Reload and Try Again"}
+					</button>
+					{reloadError && <p role="alert">{reloadError}</p>}
+					{reloadError && loadBackups && <SaveBackups load={loadBackups} />}
+				</div>
+			)}
 			{onApplyUpdate && (
 				<p className="error-component__footer">
-					<button type="button" className="d1-btn d1-btn--gold" onClick={onApplyUpdate}>
+					<button type="button" className="d1-btn d1-btn--gold" disabled={reloading} onClick={onApplyUpdate}>
 						Update and reload
 					</button>
 				</p>

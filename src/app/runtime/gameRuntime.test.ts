@@ -63,7 +63,12 @@ describe("game runtime sessions", () => {
 		// Simulate a file operation received before the worker's barrier reply.
 		pendingStorageWrites.track(persisted.promise);
 		const data = new Uint8Array([7, 8, 9]);
-		snapshot.resolve(new Map([["single_0.sv", data], ["single_1.sv", data]]));
+		snapshot.resolve(
+			new Map([
+				["single_0.sv", data],
+				["single_1.sv", data],
+			])
+		);
 		await Promise.resolve();
 		expect(terminate).not.toHaveBeenCalled();
 		persisted.resolve();
@@ -71,6 +76,36 @@ describe("game runtime sessions", () => {
 		// Another tab may have updated single_0 or deleted single_1 in IndexedDB.
 		expect(fs.update).not.toHaveBeenCalled();
 		expect(terminate).toHaveBeenCalledOnce();
+	});
+	it("blocks reload preparation when a save write fails and retries persistence", async () => {
+		const runtime = createGameRuntime();
+		const saveKey = "reload-test:single_0.sv";
+		const failure = new Error("Storage write failed");
+		const persist = vi.fn().mockRejectedValue(failure);
+		await pendingStorageWrites.track(persist(), saveKey, persist).catch(() => undefined);
+		try {
+			await expect(runtime.prepareForReload()).rejects.toBe(failure);
+			persist.mockResolvedValue(undefined);
+			await expect(runtime.prepareForReload()).resolves.toBeUndefined();
+			expect(persist).toHaveBeenCalledTimes(3);
+		} finally {
+			pendingStorageWrites.resolveFailures("reload-test:");
+			runtime.dispose();
+		}
+	});
+	it("allows a fresh reload after storage initialization fails before any game starts", async () => {
+		const runtime = createGameRuntime();
+		const failure = new Error("IndexedDB unavailable");
+		const storage = pendingStorageWrites.track(Promise.reject(failure), "reload-init-test:");
+		runtime.initStorage({ fs: storage });
+		try {
+			await storage.catch(() => undefined);
+			await expect(runtime.prepareForReload()).resolves.toBeUndefined();
+			expect(loadGame).not.toHaveBeenCalled();
+		} finally {
+			pendingStorageWrites.resolveFailures("reload-init-test:");
+			runtime.dispose();
+		}
 	});
 	it("cancels loading before an update if the worker has not started yet", async () => {
 		const engine = createDeferred<GameFunction>();

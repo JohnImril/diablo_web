@@ -269,14 +269,14 @@ const App = () => {
 
 	const onDrop = useCallback(
 		(file: File) => {
-			if (updating) return;
+			if (updating || error) return;
 			if (compress) {
 				setCompressFile(file);
 			} else {
 				start(file);
 			}
 		},
-		[compress, start, updating]
+		[compress, start, updating, error]
 	);
 
 	const { dropping } = useFileDrop(runtime, onDrop);
@@ -345,7 +345,16 @@ const App = () => {
 					<ErrorComponent
 						error={error}
 						saveName={currentSaveName}
+						loadBackups={runtime.getSaveBackups}
 						onApplyUpdate={updateAvailable ? applyUpdate : undefined}
+						onReload={
+							!started && !compress && !showSaves && !importingSave
+								? async () => {
+										await runtime.prepareForReload();
+										window.location.reload();
+									}
+								: undefined
+						}
 					/>
 				)}
 

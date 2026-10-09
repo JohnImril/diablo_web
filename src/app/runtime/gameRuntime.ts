@@ -79,6 +79,7 @@ export function createGameRuntime() {
 	let inputController: ReturnType<typeof createRuntimeInputController> | null = null;
 	let saveManager: ReturnType<typeof createSaveManager> | null = null;
 	let fsPromise: ReturnType<typeof createIndexedDbFs> | null = null;
+	let storageInitializationFailed = false;
 	let webrtc: IWebRTCConnection | null = null;
 	let packetQueue: ArrayBuffer[] = [];
 	let networkIntervalId: number | null = null;
@@ -302,6 +303,9 @@ export function createGameRuntime() {
 	const initStorage = (opts?: Omit<SaveManagerOptions, "onSavesChanged">) => {
 		if (!fsPromise) {
 			fsPromise = (opts?.fs ?? createIndexedDbFs()) as ReturnType<typeof createIndexedDbFs>;
+			void fsPromise.catch(() => {
+				storageInitializationFailed = true;
+			});
 		}
 		if (saveManager) return saveManager;
 		saveManager = createSaveManager({
@@ -346,6 +350,12 @@ export function createGameRuntime() {
 		pendingStorageWrites.retryFailed();
 		await pendingStorageWrites.flush();
 		stop();
+	};
+	const prepareForReload = async () => {
+		// A failed initial open has no in-memory saves to flush and cannot be
+		// recovered by retrying writes. A pending open still uses the flush timeout.
+		if (storageInitializationFailed && !workerClient && !gameHandle && state.lifecycle === "idle") return;
+		await prepareForUpdate();
 	};
 	const downloadSave = (name: string) => saveManager?.downloadSave(name);
 	const importSave = (file: File) => saveManager?.importSave(file);
@@ -486,6 +496,7 @@ export function createGameRuntime() {
 		downloadSave,
 		getSaveBackups,
 		prepareForUpdate,
+		prepareForReload,
 		importSave,
 		notifySavesChanged,
 		ensureStorageReady,
