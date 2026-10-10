@@ -1,0 +1,36 @@
+.storage-conflict {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	max-height: none;
+	margin: 0;
+	border: 0;
+	padding: 16px;
+	background: #101217;
+	pointer-events: auto;
+	overflow-y: auto;
+}
+.storage-conflict[open] {
+	display: grid;
+	place-items: center;
+}
+.storage-conflict::backdrop {
+	background: #101217;
+}
+.storage-conflict .d1-panel {
+	width: min(100%, 480px);
+	padding: 24px;
+	text-align: center;
+}
+.storage-conflict h1 {
+	font-size: 26px;
+	color: var(--d1-gold-bright);
+}
+.storage-conflict p {
+	margin: 16px 0;
+	font:
+		15px/1.6 Arial,
+		sans-serif;
+}

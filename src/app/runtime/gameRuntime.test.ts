@@ -107,6 +107,21 @@ describe("game runtime sessions", () => {
 			runtime.dispose();
 		}
 	});
+	it("allows reload after a failed open and the StrictMode effect cleanup", async () => {
+		const runtime = createGameRuntime();
+		const failure = new Error("Storage ownership unavailable");
+		const storage = pendingStorageWrites.track(Promise.reject(failure), "reload-strict-test:");
+		runtime.initStorage({ fs: storage });
+		// StrictMode cleans up the runtime and then reuses it for the next setup.
+		runtime.dispose();
+		try {
+			await storage.catch(() => undefined);
+			expect(runtime.getState().lifecycle).toBe("exited");
+			await expect(runtime.prepareForReload()).resolves.toBeUndefined();
+		} finally {
+			pendingStorageWrites.resolveFailures("reload-strict-test:");
+		}
+	});
 	it("cancels loading before an update if the worker has not started yet", async () => {
 		const engine = createDeferred<GameFunction>();
 		vi.mocked(loadGame).mockReturnValue(engine.promise);

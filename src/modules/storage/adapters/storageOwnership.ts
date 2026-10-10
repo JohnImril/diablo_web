@@ -1,3 +1,12 @@
+export class StorageOwnershipConflictError extends Error {
+	constructor() {
+		super(
+			"The game is already open in another tab or app window. Close it, then try again to safely access your saves."
+		);
+		this.name = "StorageOwnershipConflictError";
+	}
+}
+
 /** Hold ownership before reading snapshots, migrations, or writing any files.
  * A write-only mutex is insufficient: another engine can still write a stale snapshot.
  * Never release on blur/pagehide or runtime stop: cached engines and pending retries
@@ -14,10 +23,7 @@ export function withStorageOwnership<T>(initialize: () => Promise<T>): Promise<T
 	return new Promise<T>((resolve, reject) => {
 		void navigator.locks
 			.request("diablo_fs:session", { mode: "exclusive", ifAvailable: true }, async (lock) => {
-				if (!lock)
-					throw new Error(
-						"The game is already open in another tab. Close that tab, then reload this page to safely access your saves."
-					);
+				if (!lock) throw new StorageOwnershipConflictError();
 				const value = await initialize();
 				resolve(value);
 				await new Promise<void>(() => {});

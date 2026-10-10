@@ -79,6 +79,30 @@ describe("IndexedDB update safety", () => {
 		await expect(createFs()).rejects.toThrow("another tab");
 		expect(openDB).not.toHaveBeenCalled();
 	});
+	it("caches an ownership rejection even after the other document releases its lock", async () => {
+		vi.mocked(openDB).mockClear();
+		const request = vi.fn(async (_name, _options, callback) => callback(null));
+		vi.stubGlobal("navigator", { locks: { request } });
+		const { default: createFs } = await import("./indexedDbFs");
+		const first = createFs();
+		await expect(first).rejects.toThrow("another tab");
+		request.mockImplementation(async (_name, _options, callback) => callback({}));
+		expect(createFs()).toBe(first);
+		await expect(createFs()).rejects.toThrow("another tab");
+		expect(request).toHaveBeenCalledOnce();
+		expect(openDB).not.toHaveBeenCalled();
+	});
+	it("caches an IndexedDB initialization failure without requesting ownership again", async () => {
+		const failure = new Error("IndexedDB unavailable");
+		vi.mocked(openDB).mockRejectedValue(failure);
+		const { default: createFs } = await import("./indexedDbFs");
+		const first = createFs();
+		await expect(first).rejects.toBe(failure);
+		expect(createFs()).toBe(first);
+		await expect(createFs()).rejects.toBe(failure);
+		expect(navigator.locks.request).toHaveBeenCalledOnce();
+		expect(openDB).toHaveBeenCalledOnce();
+	});
 	it("persists the current save on retry and then permits reload", async () => {
 		const db = database();
 		vi.mocked(openDB).mockResolvedValue(db as never);

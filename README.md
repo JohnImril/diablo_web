@@ -43,9 +43,10 @@ To reduce an MPQ's size, open **Controls, limitations & game files** on the star
 Game files and saves are stored locally in the current browser/profile through IndexedDB. There is no cloud-save
 service. Export saves before clearing browser data or moving to another browser or device.
 
-Keep the game open in one tab. If storage is blocked by another game tab, finish saving there, close it,
-then reload this tab. Returning to the menu or switching tabs does not release storage. Do not clear browser
-data to resolve this error.
+Keep the game open in one tab or app window. **Game already open** means another page is using your saves.
+Finish saving there, close other Diablo Web tabs/windows (including the installed app), then choose **Try Again**.
+This safely reloads the blocked page to check access again. Returning to the menu or switching tabs does not
+release storage. Do not clear browser data to resolve this error.
 
 - **Export:** open **Manage Saves** on the start screen and download the saves you want to keep.
 - **First import:** if **Manage Saves** is not visible yet, drag a `.sv` file from your computer and drop it
