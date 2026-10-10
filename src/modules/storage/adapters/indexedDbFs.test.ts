@@ -16,18 +16,35 @@ function database(previous?: Record<string, unknown>) {
 		app_meta: new Map<string, unknown>(previous ? [["current", previous]] : []),
 	};
 	type Store = keyof typeof stores;
-	return {
+	const db = {
+		close: vi.fn(),
 		get: vi.fn(async (store: Store, key: string) => stores[store].get(key)),
 		getAllKeys: vi.fn(async (store: Store) => [...stores[store].keys()]),
 		put: vi.fn(async (store: Store, value: unknown, key: string) => stores[store].set(key, value)),
 		delete: vi.fn(async (store: Store, key: string) => stores[store].delete(key)),
 		clear: vi.fn(async (store: Store) => stores[store].clear()),
 	};
+	return {
+		...db,
+		transaction: vi.fn(() => ({
+			objectStore: (store: Store) => ({
+				getAllKeys: () => db.getAllKeys(store),
+				delete: (key: string) => db.delete(store, key),
+				clear: () => db.clear(store),
+				put: (value: unknown, key: string) => db.put(store, value, key),
+			}),
+			abort: vi.fn(),
+			done: Promise.resolve(),
+		})),
+	};
 }
 
 beforeEach(() => {
 	vi.resetModules();
 	vi.stubGlobal("window", { indexedDB: {} });
+	vi.stubGlobal("navigator", {
+		locks: { request: vi.fn((_name, _options, callback) => callback({ name: "diablo_fs:session" })) },
+	});
 	vi.stubEnv("VITE_APP_ASSET_DATA_EPOCH", "1");
 	vi.stubEnv("VITE_APP_SAVE_DATA_EPOCH", "1");
 	vi.spyOn(console, "error").mockImplementation(() => {});
@@ -40,6 +57,28 @@ afterEach(() => {
 });
 
 describe("IndexedDB update safety", () => {
+	it("shares one filesystem and one ownership request within a document", async () => {
+		vi.mocked(openDB).mockResolvedValue(database() as never);
+		const { default: createFs } = await import("./indexedDbFs");
+		const first = createFs();
+		const second = createFs();
+		expect(second).toBe(first);
+		expect(await second).toBe(await first);
+		expect(navigator.locks.request).toHaveBeenCalledTimes(1);
+		expect(openDB).toHaveBeenCalledTimes(1);
+	});
+	it("does not open or migrate storage when another tab owns it", async () => {
+		vi.mocked(openDB).mockClear();
+		vi.stubGlobal("navigator", {
+			locks: {
+				request: async (_name: string, _options: unknown, callback: (lock: null) => Promise<void>) =>
+					callback(null),
+			},
+		});
+		const { default: createFs } = await import("./indexedDbFs");
+		await expect(createFs()).rejects.toThrow("another tab");
+		expect(openDB).not.toHaveBeenCalled();
+	});
 	it("persists the current save on retry and then permits reload", async () => {
 		const db = database();
 		vi.mocked(openDB).mockResolvedValue(db as never);
@@ -99,6 +138,16 @@ describe("IndexedDB update safety", () => {
 		expect(fs.files.has("single_0.sv")).toBe(false);
 		expect(fs.files.get("spawn.mpq")).toBe(mpq);
 		expect(db.clear).toHaveBeenCalledWith("save_meta");
+	});
+	it("rejects a backward save epoch without deleting any data or changing metadata", async () => {
+		const db = database({ assetDataEpoch: "0", saveDataEpoch: "2" });
+		vi.mocked(openDB).mockResolvedValue(db as never);
+		const { default: createFs } = await import("./indexedDbFs");
+		await expect(createFs()).rejects.toThrow("older save data epoch");
+		expect(db.delete).not.toHaveBeenCalled();
+		expect(db.clear).not.toHaveBeenCalled();
+		expect(db.put).not.toHaveBeenCalled();
+		expect(db.close).toHaveBeenCalledOnce();
 	});
 
 	it("blocks reload when storage cannot open", async () => {
