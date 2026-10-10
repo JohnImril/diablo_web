@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { withStorageOwnership } from "./storageOwnership";
+import { StorageOwnershipConflictError, withStorageOwnership } from "./storageOwnership";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -26,7 +26,7 @@ describe("storage ownership", () => {
 		const first = vi.fn(async () => "ready");
 		expect(await withStorageOwnership(first)).toBe("ready");
 		const second = vi.fn(async () => "stale");
-		await expect(withStorageOwnership(second)).rejects.toThrow("another tab");
+		await expect(withStorageOwnership(second)).rejects.toBeInstanceOf(StorageOwnershipConflictError);
 		expect(second).not.toHaveBeenCalled();
 		expect(request).toHaveBeenCalledWith(
 			"diablo_fs:session",
@@ -60,6 +60,14 @@ describe("storage ownership", () => {
 		vi.stubGlobal("navigator", {});
 		const initialize = vi.fn(async () => "unsafe");
 		await expect(withStorageOwnership(initialize)).rejects.toThrow("Web Locks");
+		expect(initialize).not.toHaveBeenCalled();
+	});
+	it("preserves API failures instead of misclassifying them as ownership conflicts", async () => {
+		const failure = new DOMException("Document is not active", "InvalidStateError");
+		vi.stubGlobal("navigator", { locks: { request: vi.fn().mockRejectedValue(failure) } });
+		const initialize = vi.fn(async () => "ready");
+		await expect(withStorageOwnership(initialize)).rejects.toBe(failure);
+		expect(failure).not.toBeInstanceOf(StorageOwnershipConflictError);
 		expect(initialize).not.toHaveBeenCalled();
 	});
 });

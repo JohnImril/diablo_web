@@ -354,7 +354,13 @@ export function createGameRuntime() {
 	const prepareForReload = async () => {
 		// A failed initial open has no in-memory saves to flush and cannot be
 		// recovered by retrying writes. A pending open still uses the flush timeout.
-		if (storageInitializationFailed && !workerClient && !gameHandle && state.lifecycle === "idle") return;
+		if (
+			storageInitializationFailed &&
+			!workerClient &&
+			!gameHandle &&
+			(state.lifecycle === "idle" || state.lifecycle === "exited")
+		)
+			return;
 		await prepareForUpdate();
 	};
 	const downloadSave = (name: string) => saveManager?.downloadSave(name);

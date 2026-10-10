@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useReducer, useMemo, type CSS
 import cn from "classnames";
 
 import UpdateNotice from "./app/ui/UpdateNotice";
+import StorageOwnershipConflict from "./app/ui/StorageOwnershipConflict";
 import { useAppUpdates } from "./app/uiHooks/useAppUpdates";
 import SaveList from "./components/SaveList/SaveList";
 import CompressMpq from "./app/ui/CompressMpq";
@@ -10,7 +11,7 @@ import LoadingComponent from "./components/LoadingComponent/LoadingComponent";
 import StartScreen from "./components/StartScreen/StartScreen";
 import TouchControls from "./components/TouchControls/TouchControls";
 import VirtualKeyboard from "./components/VirtualKeyboard/VirtualKeyboard";
-import { createGameRuntime, isRuntimeSessionCancelledError } from "./app/runtime";
+import { createGameRuntime, isRuntimeSessionCancelledError, StorageOwnershipConflictError } from "./app/runtime";
 import { transition } from "./app/runtime/lifecycleMachine";
 import type { LifecycleState } from "./app/runtime/runtimeState";
 import { useErrorHandling } from "./app/uiHooks/useErrorHandling";
@@ -37,6 +38,7 @@ const App = () => {
 	const [keyboardStyle, setKeyboardStyle] = useState<CSSProperties | null>(null);
 	const [currentSaveName, setCurrentSaveName] = useState<string | undefined>(undefined);
 	const [hasSpawn, setHasSpawn] = useState<boolean | undefined>(undefined);
+	const [storageConflict, setStorageConflict] = useState<StorageOwnershipConflictError | null>(null);
 	const [saveNames, setSaveNames] = useState<false | Record<string, IPlayerInfo | null>>(false);
 	const [, dispatchLifecycle] = useReducer(transition, "idle" as LifecycleState);
 
@@ -66,7 +68,7 @@ const App = () => {
 		status: updateStatus,
 		updating,
 		available: updateAvailable,
-	} = useAppUpdates(started || loading || importingSave || compress || showSaves, !!error);
+	} = useAppUpdates(started || loading || importingSave || compress || showSaves, !!error || !!storageConflict);
 	const runtime = useMemo(() => createGameRuntime(), []);
 	const handleError = useCallback(
 		(message: string, stack?: string) => {
@@ -167,7 +169,9 @@ const App = () => {
 				if (!cancelled) setHasSpawn(hasSpawn);
 			},
 			(error) => {
-				if (!cancelled) onError(`Unable to open save storage: ${String(error)}`);
+				if (cancelled) return;
+				if (error instanceof StorageOwnershipConflictError) setStorageConflict(error);
+				else onError(`Unable to open save storage: ${String(error)}`);
 			}
 		);
 		return () => {
@@ -177,6 +181,7 @@ const App = () => {
 
 	const start = useCallback(
 		async (file: File | null = null) => {
+			if (storageConflict || hasSpawn === undefined) return;
 			if (
 				["available", "applying", "saving"].includes(appUpdates.getSnapshot()) &&
 				!started &&
@@ -271,19 +276,19 @@ const App = () => {
 				}
 			);
 		},
-		[started, compress, showSaves, handleError, runtime, runUiCleanup, stopAndCleanup]
+		[started, compress, showSaves, storageConflict, hasSpawn, handleError, runtime, runUiCleanup, stopAndCleanup]
 	);
 
 	const onDrop = useCallback(
 		(file: File) => {
-			if (updating || error) return;
+			if (updating || error || storageConflict || hasSpawn === undefined) return;
 			if (compress) {
 				setCompressFile(file);
 			} else {
 				start(file);
 			}
 		},
-		[compress, start, updating, error]
+		[compress, start, updating, error, storageConflict, hasSpawn]
 	);
 
 	const { dropping } = useFileDrop(runtime, onDrop);
@@ -348,6 +353,17 @@ const App = () => {
 					/>
 				)}
 
+				{storageConflict && (
+					<StorageOwnershipConflict
+						onRetry={async () => {
+							// Rejected storage promises are cached for the document. A reload
+							// retries without creating a second snapshot in this runtime.
+							await runtime.prepareForReload();
+							window.location.reload();
+						}}
+					/>
+				)}
+
 				{error && (
 					<ErrorComponent
 						error={error}
@@ -367,10 +383,10 @@ const App = () => {
 
 				{loading && !started && !error && <LoadingComponent title="Loading..." progress={progress} />}
 
-				{!started && !compress && !loading && !error && !showSaves && (
+				{!started && !compress && !loading && !error && !storageConflict && !showSaves && (
 					<StartScreen
 						hasSpawn={hasSpawn}
-						disabled={updating}
+						disabled={updating || hasSpawn === undefined}
 						start={start}
 						saveNames={saveNames}
 						onCompressMpq={async () => {
