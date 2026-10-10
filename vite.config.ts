@@ -12,6 +12,9 @@ const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_ID = process.env.VITE_APP_BUILD_ID ?? process.env.GITHUB_SHA ?? pkg.version;
 const ASSET_DATA_EPOCH = process.env.VITE_APP_ASSET_DATA_EPOCH ?? "1";
 const SAVE_DATA_EPOCH = process.env.VITE_APP_SAVE_DATA_EPOCH ?? "1";
+if (!/^(0|[1-9]\d*)$/.test(SAVE_DATA_EPOCH)) {
+	throw new Error("VITE_APP_SAVE_DATA_EPOCH must be a non-negative decimal integer without leading zeros.");
+}
 const reactCompilerOptions = {
 	presets: [reactCompilerPreset()],
 } as Parameters<typeof babel>[0];

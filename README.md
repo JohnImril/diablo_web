@@ -43,6 +43,10 @@ To reduce an MPQ's size, open **Controls, limitations & game files** on the star
 Game files and saves are stored locally in the current browser/profile through IndexedDB. There is no cloud-save
 service. Export saves before clearing browser data or moving to another browser or device.
 
+Keep the game open in one tab. If storage is blocked by another game tab, finish saving there, close it,
+then reload this tab. Returning to the menu or switching tabs does not release storage. Do not clear browser
+data to resolve this error.
+
 - **Export:** open **Manage Saves** on the start screen and download the saves you want to keep.
 - **First import:** if **Manage Saves** is not visible yet, drag a `.sv` file from your computer and drop it
   onto the start screen (the screen with **Play Free Demo** and **Load Your MPQ**). After the save is imported,
@@ -70,13 +74,14 @@ The browser client separates React UI from runtime orchestration, domain logic, 
 
 ### Source Layout
 
-| Path                                                 | Responsibility                                                  |
-| ---------------------------------------------------- | --------------------------------------------------------------- |
-| `src/app/runtime/`                                   | Sessions, lifecycle, events, input orchestration, and UI bridge |
-| `src/modules/<domain>/core/`                         | Pure domain logic, types, and mappings                          |
-| `src/modules/<domain>/adapters/`                     | Engine, worker, DOM, storage, and network side effects          |
-| `src/components/`, `src/app/ui/`, `src/app/uiHooks/` | React UI and hooks                                              |
-| `src/shared/`                                        | Shared helpers and parsers                                      |
+| Path                                                 | Responsibility                                                   |
+| ---------------------------------------------------- | ---------------------------------------------------------------- |
+| `src/app/runtime/`                                   | Sessions, lifecycle, events, input orchestration, and UI bridge  |
+| `src/app/updates/`                                   | PWA updates, reload coordination, and tab activity               |
+| `src/modules/<domain>/core/`                         | Domain logic, types, mappings, and existing coordination helpers |
+| `src/modules/<domain>/adapters/`                     | Engine, worker, DOM, storage, and network side effects           |
+| `src/components/`, `src/app/ui/`, `src/app/uiHooks/` | React UI and hooks                                               |
+| `src/shared/`                                        | Shared helpers and parsers                                       |
 
 The main flow is to prepare browser storage, load the selected game data, initialize the WASM engine through the
 worker bridge, then route input, rendering, and runtime events while the session runs.
@@ -88,7 +93,10 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for module boundaries, entrypoints, and
 ### Prerequisites
 
 - Node.js 24 LTS (used by the GitHub Actions CI and deployment workflows) and npm.
-- A browser with WebAssembly, Web Workers, and IndexedDB support.
+- A browser with WebAssembly, Web Workers, IndexedDB, and Web Locks support. The app refuses to open save storage
+  when Web Locks are unavailable.
+- Serve the app over HTTPS, or use localhost for development and preview. Plain HTTP on a remote host or LAN IP
+  does not provide the secure context required by Web Locks.
 - Shareware data or your own retail MPQ to play locally.
 
 ### Installation
@@ -138,10 +146,12 @@ Open the preview URL printed in the terminal.
 The client runs on static hosting; a game backend is not required for the demo or local single-player game.
 The base path is `/diablo_web/` in [vite.config.ts](./vite.config.ts), matching the GitHub Pages demo.
 
-The [deployment workflow](./.github/workflows/deploy.yml) installs dependencies with `npm ci`, runs linting and tests,
+The [deployment workflow](./.github/workflows/deploy.yml) installs dependencies with `npm ci`, runs linting and unit tests,
 builds the client, and publishes `dist/` to GitHub Pages through the `github-pages` environment.
 Markdown-only changes are excluded from automatic deployment.
 For another hosting path, update the Vite base configuration accordingly.
+
+See the [deployment guide](./docs/DEPLOYMENT.md) for build identity, storage resets, and rollback behavior.
 
 For a simpler deployment-oriented variant, see
 [diablo_web_simple](https://github.com/JohnImril/diablo_web_simple).

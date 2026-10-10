@@ -1,4 +1,5 @@
-import { openDB } from "idb";
+import { openSaveDatabase } from "./openSaveDatabase";
+import { withStorageOwnership } from "./storageOwnership";
 import type { IDBPDatabase } from "idb";
 import type { IFileSystem, IPlayerInfo } from "types";
 import getPlayerName from "shared/parsers/saveFile";
@@ -7,6 +8,7 @@ import { triggerDownload } from "./download";
 import { MAX_MPQ_SIZE, MAX_SV_SIZE } from "constants/files";
 import { isSaveFile } from "../core/saveRules";
 import { pendingStorageWrites } from "../core/pendingWrites";
+import { shouldResetSaves } from "../core/saveEpoch";
 
 const APP_ASSET_DATA_EPOCH = import.meta.env.VITE_APP_ASSET_DATA_EPOCH || "1";
 const APP_SAVE_DATA_EPOCH = import.meta.env.VITE_APP_SAVE_DATA_EPOCH || "1";
@@ -54,63 +56,61 @@ async function uploadFile(db: IDBPDatabase<unknown>, files: Map<string, Uint8Arr
 	await db.put("files", data, file.name.toLowerCase());
 }
 
-async function deleteStoredFiles(
-	db: IDBPDatabase<unknown>,
-	shouldDelete: (name: string) => boolean,
-	files?: Map<string, Uint8Array>
-) {
-	const keys = await db.getAllKeys("files");
-	for (const key of keys) {
-		const name = String(key).toLowerCase();
-		if (!shouldDelete(name)) continue;
-		files?.delete(name);
-		await db.delete("files", key);
-	}
-}
-
 async function reconcileStoredAppState(db: IDBPDatabase<unknown>) {
 	const previous = (await db.get("app_meta", "current")) as AppStorageMeta | undefined;
 	const previousAssetDataEpoch = String(previous?.assetDataEpoch ?? "1");
 	const previousSaveDataEpoch = String(previous?.saveDataEpoch ?? "1");
 	const shouldClearAssetData = previousAssetDataEpoch !== CURRENT_APP_STORAGE_META.assetDataEpoch;
-	const shouldClearSaveData = previousSaveDataEpoch !== CURRENT_APP_STORAGE_META.saveDataEpoch;
+	const shouldClearSaveData = shouldResetSaves(previousSaveDataEpoch, APP_SAVE_DATA_EPOCH);
 
-	if (shouldClearSaveData) {
-		await deleteStoredFiles(db, isSaveFile);
-		await db.clear("save_meta");
+	// Commit the reset and its generation together. A failed/aborted reset must
+	// not leave deleted files with stale metadata that triggers another reset.
+	const tx = db.transaction(["files", "save_meta", "app_meta"], "readwrite");
+	try {
+		const files = tx.objectStore("files");
+		if (shouldClearSaveData || shouldClearAssetData) {
+			for (const key of await files.getAllKeys()) {
+				const save = isSaveFile(String(key));
+				if (save ? shouldClearSaveData : shouldClearAssetData) await files.delete(key);
+			}
+		}
+		if (shouldClearSaveData) await tx.objectStore("save_meta").clear();
+		// Workbox owns versioned app caches; reconciliation only changes IndexedDB.
+		await tx.objectStore("app_meta").put(CURRENT_APP_STORAGE_META, "current");
+		await tx.done;
+	} catch (error) {
+		try {
+			tx.abort();
+		} catch {
+			/* The transaction may already have aborted. */
+		}
+		await tx.done.catch(() => {});
+		throw error;
 	}
-
-	if (shouldClearAssetData) {
-		await deleteStoredFiles(db, (name) => !isSaveFile(name));
-		// Workbox owns its versioned caches. Deleting them here removes the
-		// freshly installed app assets and navigation fallback needed offline.
-	}
-
-	await db.put("app_meta", CURRENT_APP_STORAGE_META, "current");
 }
 
 async function createIndexedDbFs(): Promise<IFileSystem> {
+	let openedDb: IDBPDatabase<unknown> | undefined;
 	try {
 		if (!("indexedDB" in window)) {
 			throw new Error("IndexedDB is not supported in this browser.");
 		}
 
-		const db = await openDB("diablo_fs", 4, {
-			upgrade(db, oldVersion) {
-				if (oldVersion < 1 && !db.objectStoreNames.contains("files")) {
-					db.createObjectStore("files");
-				}
-				if (!db.objectStoreNames.contains("files")) {
-					db.createObjectStore("files");
-				}
-				if (!db.objectStoreNames.contains("save_meta")) {
-					db.createObjectStore("save_meta");
-				}
-				if (!db.objectStoreNames.contains("app_meta")) {
-					db.createObjectStore("app_meta");
-				}
-			},
+		const db = await openSaveDatabase((db, oldVersion) => {
+			if (oldVersion < 1 && !db.objectStoreNames.contains("files")) {
+				db.createObjectStore("files");
+			}
+			if (!db.objectStoreNames.contains("files")) {
+				db.createObjectStore("files");
+			}
+			if (!db.objectStoreNames.contains("save_meta")) {
+				db.createObjectStore("save_meta");
+			}
+			if (!db.objectStoreNames.contains("app_meta")) {
+				db.createObjectStore("app_meta");
+			}
 		});
+		openedDb = db;
 
 		await reconcileStoredAppState(db);
 
@@ -204,6 +204,7 @@ async function createIndexedDbFs(): Promise<IFileSystem> {
 			clearSaveMeta,
 		};
 	} catch (e) {
+		openedDb?.close();
 		console.error("Error initializing IndexedDB", e);
 		if (import.meta.env.DEV) {
 			window.DownloadFile = () => console.error("IndexedDB is not supported");
@@ -214,9 +215,15 @@ async function createIndexedDbFs(): Promise<IFileSystem> {
 	}
 }
 
+let filesystemPromise: Promise<IFileSystem> | undefined;
+
 export default function createTrackedIndexedDbFs(): Promise<IFileSystem> {
+	return (filesystemPromise ??= createTrackedFilesystem());
+}
+
+function createTrackedFilesystem(): Promise<IFileSystem> {
 	return pendingStorageWrites.track(
-		createIndexedDbFs().then((fs) => {
+		withStorageOwnership(createIndexedDbFs).then((fs) => {
 			const update = fs.update;
 			const remove = fs.delete;
 			const clear = fs.clear;
