@@ -182,6 +182,15 @@
 		13px/1.65 Arial,
 		sans-serif;
 }
+.start-screen__demo-status {
+	display: grid;
+}
+.start-screen__demo-status > span {
+	grid-area: 1 / 1;
+}
+.start-screen__saves-slot {
+	min-height: 54px;
+}
 .start-screen__saves {
 	min-height: 44px;
 	margin-top: 10px;

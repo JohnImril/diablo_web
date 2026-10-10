@@ -3,7 +3,7 @@ import type { IPlayerInfo } from "../../types";
 import "./StartScreen.css";
 
 interface IProps {
-	hasSpawn: boolean;
+	hasSpawn: boolean | undefined;
 	disabled?: boolean;
 	start: (file?: File | null) => void;
 	saveNames: false | Record<string, IPlayerInfo | null>;
@@ -48,8 +48,14 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 							</span>
 						</button>
 						<p id="demo-description" className="start-screen__hint">
-							{hasSpawn ? "Shareware ready in this browser." : "Shareware · 25–50 MB first download."}
-							<br />
+							<span className="start-screen__demo-status">
+								<span style={{ visibility: hasSpawn === true ? "visible" : "hidden" }}>
+									Shareware ready in this browser.
+								</span>
+								<span style={{ visibility: hasSpawn === false ? "visible" : "hidden" }}>
+									Shareware · 25–50 MB first download.
+								</span>
+							</span>
 							Limited content. No purchase or MPQ needed.
 						</p>
 						<button
@@ -77,6 +83,7 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 						<p id="mpq-description" className="start-screen__hint">
 							Own Diablo? Select or drop DIABDAT.MPQ for the full game.
 						</p>
+						<div className="start-screen__saves-slot">
 						{hasSaves && (
 							<button
 								disabled={disabled}
@@ -88,6 +95,7 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 								Manage Saves
 							</button>
 						)}
+						</div>
 					</div>
 					<footer className="start-screen__credits">
 						<p className="start-screen__credit">
