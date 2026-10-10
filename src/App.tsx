@@ -36,7 +36,7 @@ const App = () => {
 	const [isTouchMode, setIsTouchMode] = useState(false);
 	const [keyboardStyle, setKeyboardStyle] = useState<CSSProperties | null>(null);
 	const [currentSaveName, setCurrentSaveName] = useState<string | undefined>(undefined);
-	const [hasSpawn, setHasSpawn] = useState(false);
+	const [hasSpawn, setHasSpawn] = useState<boolean | undefined>(undefined);
 	const [saveNames, setSaveNames] = useState<false | Record<string, IPlayerInfo | null>>(false);
 	const [, dispatchLifecycle] = useReducer(transition, "idle" as LifecycleState);
 
