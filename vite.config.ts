@@ -79,6 +79,8 @@ export default defineConfig({
 				cacheId: "diablo-web",
 				cleanupOutdatedCaches: true,
 				globPatterns: ["**/*.{js,css,html,wasm,txt,webp}"],
+				// Diagnostics fetch maps on demand; keep them out of the offline game cache.
+				globIgnores: ["**/*.map"],
 			},
 
 			devOptions: {
@@ -94,7 +96,8 @@ export default defineConfig({
 	},
 	build: {
 		minify: "terser",
-		sourcemap: false,
+		// Public external maps support GitHub error reports and DevTools without inflating JS.
+		sourcemap: true,
 		rolldownOptions: {
 			output: {
 				assetFileNames: "assets/[hash][extname]",
