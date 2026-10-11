@@ -2,13 +2,16 @@
 // @ts-ignore
 import MpqModule from "./mpqCmp.jscc";
 import { loadEmscriptenModule } from "shared/emscriptenModule";
+import { normalizeError } from "shared/normalizeError";
+import { repairStoredSectors } from "./repairStoredSectors";
 
 const worker: Worker & { DApi?: IDApi } = self as unknown as Worker & { DApi?: IDApi };
 
 let input_file: Uint8Array | null = null;
 let input_offset = 0;
-let output_file: Uint8Array | null = null;
+let output_file: Uint8Array<ArrayBuffer> | null = null;
 let last_progress = 0;
+let stage = "Initializing worker";
 
 function progress(value: number) {
 	worker.postMessage({ action: "progress", value });
@@ -52,34 +55,48 @@ async function run({ binary, mpq, input, offset, blockSize }: IWorkerMessageData
 		throw new Error("Invalid arguments passed to the worker");
 	}
 
+	stage = "Initializing compression WASM";
 	const wasm = await loadEmscriptenModule<MpqWasmApi, { wasmBinary: ArrayBuffer }>(MpqModule, {
 		wasmBinary: binary,
 	});
 
 	input_file = new Uint8Array(mpq);
 	input_offset = offset;
+	wasm.prepareCompressionStack();
 
 	const count = input.length / 6;
 	const ptr = wasm._DApi_Alloc(input.byteLength);
 	wasm.HEAPU32.set(input, ptr >> 2);
 
+	stage = "Compressing MPQ entries";
 	const dst = wasm._DApi_Compress(offset + input_file.length, blockSize, count, ptr) >> 2;
+	wasm.checkCompressionStack();
+	if (!output_file) throw new Error("Compression WASM did not produce output");
+	const blocks = wasm.HEAPU32.slice(dst, dst + count * 4);
+	stage = "Validating compressed sectors";
+	await repairStoredSectors(output_file!, blocks);
+	stage = "Transferring compressed output";
 
-	worker.postMessage(
-		{ action: "result", buffer: output_file!.buffer, blocks: wasm.HEAPU32.slice(dst, dst + count * 4) },
-		[output_file!.buffer, wasm.HEAPU32.slice(dst, dst + count * 4).buffer]
-	);
+	worker.postMessage({ action: "result", buffer: output_file!.buffer, blocks }, [output_file!.buffer, blocks.buffer]);
 }
 
 worker.addEventListener("message", ({ data }: { data: IWorkerMessageData }) => {
 	if (data.action === "run") {
-		run(data).catch((err) =>
+		run(data).catch((err) => {
+			const error = normalizeError(err);
 			worker.postMessage({
 				action: "error",
-				error: err.toString(),
-				stack: err.stack,
-			})
-		);
+				error: `${error.name}: ${error.message}`,
+				stack: error.stack,
+				diagnostics: {
+					stage,
+					errorDetails: error.details,
+					offset: data.offset,
+					blockSize: data.blockSize,
+					entries: data.input ? data.input.length / 6 : undefined,
+				},
+			});
+		});
 	}
 });
 
@@ -103,6 +120,8 @@ interface IDApi {
 }
 
 interface MpqWasmApi {
+	prepareCompressionStack(): void;
+	checkCompressionStack(): void;
 	_DApi_Alloc(size: number): number;
 	_DApi_Compress(size: number, blockSize: number, count: number, input: number): number;
 	HEAPU32: Uint32Array;

@@ -1,7 +1,8 @@
 import { decrypt, encrypt, hash, path_name } from "shared/parsers/saveFile";
 import Worker from "./mpqCmp.worker.js?worker";
 import MpqBinary from "./mpqCmp.wasm?url";
-import ListFile from "./listFile.txt";
+import ListFile from "./listFile.txt?url";
+import { normalizeError } from "shared/normalizeError";
 import { fetchWithProgress } from "../../engine/adapters/fetchWithProgress";
 import type { ProgressReporter } from "types";
 import { readFileAsArrayBuffer } from "shared/buffers";
@@ -32,14 +33,33 @@ async function loadFile(
 	return buffer;
 }
 
-function runWorker(data: unknown, transfer: Transferable[], progress: (value: number) => void) {
+function runWorker(data: unknown, transfer: Transferable[], progress: (value: number) => void, signal: AbortSignal) {
 	return new Promise<IWorkerResult>((resolve, reject) => {
+		let worker: Worker | undefined;
+		let settled = false;
+		const onAbort = () => finish(() => reject(new Error("MPQ compression cancelled after a worker failure")));
+		const finish = (callback: () => void) => {
+			if (settled) return;
+			settled = true;
+			signal.removeEventListener("abort", onAbort);
+			worker?.terminate();
+			callback();
+		};
+		if (signal.aborted) {
+			onAbort();
+			return;
+		}
+		signal.addEventListener("abort", onAbort, { once: true });
 		try {
-			const worker = new Worker();
-			const finish = (callback: () => void) => {
-				worker.terminate();
-				callback();
-			};
+			worker = new Worker();
+			worker.addEventListener("error", (event) => {
+				const error = new Error(event.message || "MPQ compression worker failed to load or execute");
+				if (event.error?.stack) error.stack = event.error.stack;
+				finish(() => reject(error));
+			});
+			worker.addEventListener("messageerror", () =>
+				finish(() => reject(new Error("Unable to decode MPQ compression worker response")))
+			);
 
 			worker.addEventListener("message", ({ data }) => {
 				switch (data.action) {
@@ -47,7 +67,12 @@ function runWorker(data: unknown, transfer: Transferable[], progress: (value: nu
 						finish(() => resolve({ buffer: data.buffer, blocks: data.blocks }));
 						break;
 					case "error":
-						finish(() => reject({ message: data.error, stack: data.stack }));
+						finish(() => {
+							const normalized = normalizeError({ message: data.error, stack: data.stack });
+							const error = new Error(normalized.message);
+							if (normalized.stack) error.stack = normalized.stack;
+							reject(Object.assign(error, { diagnostics: data.diagnostics }));
+						});
 						break;
 					case "progress":
 						progress(data.value);
@@ -57,7 +82,7 @@ function runWorker(data: unknown, transfer: Transferable[], progress: (value: nu
 			});
 			worker.postMessage({ action: "run", ...(data as object) }, transfer);
 		} catch (e) {
-			reject(e);
+			finish(() => reject(e));
 		}
 	});
 }
@@ -66,6 +91,7 @@ export default async function compress(mpq: File, progress: ProgressReporter) {
 	if (mpq.size > MAX_MPQ_SIZE) {
 		throw new Error("MPQ file is too large (max 1 GB)");
 	}
+	if (mpq.size < 32) throw new Error("Invalid MPQ file: header is shorter than 32 bytes");
 	progress("Loading...");
 	const files: IFileLoad[] = [];
 
@@ -95,7 +121,9 @@ export default async function compress(mpq: File, progress: ProgressReporter) {
 	fList.ready = loadFile(ListFile, loader(fList), "text");
 	files.push(fList);
 
-	const header = new Uint32Array((await fHeader.ready) as ArrayBuffer);
+	// Observe all concurrent asset loads even when the header is invalid.
+	const [headerBuffer] = await Promise.all([fHeader.ready, fBinary.ready, fList.ready]);
+	const header = new Uint32Array(headerBuffer as ArrayBuffer);
 	const header16 = new Uint16Array(header.buffer);
 
 	if (header[0] !== MPQ_MAGIC_NUMBER) {
@@ -159,6 +187,9 @@ export default async function compress(mpq: File, progress: ProgressReporter) {
 
 		const filePos = blockTable[index * 4];
 		const cSize = blockTable[index * 4 + 1];
+		if (index >= blockTableSize || filePos >= mpqsize || filePos + cSize > mpqsize) {
+			throw new Error(`Invalid MPQ block at hash entry ${i}`);
+		}
 
 		const task = tasks[Math.floor((filePos * NUM_TASKS) / mpqsize)];
 		task.entries.push(i);
@@ -183,6 +214,7 @@ export default async function compress(mpq: File, progress: ProgressReporter) {
 	const binary = (await fBinary.ready) as ArrayBuffer;
 
 	progress("Processing...");
+	const workerAbort = new AbortController();
 
 	tasks.forEach((task) => {
 		if (task.data) {
@@ -204,12 +236,18 @@ export default async function compress(mpq: File, progress: ProgressReporter) {
 					task.progress = value;
 					const sum = tasks.reduce((sum, task) => sum + task.progress, 0);
 					progress("Processing...", sum, numFiles);
-				}
+				},
+				workerAbort.signal
 			).then((res) => (task.result = res));
 		}
 	});
 
-	await Promise.all(tasks.map((t) => t.run).filter(Boolean));
+	try {
+		await Promise.all(tasks.map((t) => t.run).filter(Boolean));
+	} catch (error) {
+		workerAbort.abort();
+		throw error;
+	}
 
 	let outputPos = 32 + fHashTable.total + fBlockTable.total;
 	const outputSize = tasks.reduce((sum, { result }) => sum + (result ? result.buffer.byteLength : 0), outputPos);

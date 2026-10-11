@@ -70,16 +70,35 @@ const App = () => {
 		available: updateAvailable,
 	} = useAppUpdates(started || loading || importingSave || compress || showSaves, !!error || !!storageConflict);
 	const runtime = useMemo(() => createGameRuntime(), []);
+	const errorContextRef = useRef<Record<string, unknown>>({ operation: "Application" });
+	useEffect(() => {
+		errorContextRef.current = {
+			operation: started
+				? "Playing"
+				: loading
+					? "Starting game"
+					: importingSave
+						? "Importing save"
+						: "Application",
+			progress,
+		};
+	}, [started, loading, importingSave, progress]);
 	const handleError = useCallback(
-		(message: string, stack?: string) => {
+		(message: unknown, stack?: string, diagnostics?: Record<string, unknown>) => {
+			const context = {
+				...errorContextRef.current,
+				currentSave: saveNameRef.current,
+				updateStatus: appUpdates.getSnapshot(),
+				...diagnostics,
+			};
 			const saveName = saveNameRef.current;
 			if (!saveName) {
-				onError(message, stack, undefined, retail);
+				onError(message, stack, undefined, retail, context);
 				return;
 			}
 			void runtime.getSaveUrl(saveName).then(
-				(saveUrl) => onError(message, stack, saveUrl, retail),
-				() => onError(message, stack, undefined, retail)
+				(saveUrl) => onError(message, stack, saveUrl, retail, context),
+				() => onError(message, stack, undefined, retail, context)
 			);
 		},
 		[onError, retail, runtime]
@@ -89,7 +108,7 @@ const App = () => {
 			const saves = await runtime.getSaves();
 			setSaveNames(saves && Object.keys(saves).length > 0 ? saves : false);
 		} catch (error) {
-			handleError(`Unable to load saves: ${String(error)}`);
+			handleError(error, undefined, { operation: "Loading saves" });
 		}
 	}, [runtime, handleError]);
 
@@ -171,7 +190,7 @@ const App = () => {
 			(error) => {
 				if (cancelled) return;
 				if (error instanceof StorageOwnershipConflictError) setStorageConflict(error);
-				else onError(`Unable to open save storage: ${String(error)}`);
+				else onError(error, undefined, undefined, undefined, { operation: "Opening save storage" });
 			}
 		);
 		return () => {
@@ -247,7 +266,10 @@ const App = () => {
 				try {
 					await startResult.promise;
 				} catch (error) {
-					handleError(`Unable to import save: ${String(error)}`);
+					handleError(error, undefined, {
+						operation: "Importing save",
+						file: file ? { name: file.name, size: file.size } : undefined,
+					});
 				} finally {
 					setImportingSave(false);
 				}
@@ -270,7 +292,7 @@ const App = () => {
 				},
 				(err) => {
 					if (isRuntimeSessionCancelledError(err)) return;
-					handleError(err.message, err.stack);
+					handleError(err);
 					setLoading(false);
 					dispatchLifecycle("FAIL");
 				}

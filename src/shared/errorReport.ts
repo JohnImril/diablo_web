@@ -5,14 +5,21 @@ type ErrorReportInput = ErrorReportPayload & {
 	userAgent: string;
 };
 
-export function formatErrorReportBody({ message, stack, appVersion, retail, userAgent }: ErrorReportInput): string {
+export function formatErrorReportBody({
+	message,
+	stack,
+	appVersion,
+	retail,
+	userAgent,
+	diagnostics,
+}: ErrorReportInput): string {
 	const lines = stack ? `${message}\n${stack}` : message;
 
 	return `**Description:**
-[Please describe what you were doing before the error occurred]
+[Optional: add anything that may help reproduce the error. Technical diagnostics are collected below automatically.]
 
 **App version:**
-DiabloWeb ${appVersion} (${retail ? "Retail" : "Shareware"})
+DiabloWeb ${appVersion} (${retail === undefined ? "Not started / unknown" : retail ? "Retail" : "Shareware"})
 
 **Error message:**
 
@@ -25,8 +32,15 @@ ${lines
 
     ${userAgent}
 
+**Automatic diagnostics:**
+
+${JSON.stringify(diagnostics ?? {}, null, 2)
+	.split("\n")
+	.map((line) => `    ${line}`)
+	.join("\n")}
+
 **Save file:**
-[Please attach the save file, if applicable. The error box should have a link to download the current save you were playing; alternatively, you can open dev console on the game page (F12) and type in DownloadSaves()]
+${diagnostics?.operation === "MPQ compression" ? "Not applicable: this error occurred while compressing a game archive." : "If a save download is offered in the error dialog, attach it here. Save files are not uploaded automatically."}
 `;
 }
 
