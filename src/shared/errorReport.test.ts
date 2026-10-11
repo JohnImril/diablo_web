@@ -1,7 +1,49 @@
 import { describe, expect, it } from "vitest";
-import { formatErrorReportBody, buildErrorReportUrl } from "./errorReport";
+import {
+	formatErrorReportBody,
+	buildErrorReportUrl,
+	formatErrorReportTitle,
+	MAX_ERROR_REPORT_URL_LENGTH,
+	REPORT_ATTACHMENT_NOTICE,
+} from "./errorReport";
 
 describe("error report", () => {
+	it("serializes circular diagnostics, BigInt and nested errors", () => {
+		const diagnostics: Record<string, unknown> = { bytes: 123n, cause: new Error("disk full") };
+		diagnostics.self = diagnostics;
+		const body = formatErrorReportBody({
+			message: "failed",
+			appVersion: "test",
+			userAgent: "browser",
+			diagnostics,
+		});
+		expect(body).toContain("[Circular]");
+		expect(body).toContain('"123"');
+		expect(body).toContain("disk full");
+	});
+	it("provides actionable reproduction prompts and a single-line title", () => {
+		const body = formatErrorReportBody({ message: "failed", appVersion: "test", userAgent: "browser" });
+		expect(body).toContain("Steps to reproduce");
+		expect(body).toContain("Expected behavior");
+		expect(body).toContain("after reloading");
+		const title = formatErrorReportTitle("failed\nagain", "Playing");
+		expect(title).toBe("DiabloWeb: Playing: failed again");
+		expect(
+			new URL(buildErrorReportUrl("https://github.com/example/repo/issues/new", body, title)).searchParams.get(
+				"title"
+			)
+		).toBe(title);
+		expect(formatErrorReportTitle("x".repeat(1000)).length).toBe(160);
+	});
+	it("bounds the encoded URL and requests the full report attachment", () => {
+		const body = "Version: test\n" + "Ошибка 💥\n".repeat(10000);
+		const url = buildErrorReportUrl("https://github.com/example/repo/issues/new", body, "Failure");
+		expect(url.length).toBeLessThanOrEqual(MAX_ERROR_REPORT_URL_LENGTH);
+		const draft = new URL(url).searchParams.get("body");
+		expect(draft).toContain("Version: test");
+		expect(draft).toContain(REPORT_ATTACHMENT_NOTICE);
+		expect(body).toContain("Ошибка 💥\n".repeat(10000));
+	});
 	it("includes compression context without asking for a save or inventing Shareware mode", () => {
 		const body = formatErrorReportBody({
 			message: "failed",

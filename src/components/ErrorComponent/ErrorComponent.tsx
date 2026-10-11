@@ -50,6 +50,16 @@ const ErrorComponent = ({ error, saveName, onApplyUpdate, onReload, loadBackups 
 			</p>
 
 			<p className="error-component__footer">
+				Opens a GitHub draft with diagnostics. Review it before submitting. Save files are not uploaded
+				automatically.
+			</p>
+			{new URL(reportUrl).searchParams.get("body") !== error.reportBody && (
+				<p className="error-component__footer">
+					The draft contains a shortened report. Download the diagnostic report below and attach it to your
+					issue.
+				</p>
+			)}
+			<p className="error-component__footer">
 				<a href={reportUrl} target="_blank" rel="noopener noreferrer" className={cn("d1-btn", "d1-btn--gold")}>
 					Create an issue on GitHub
 				</a>

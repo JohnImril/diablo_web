@@ -9,6 +9,7 @@ import SpawnModule from "./diabloSpawn.jscc";
 import websocket_open from "../../network/adapters/webSocketClient";
 import type { ProgressReporter, IWebSocketProxy } from "types";
 import { readFileAsArrayBuffer } from "shared/buffers";
+import { normalizeError } from "shared/normalizeError";
 import { loadEmscriptenModule } from "shared/emscriptenModule";
 import { resolveWsUrl } from "shared/wsUrl";
 import { fetchWithProgress } from "./fetchWithProgress";
@@ -59,13 +60,18 @@ let quiesced = false;
 let renderTimer: ReturnType<typeof setInterval> | undefined;
 
 function onError(err: unknown, action: "error" | "failed" = "error") {
-	if (err instanceof Error) {
-		postToMain(withProtocol({ action, error: err.toString(), stack: err.stack }));
-	} else {
-		postToMain(withProtocol({ action, error: err?.toString?.() ?? String(err) }));
-	}
+	const normalized = normalizeError(err);
+	postToMain(
+		withProtocol({
+			action,
+			error: normalized.message,
+			stack:
+				[normalized.stack, normalized.details && `Thrown value (${normalized.name}):\n${normalized.details}`]
+					.filter(Boolean)
+					.join("\n") || undefined,
+		})
+	);
 }
-
 
 const DApi: IDApi = {
 	exit_error(error: string) {
