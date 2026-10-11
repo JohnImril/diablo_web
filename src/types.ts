@@ -24,6 +24,7 @@ export type ErrorReportPayload = {
 	message: string;
 	stack?: string;
 	retail?: boolean;
+	diagnostics?: Record<string, unknown>;
 };
 
 export interface IGameHandles {

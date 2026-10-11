@@ -2,6 +2,7 @@ import { useState, useEffect, type ChangeEvent, useCallback } from "react";
 import cn from "classnames";
 import type { IProgress, ProgressReporter } from "../../types";
 import LoadingComponent from "../../components/LoadingComponent/LoadingComponent";
+import { normalizeError } from "../../shared/normalizeError";
 
 import "./CompressMpq.css";
 
@@ -9,7 +10,7 @@ interface IProps {
 	file: File | null;
 	setCompressFile: (file: File | null) => void;
 	setCompress: (compress: boolean) => void;
-	onError: (message: string, stack: string) => void;
+	onError: (message: string, stack: string, diagnostics?: Record<string, unknown>) => void;
 	runCompress: (file: File, progress: ProgressReporter) => Promise<Blob>;
 	downloadBlob: (filename: string, blob: Blob) => string;
 	revokeBlobUrl: (url: string) => void;
@@ -36,9 +37,9 @@ const CompressMpq = ({
 	);
 
 	const onErrorHandler = useCallback(
-		(message: string, stack: string) => {
+		(message: string, stack: string, diagnostics?: Record<string, unknown>) => {
 			setCompress(false);
-			onError(message, stack);
+			onError(message, stack, diagnostics);
 		},
 		[onError, setCompress]
 	);
@@ -63,15 +64,30 @@ const CompressMpq = ({
 		if (!file) return;
 
 		let cancelled = false;
+		let lastProgress: IProgress | undefined;
+		const startedAt = performance.now();
 
-		runCompress(file, (text, loaded, total) => setProgress({ text, loaded: loaded ?? 0, total }))
+		runCompress(file, (text, loaded, total) => {
+			lastProgress = { text, loaded: loaded ?? 0, total };
+			if (!cancelled) setProgress(lastProgress);
+		})
 			.then((blob) => {
 				if (!cancelled) onDone(blob);
 			})
 			.catch((error: unknown) => {
-				const message = error instanceof Error ? error.message : String(error);
-				const stack = error instanceof Error ? (error.stack ?? "") : "";
-				onErrorHandler(message, stack);
+				if (cancelled) return;
+				const normalized = normalizeError(error);
+				onErrorHandler(normalized.message, normalized.stack ?? "", {
+					...(error && typeof error === "object" && "diagnostics" in error
+						? (error.diagnostics as Record<string, unknown>)
+						: {}),
+					operation: "MPQ compression",
+					file: { name: file.name, size: file.size, type: file.type || "unknown" },
+					progress: lastProgress,
+					elapsedMs: Math.round(performance.now() - startedAt),
+					errorType: normalized.name,
+					errorDetails: normalized.details,
+				});
 			});
 
 		return () => {

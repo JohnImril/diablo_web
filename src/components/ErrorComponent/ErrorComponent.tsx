@@ -55,6 +55,16 @@ const ErrorComponent = ({ error, saveName, onApplyUpdate, onReload, loadBackups 
 				</a>
 			</p>
 
+			<p className="error-component__footer">
+				<a
+					className="d1-link"
+					href={`data:text/plain;charset=utf-8,${encodeURIComponent(error.reportBody)}`}
+					download="diabloweb-error-report.txt"
+				>
+					Download diagnostic report
+				</a>
+			</p>
+
 			{saveUrl && (
 				<p className="error-component__save-wrapper">
 					<a className={cn("d1-link", "text-ruby")} href={saveUrl} download={saveName}>
