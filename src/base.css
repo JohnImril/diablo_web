@@ -83,16 +83,32 @@
 	width: min(640px, calc(100% - 40px));
 	max-width: none;
 }
-.u-scrollbar-gold::-webkit-scrollbar {
-	width: 10px;
+:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups) {
+	--scrollbar-thumb: #827864;
+	scrollbar-width: thin;
+	scrollbar-color: var(--scrollbar-thumb) transparent;
 }
-.u-scrollbar-gold::-webkit-scrollbar-track {
-	background: var(--d1-black);
+@media (hover: hover) and (pointer: fine) {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups):hover {
+		--scrollbar-thumb: #a3977e;
+	}
 }
-.u-scrollbar-gold::-webkit-scrollbar-thumb {
-	background: linear-gradient(var(--d1-ui-steel), var(--d1-iron));
-	border: 1px solid var(--d1-gold-soft);
-	border-radius: 6px;
+/* Older browsers retain the same palette through their native scrollbar hooks. */
+@supports not (scrollbar-color: auto) {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-track,
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-thumb {
+		background: var(--scrollbar-thumb);
+		background-clip: padding-box;
+		border: 2px solid transparent;
+		border-radius: 8px;
+	}
 }
 .text-gold {
 	color: var(--d1-gold-bright);
@@ -275,21 +291,27 @@
 }
 
 @media (max-width: 740px), (pointer: coarse) {
-	:is(.start-screen, .u-modal, .app__update-notice, .app__save-backups) {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups) {
 		scrollbar-width: thin;
 		scrollbar-color: #74533380 transparent;
 		scrollbar-gutter: auto;
 	}
-	:is(.start-screen, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar {
 		width: 4px;
 		height: 4px;
 	}
-	:is(.start-screen, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-track {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-track {
 		background: transparent;
 	}
-	:is(.start-screen, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-thumb {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups)::-webkit-scrollbar-thumb {
 		background: #74533380;
 		border: none;
 		border-radius: 2px;
+	}
+}
+
+@media (forced-colors: active) {
+	:is(.u-scrollbar-gold, .u-modal, .app__update-notice, .app__save-backups) {
+		scrollbar-color: auto;
 	}
 }

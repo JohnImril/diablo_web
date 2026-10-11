@@ -6,16 +6,15 @@
 	width: 100%;
 	height: 100%;
 	box-sizing: border-box;
-	overflow-y: auto;
+	overflow: hidden;
 	pointer-events: auto;
-	background: #101217;
+	background: radial-gradient(ellipse 900px 660px at 78% 280px, #262b36, #101217);
 	color: #d3cec5;
 	font:
 		15px/1.55 Georgia,
 		"Times New Roman",
 		serif;
 	text-align: left;
-	scrollbar-gutter: stable;
 }
 .start-screen__scenery {
 	position: absolute;
@@ -38,11 +37,14 @@
 }
 .start-screen__layout {
 	position: relative;
+	z-index: 1;
+	height: 100%;
+	overflow-y: auto;
+	scrollbar-gutter: stable;
 	width: 100%;
 	min-height: 100%;
 	box-sizing: border-box;
 	padding: clamp(48px, 10svh, 108px) max(32px, calc((100% - 1088px) / 2)) 40px;
-	background: radial-gradient(ellipse 900px 660px at 78% 280px, #262b36, #101217);
 }
 .start-screen__menu {
 	position: relative;

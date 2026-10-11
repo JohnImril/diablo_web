@@ -15,11 +15,11 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 	const fileInput = useRef<HTMLInputElement>(null);
 	const hasSaves = !!(saveNames && Object.keys(saveNames).length > 0);
 	return (
-		<section className="start-screen u-scrollbar-gold" aria-labelledby="start-title">
-			<div className="start-screen__layout">
-				<div className="start-screen__scenery" aria-hidden="true">
-					<div className="start-screen__atmosphere" />
-				</div>
+		<section className="start-screen" aria-labelledby="start-title">
+			<div className="start-screen__scenery" aria-hidden="true">
+				<div className="start-screen__atmosphere" />
+			</div>
+			<div className="start-screen__layout u-scrollbar-gold">
 				<div className="start-screen__menu">
 					<header className="start-screen__header">
 						<p className="start-screen__eyebrow">The gates of Tristram</p>
