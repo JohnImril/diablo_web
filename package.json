@@ -1,7 +1,7 @@
 {
 	"name": "diablo_web",
 	"private": true,
-	"version": "1.6.11",
+	"version": "1.6.12",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -14,8 +14,8 @@
 		"classnames": "^2.5.1",
 		"idb": "^8.0.4",
 		"peerjs": "^1.5.5",
-		"react": "^19.3.0",
-		"react-dom": "^19.3.0",
+		"react": "^19.3.1",
+		"react-dom": "^19.3.1",
 		"vite-plugin-wasm": "^3.6.0"
 	},
 	"devDependencies": {
@@ -25,11 +25,11 @@
 		"@types/react-dom": "^19.3.0",
 		"@vitejs/plugin-react": "^6.1.2",
 		"babel-plugin-react-compiler": "^1.0.0",
-		"oxlint": "^1.87.0",
-		"prettier": "^3.9.9",
+		"oxlint": "^1.88.0",
+		"prettier": "^3.9.10",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.4",
 		"vite-plugin-pwa": "^2.0.0",
-		"vitest": "^5.0.3"
+		"vitest": "^5.0.5"
 	}
 }

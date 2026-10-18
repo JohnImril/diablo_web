@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openDB } from "idb";
 import type { IDBPDatabase, OpenDBCallbacks } from "idb";
 import { openSaveDatabase } from "./openSaveDatabase";
@@ -6,6 +6,9 @@ import { openSaveDatabase } from "./openSaveDatabase";
 vi.mock("idb", () => ({ openDB: vi.fn() }));
 beforeEach(() => {
 	vi.mocked(openDB).mockReset();
+});
+afterEach(() => {
+	vi.useRealTimers();
 });
 
 function pendingOpen() {
@@ -69,5 +72,36 @@ describe("legacy save protocol barrier", () => {
 		const db = { close: vi.fn() } as unknown as IDBPDatabase<unknown>;
 		vi.mocked(openDB).mockResolvedValue(db);
 		expect(await openSaveDatabase(vi.fn())).toBe(db);
+	});
+	it("retries a transient IndexedDB UnknownError without depending on its message", async () => {
+		vi.useFakeTimers();
+		const error = new DOMException("Browser-specific transient failure", "UnknownError");
+		const db = { close: vi.fn() } as unknown as IDBPDatabase<unknown>;
+		vi.mocked(openDB).mockRejectedValueOnce(error).mockResolvedValueOnce(db);
+
+		const operation = openSaveDatabase(vi.fn());
+		await vi.advanceTimersByTimeAsync(250);
+
+		await expect(operation).resolves.toBe(db);
+		expect(openDB).toHaveBeenCalledTimes(2);
+	});
+	it("stops retrying transient open failures after bounded attempts", async () => {
+		vi.useFakeTimers();
+		const error = new DOMException("Unable to open database file on disk", "UnknownError");
+		vi.mocked(openDB).mockRejectedValue(error);
+
+		const operation = openSaveDatabase(vi.fn());
+		const rejection = expect(operation).rejects.toBe(error);
+		await vi.runAllTimersAsync();
+
+		await rejection;
+		expect(openDB).toHaveBeenCalledTimes(3);
+	});
+	it("does not retry unrelated open failures", async () => {
+		const error = new DOMException("The requested version is too old", "VersionError");
+		vi.mocked(openDB).mockRejectedValue(error);
+
+		await expect(openSaveDatabase(vi.fn())).rejects.toBe(error);
+		expect(openDB).toHaveBeenCalledOnce();
 	});
 });
