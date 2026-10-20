@@ -8,6 +8,16 @@ import {
 } from "./errorReport";
 
 describe("error report", () => {
+	it("encodes spaces explicitly while preserving literal plus signs", () => {
+		const body = "Steps to reproduce:\n    C++ failed + details";
+		const title = "DiabloWeb: Opening save storage";
+		const url = buildErrorReportUrl("https://github.com/example/repo/issues/new", body, title);
+		expect(url).not.toContain("+");
+		expect(url).toContain("%20");
+		expect(url).toContain("%2B");
+		expect(new URL(url).searchParams.get("body")).toBe(body);
+		expect(new URL(url).searchParams.get("title")).toBe(title);
+	});
 	it("serializes circular diagnostics, BigInt and nested errors", () => {
 		const diagnostics: Record<string, unknown> = { bytes: 123n, cause: new Error("disk full") };
 		diagnostics.self = diagnostics;
