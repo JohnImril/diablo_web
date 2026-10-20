@@ -72,17 +72,20 @@ export function buildErrorReportUrl(baseUrl: string, body: string, title?: strin
 	const url = new URL(baseUrl);
 	if (title) url.searchParams.set("title", title);
 	url.searchParams.set("body", body);
-	if (url.toString().length > MAX_ERROR_REPORT_URL_LENGTH) {
+	// Some issue form handlers preserve form-encoded '+' as literal text.
+	// Encode spaces explicitly, and use the same representation for the size limit.
+	const serialize = () => url.toString().replace(/\+/g, "%20");
+	if (serialize().length > MAX_ERROR_REPORT_URL_LENGTH) {
 		// Keep the report header and fit the encoded URL, including non-ASCII text.
 		let low = 0;
 		let high = body.length;
 		while (low < high) {
 			const middle = Math.ceil((low + high) / 2);
 			url.searchParams.set("body", `${body.slice(0, middle)}\n\n[Report shortened]\n${REPORT_ATTACHMENT_NOTICE}`);
-			if (url.toString().length <= MAX_ERROR_REPORT_URL_LENGTH) low = middle;
+			if (serialize().length <= MAX_ERROR_REPORT_URL_LENGTH) low = middle;
 			else high = middle - 1;
 		}
 		url.searchParams.set("body", `${body.slice(0, low)}\n\n[Report shortened]\n${REPORT_ATTACHMENT_NOTICE}`);
 	}
-	return url.toString();
+	return serialize();
 }

@@ -16,7 +16,7 @@ export function withStorageOwnership<T>(initialize: () => Promise<T>): Promise<T
 	if (!globalThis.navigator?.locks) {
 		return Promise.reject(
 			new Error(
-				"Safe save storage requires Web Locks. Open the game in a supported browser over HTTPS or localhost."
+				"Safe save storage requires the Web Locks browser feature. Update your browser or operating system, and open the game over HTTPS or localhost."
 			)
 		);
 	}
