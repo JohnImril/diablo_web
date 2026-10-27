@@ -1,5 +1,5 @@
 import type { IApi, IFileSystem } from "types";
-import { fetchWithProgress } from "./fetchWithProgress";
+import { fetchWithProgressRetry } from "./fetchWithProgress";
 
 const SpawnSizes = [50274091, 25830791];
 
@@ -15,9 +15,9 @@ export default async function load_spawn(api: IApi, fs: IFileSystem) {
 	}
 
 	if (!file) {
-		const url = import.meta.env.BASE_URL === "/" ? "/spawn.mpq" : import.meta.env.BASE_URL + "/spawn.mpq";
+		const url = import.meta.env.BASE_URL.replace(/\/$/, "") + "/spawn.mpq";
 
-		const buffer = await fetchWithProgress(
+		const buffer = await fetchWithProgressRetry(
 			url,
 			(loaded, total) => {
 				api.onProgress?.({
@@ -25,11 +25,6 @@ export default async function load_spawn(api: IApi, fs: IFileSystem) {
 					loaded,
 					total: total || SpawnSizes[1],
 				});
-			},
-			{
-				headers: {
-					"Cache-Control": "max-age=31536000",
-				},
 			}
 		);
 

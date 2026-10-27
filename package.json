@@ -1,7 +1,7 @@
 {
 	"name": "diablo_web",
 	"private": true,
-	"version": "1.6.12",
+	"version": "1.6.13",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -25,10 +25,10 @@
 		"@types/react-dom": "^19.3.0",
 		"@vitejs/plugin-react": "^6.1.2",
 		"babel-plugin-react-compiler": "^1.0.0",
-		"oxlint": "^1.88.0",
+		"oxlint": "^1.90.0",
 		"prettier": "^3.9.10",
 		"typescript": "^7.0.2",
-		"vite": "^8.3.4",
+		"vite": "^8.3.5",
 		"vite-plugin-pwa": "^2.0.0",
 		"vitest": "^5.0.5"
 	}
