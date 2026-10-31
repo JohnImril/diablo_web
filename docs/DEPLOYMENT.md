@@ -4,6 +4,21 @@ The client runs on static hosting over HTTPS. For local development and preview,
 
 See the [deployment workflow](../.github/workflows/deploy.yml) and [Vite configuration](../vite.config.ts).
 
+## App Assets and Updates
+
+Deploy the complete `dist/` output, including the generated service worker, manifest, WASM assets, and source maps.
+Source maps are public and fetched on demand for error diagnostics; they are excluded from the offline app cache.
+The shareware archive `spawn.mpq` is also outside that cache and is downloaded into IndexedDB on first use.
+
+Service worker registration is enabled only in production. Visible, online pages check for updates at startup,
+every five minutes, when coming online, and on visibility changes. Updates wait for game activity to finish,
+coordinate activation across tabs, and flush tracked storage writes before reloading. Failed or timed-out writes
+block reload and expose in-memory save downloads. Test this behavior using `npm run build` and `npm run preview`;
+the development server does not register the service worker.
+
+The workflow passes the optional `VITE_WS_URL` secret at build time. This configures the experimental WebSocket
+adapter only; the current runtime uses WebRTC, so the secret does not enable WebSocket multiplayer.
+
 ## Build Identity and Storage Resets
 
 These values are embedded at build time. For local builds, set environment variables before `npm run build`;
@@ -18,8 +33,9 @@ the deployment workflow supplies the values described below.
 Epochs are compared with the last values stored in each browser's database when storage initializes. Legacy
 databases without this metadata are treated as epoch `1`. Ordinary builds preserve data when epochs stay the
 same. Any asset epoch change clears non-save files. Save epochs must be non-negative decimal integers without
-leading zeros: only an increase authorizes a save reset. Invalid build values fail Vite configuration; invalid stored or older save epochs block storage before any
-files or metadata are changed. Reset deletions and epoch metadata commit in one IndexedDB transaction.
+leading zeros: only an increase authorizes a save reset. Invalid save-epoch build values fail Vite configuration;
+an invalid stored save epoch or a build epoch lower than the stored value blocks storage before any files or
+metadata are changed. Reset deletions and epoch metadata commit in one IndexedDB transaction.
 Changing a value on the hosting server without rebuilding does not change an already built client.
 
 To deliberately reset saves, export them first, increase the repository variable `VITE_APP_SAVE_DATA_EPOCH`,

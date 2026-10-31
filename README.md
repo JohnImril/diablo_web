@@ -55,6 +55,16 @@ release storage. Do not clear browser data to resolve this error.
 - **Import more saves:** use the upload control in **Manage Saves**, or drop another `.sv` file onto the start screen.
 - **Loading errors:** use **Reload and Try Again** when offered to return to the start screen without clearing
   browser data. If reload cannot proceed, keep the page open, download any saves offered, and retry.
+- **Error reports:** the error dialog can open a GitHub issue draft and download a diagnostic report.
+  Review the draft before submitting; save files are downloaded separately and are not uploaded automatically.
+
+### App Updates
+
+The production app supports installation as a PWA and caches the app shell and engine assets for offline use.
+The shareware archive is downloaded separately and stored in IndexedDB after first use.
+Updates wait while the game is running and apply automatically on the start screen once other active game tabs
+allow activation. The page waits for tracked storage writes before reloading. If saving fails or times out,
+reload is blocked and save downloads are offered before retrying.
 
 Online multiplayer is experimental. It is not finished support for ordinary play; see [Multiplayer](#multiplayer).
 
@@ -163,15 +173,24 @@ For a simpler deployment-oriented variant, see
 online multiplayer work. It is not required to launch Diablo Web. Client networking adapters and backend experiments
 should not be read as finished, production-ready multiplayer support.
 
+The runtime currently connects the WebRTC adapter. The experimental WebSocket adapter is present and tested,
+but is not wired into the runtime; setting `VITE_WS_URL` alone does not enable it.
+
 ## Status and Next Steps
 
-The project focuses on modernizing the browser client around the existing Diablo WASM runtime.
-Current areas for improvement include:
+The browser client already includes:
 
-- Loading feedback and runtime error handling.
-- Save import/export and browser storage reliability.
-- Mobile and touch controls.
-- Build-tool compatibility and the boundary between client networking and backend experiments.
+- Loading progress, bounded retries for interrupted downloads, runtime error recovery, and diagnostic reports.
+- Save import/export, metadata caching, tracked writes with retry, and in-memory save downloads when reload is blocked.
+- Exclusive save-storage ownership across tabs, an IndexedDB v5 migration barrier, and guarded save-data resets.
+- Installable PWA support, cached app assets, and updates coordinated with game activity and pending storage writes.
+- React/TypeScript runtime separation, import-boundary lint checks, unit tests, and CI/deployment checks.
+
+Remaining limitations and areas for improvement:
+
+- Mobile and touch controls still need refinement.
+- Online multiplayer remains experimental; WebSocket/backend integration is not part of the active runtime.
+- Licensing for the client, inherited code, and bundled WASM artifacts still needs clarification.
 
 ## Origins and Credits
 

@@ -8,6 +8,7 @@
 - `src/app/ui/*`, `src/components/*`, `src/app/uiHooks/*` — UI layer
 - `src/shared/*` — shared helpers/parsers, including existing browser helpers documented below
 - `src/constants/*`, `src/icons/*` — shared (utils should be pure unless explicitly documented)
+- `src/utils/stacktrace/*` — stack trace mapping used by runtime error diagnostics
 
 ## Domains (modules)
 
@@ -16,6 +17,9 @@
 - **storage**: saves/FS operations, import/export helpers.
 - **input**: DOM input collection, command mapping.
 - **mpqcmp**: MPQ compression pipeline (WASM/worker adapters).
+
+The runtime uses the WebRTC adapter exported by `src/modules/network/adapters.ts`. The WebSocket adapter
+exists separately with unit tests, but is not connected to the runtime.
 
 ## Layering Rules
 
