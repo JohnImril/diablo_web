@@ -63,19 +63,19 @@ const CompressMpq = ({
 	useEffect(() => {
 		if (!file) return;
 
-		let cancelled = false;
+		const controller = new AbortController();
 		let lastProgress: IProgress | undefined;
 		const startedAt = performance.now();
 
 		runCompress(file, (text, loaded, total) => {
 			lastProgress = { text, loaded: loaded ?? 0, total };
-			if (!cancelled) setProgress(lastProgress);
+			if (!controller.signal.aborted) setProgress(lastProgress);
 		})
 			.then((blob) => {
-				if (!cancelled) onDone(blob);
+				if (!controller.signal.aborted) onDone(blob);
 			})
 			.catch((error: unknown) => {
-				if (cancelled) return;
+				if (controller.signal.aborted) return;
 				const normalized = normalizeError(error);
 				onErrorHandler(normalized.message, normalized.stack ?? "", {
 					...(error && typeof error === "object" && "diagnostics" in error
@@ -91,7 +91,7 @@ const CompressMpq = ({
 			});
 
 		return () => {
-			cancelled = true;
+			controller.abort();
 		};
 	}, [file, onErrorHandler, onDone, runCompress]);
 
