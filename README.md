@@ -66,7 +66,7 @@ Updates wait while the game is running and apply automatically on the start scre
 allow activation. The page waits for tracked storage writes before reloading. If saving fails or times out,
 reload is blocked and save downloads are offered before retrying.
 
-Online multiplayer is experimental. It is not finished support for ordinary play; see [Multiplayer](#multiplayer).
+For online multiplayer setup, see [Multiplayer](#multiplayer).
 
 ## Engineering and Architecture
 
@@ -169,12 +169,9 @@ For a simpler deployment-oriented variant, see
 
 ## Multiplayer
 
-[hellgate-ws](https://github.com/JohnImril/hellgate-ws/tree/main) is a separate experimental backend project for
-online multiplayer work. It is not required to launch Diablo Web. Client networking adapters and backend experiments
-should not be read as finished, production-ready multiplayer support.
-
-The runtime currently connects the WebRTC adapter. The experimental WebSocket adapter is present and tested,
-but is not wired into the runtime; setting `VITE_WS_URL` alone does not enable it.
+[hellgate-ws](https://github.com/JohnImril/hellgate-ws/tree/main) provides a WebSocket backend for online multiplayer.
+The client includes WebSocket integration; set `VITE_WS_URL` to your backend's `wss://` endpoint when building
+for production. See the backend README for deployment instructions.
 
 ## Status and Next Steps
 
@@ -189,7 +186,6 @@ The browser client already includes:
 Remaining limitations and areas for improvement:
 
 - Mobile and touch controls still need refinement.
-- Online multiplayer remains experimental; WebSocket/backend integration is not part of the active runtime.
 - Licensing for the client, inherited code, and bundled WASM artifacts still needs clarification.
 
 ## Origins and Credits
