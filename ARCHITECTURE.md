@@ -13,13 +13,19 @@
 ## Domains (modules)
 
 - **engine**: WebAssembly worker loading/bridge, protocol handling, intents application.
-- **network**: WebRTC and experimental WebSocket transport, packet/batch IO.
+- **network**: WebRTC and WebSocket transports, packet/batch IO.
 - **storage**: saves/FS operations, import/export helpers.
 - **input**: DOM input collection, command mapping.
 - **mpqcmp**: MPQ compression pipeline (WASM/worker adapters).
 
-The runtime uses the WebRTC adapter exported by `src/modules/network/adapters.ts`. The WebSocket adapter
-exists separately with unit tests, but is not connected to the runtime.
+Networking has two integration paths:
+
+- `src/app/runtime/gameRuntime.ts` uses the WebRTC adapter exported by `src/modules/network/adapters.ts`
+  and bridges packets between the main thread and the engine worker.
+- `src/modules/engine/adapters/game.worker.ts` imports `src/modules/network/adapters/webSocketClient.ts`
+  directly. When the engine calls `DApi.use_websocket(true)`, the worker opens the configured `WS_URL`,
+  delivers incoming packets and connection status to WASM, and sends outgoing packets through the socket.
+  `VITE_WS_URL` configures this endpoint at build time; see [Deployment](./docs/DEPLOYMENT.md).
 
 ## Layering Rules
 
@@ -48,7 +54,8 @@ Three existing exceptions to the purity rules need care when adding dependencies
 - `src/app/runtime/index.ts` — runtime public API (consumer-safe)
 - `src/modules/input/index.ts` — core command exports. Other domains currently use direct core imports;
   a domain `index.ts`, if introduced, should export only core APIs.
-- `src/modules/<domain>/adapters.ts` — adapter exports (**runtime-only**)
+- `src/modules/<domain>/adapters.ts` — adapter exports for runtime orchestration; the engine worker also
+  imports the WebSocket adapter directly as described above.
 
 ## Import Boundaries (Hard Rules)
 

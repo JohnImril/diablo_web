@@ -16,8 +16,13 @@ coordinate activation across tabs, and flush tracked storage writes before reloa
 block reload and expose in-memory save downloads. Test this behavior using `npm run build` and `npm run preview`;
 the development server does not register the service worker.
 
-The workflow passes the optional `VITE_WS_URL` secret at build time. This configures the experimental WebSocket
-adapter only; the current runtime uses WebRTC, so the secret does not enable WebSocket multiplayer.
+The workflow passes the optional `VITE_WS_URL` secret at build time. Set it to your multiplayer backend's
+`wss://` endpoint when building for HTTPS hosting. The engine worker (`src/modules/engine/adapters/game.worker.ts`)
+uses this endpoint through the WebSocket adapter when the engine calls `DApi.use_websocket(true)`, providing
+the WebSocket multiplayer path. The WebRTC bridge in `src/app/runtime/gameRuntime.ts` remains a separate
+integration path; setting `VITE_WS_URL` configures the WebSocket endpoint rather than replacing that bridge.
+Although the workflow secret is optional, `resolveWsUrl()` throws when it is missing on a non-local production
+host. Development or localhost falls back to `ws://127.0.0.1:8787/ws`; production URLs must use `wss://`.
 
 ## Build Identity and Storage Resets
 
