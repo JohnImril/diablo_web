@@ -50,6 +50,13 @@ export async function fetchWithProgressRetry(
 			return await fetchWithProgress(url, onProgress, attempt ? { cache: "reload" } : undefined);
 		} catch (error) {
 			if (!(error instanceof TypeError)) throw error;
+			// Try the request even when onLine is false: cached responses can still work.
+			if (typeof navigator !== "undefined" && navigator.onLine === false) {
+				throw new Error(
+					`Failed to download ${url}: your browser is offline. Reconnect to the internet and try starting the game again.`,
+					{ cause: error }
+				);
+			}
 			if (attempt === 2) {
 				throw new Error(`Failed to download ${url} after 3 attempts. Check your connection and try again.`, {
 					cause: error,
