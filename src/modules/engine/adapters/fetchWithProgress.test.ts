@@ -47,3 +47,21 @@ it("does not retry HTTP errors", async () => {
 	await expect(fetchWithProgressRetry("/spawn.mpq")).rejects.toThrow("404");
 	expect(fetchMock).toHaveBeenCalledOnce();
 });
+
+it("explains offline network failures without spending retries and preserves the cause", async () => {
+	vi.stubGlobal("navigator", { onLine: false });
+	const cause = new TypeError("Failed to fetch");
+	const fetchMock = vi.fn().mockRejectedValue(cause);
+	vi.stubGlobal("fetch", fetchMock);
+	await expect(fetchWithProgressRetry("/spawn.mpq")).rejects.toMatchObject({
+		message: expect.stringContaining("your browser is offline"),
+		cause,
+	});
+	expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+it("allows a cached response even when the browser reports offline", async () => {
+	vi.stubGlobal("navigator", { onLine: false });
+	vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new Uint8Array([1, 2, 3]))));
+	expect([...new Uint8Array(await fetchWithProgressRetry("/spawn.mpq"))]).toEqual([1, 2, 3]);
+});
