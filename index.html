@@ -10,10 +10,6 @@
 			name="description"
 			content="Play the original Diablo in your browser. Start the free shareware demo or load your own DIABDAT.MPQ. Browser adaptation by Nikita Maksimov."
 		/>
-		<meta
-			name="keywords"
-			content="Diablo, Diablo Web, classic game, browser game, web app, play Diablo online, Diablo for browser"
-		/>
 		<meta name="robots" content="index, follow" />
 		<meta name="author" content="Nikita Maksimov" />
 		<link rel="author" href="https://github.com/JohnImril" />
@@ -54,7 +50,21 @@
 		<meta name="format-detection" content="telephone=no" />
 	</head>
 	<body>
-		<div id="root"></div>
+		<div id="root">
+			<main style="max-width: 42rem; margin: auto; padding: 2rem; line-height: 1.6">
+				<h1>Diablo Web - Play Diablo 1 in your browser</h1>
+				<p>
+					Play the original Diablo with a free, limited shareware demo, or load your own DIABDAT.MPQ from a
+					legal copy for the full game. Saves stay in your browser.
+				</p>
+				<p>
+					Read the <a href="./help.html">player guide: controls, saves and multiplayer</a>, or visit the
+					<a href="https://github.com/JohnImril/diablo_web">Diablo Web repository</a>.
+				</p>
+				<p>Browser adaptation by Nikita Maksimov, based on DiabloWeb and devilution.</p>
+				<noscript><p>Enable JavaScript to start the game. The player guide works without it.</p></noscript>
+			</main>
+		</div>
 		<script type="module" src="src/main.tsx"></script>
 	</body>
 </html>

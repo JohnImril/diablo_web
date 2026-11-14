@@ -21,7 +21,7 @@ export function resolveWsUrl(): string {
 			return DEFAULT_WS_URL;
 		}
 
-		const message = "VITE_WS_URL is required in production build";
+		const message = "VITE_WS_URL is required for WebSocket multiplayer in production";
 		logConfigError(message, { mode: import.meta.env.MODE, hostname, protocol });
 		throw new Error(message);
 	}

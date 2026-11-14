@@ -20,8 +20,6 @@ import { isSaveFile } from "../../storage/core/saveRules";
 const DiabloSize = 1364619;
 const SpawnSize = 1215907;
 
-const WS_URL = resolveWsUrl();
-
 const worker: WorkerContext = self as unknown as WorkerContext;
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -133,7 +131,7 @@ const DApi: IDApi = {
 		if (flag) {
 			if (!websocket || websocket.readyState !== 1) {
 				const sock = (websocket = websocket_open(
-					WS_URL,
+					resolveWsUrl(),
 					(data) => {
 						if (websocket === sock) {
 							try_api(() => {

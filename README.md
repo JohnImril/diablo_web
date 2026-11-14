@@ -1,4 +1,4 @@
-# Diablo Web - The original Diablo, playable in your browser.
+# Diablo Web - Play Diablo 1 in your browser
 
 ![Diablo Web screenshot](./public/screenshot.png)
 
@@ -22,82 +22,27 @@ original game, reconstructed engine, and initial WebAssembly port are credited i
 
 ## Playing and Saving
 
-Use a mouse and keyboard for the best experience. Touch controls are available, but mobile controls still need
-improvement; landscape gives the game more room.
+Choose **Play Free Demo** for limited shareware content, or **Load Your MPQ** for the full game.
+Retail game data is not included; use your own `DIABDAT.MPQ` from a legal copy of Diablo.
+MPQ compression is optional and available under **Controls, limitations & game files**.
 
-### Game Data
+Saves stay in this browser/profile, with no cloud sync. Export through **Manage Saves** before clearing browser
+data or changing devices. To import your first save, drop a `.sv` file onto the start screen.
+Keep the game in one tab or app window; if **Game already open** appears, close the other instance and choose
+**Try Again**. Do not clear browser data to resolve it.
 
-| Mode                | Data file     | How to play                                                              |
-| ------------------- | ------------- | ------------------------------------------------------------------------ |
-| Free shareware demo | `spawn.mpq`   | Choose **Play Free Demo**; the app downloads the archive on first use.   |
-| Full game           | `DIABDAT.MPQ` | Choose **Load Your MPQ** or drop your own archive onto the start screen. |
+The installable PWA caches app and engine assets; the demo archive is stored after its first download.
+Updates wait until gameplay and tracked storage writes finish. Desktop mouse and keyboard work best;
+touch controls remain limited.
 
-The demo contains limited content. Retail game data is not included. Use a legal copy of Diablo to obtain
-`DIABDAT.MPQ`; see [Diablo on GOG](https://www.gog.com/game/diablo).
-
-To reduce an MPQ's size, open **Controls, limitations & game files** on the start screen and choose
-**Compress an MPQ to reduce its size**.
-
-### Save Import and Export
-
-Game files and saves are stored locally in the current browser/profile through IndexedDB. There is no cloud-save
-service. Export saves before clearing browser data or moving to another browser or device.
-
-Keep the game open in one tab or app window. **Game already open** means another page is using your saves.
-Finish saving there, close other Diablo Web tabs/windows (including the installed app), then choose **Try Again**.
-This safely reloads the blocked page to check access again. Returning to the menu or switching tabs does not
-release storage. Do not clear browser data to resolve this error.
-
-- **Export:** open **Manage Saves** on the start screen and download the saves you want to keep.
-- **First import:** if **Manage Saves** is not visible yet, drag a `.sv` file from your computer and drop it
-  onto the start screen (the screen with **Play Free Demo** and **Load Your MPQ**). After the save is imported,
-  **Manage Saves** appears.
-- **Import more saves:** use the upload control in **Manage Saves**, or drop another `.sv` file onto the start screen.
-- **Loading errors:** use **Reload and Try Again** when offered to return to the start screen without clearing
-  browser data. If reload cannot proceed, keep the page open, download any saves offered, and retry.
-- **Error reports:** the error dialog can open a GitHub issue draft and download a diagnostic report.
-  Review the draft before submitting; save files are downloaded separately and are not uploaded automatically.
-
-### App Updates
-
-The production app supports installation as a PWA and caches the app shell and engine assets for offline use.
-The shareware archive is downloaded separately and stored in IndexedDB after first use.
-Updates wait while the game is running and apply automatically on the start screen once other active game tabs
-allow activation. The page waits for tracked storage writes before reloading. If saving fails or times out,
-reload is blocked and save downloads are offered before retrying.
-
-For online multiplayer setup, see [Multiplayer](#multiplayer).
+See the **[player guide](https://johnimril.github.io/diablo_web/help.html)** for controls, save recovery,
+offline use, and multiplayer steps. Its source is [public/help.html](./public/help.html).
 
 ## Engineering and Architecture
 
-The browser client separates React UI from runtime orchestration, domain logic, and browser adapters:
-
-- **React + TypeScript + Vite:** UI components call runtime APIs and subscribe to events.
-  Vite handles development, WebAssembly assets, and production bundling.
-- **WebAssembly and workers:** the engine integration loads the existing WASM builds and bridges initialization,
-  MPQ data, progress, rendering, and engine messages between the worker and the browser client.
-- **Runtime lifecycle:** the runtime owns game sessions, startup and cancellation, worker cleanup, input handling,
-  and UI event delivery.
-- **Canvas and input:** browser input becomes typed commands, which are mapped to engine actions;
-  the UI bridge connects engine output to canvas rendering and browser controls.
-- **Browser storage:** IndexedDB adapters manage game files, save data and metadata, import/export,
-  and tracked storage writes. MPQ compression has a separate worker/WASM adapter.
-
-### Source Layout
-
-| Path                                                 | Responsibility                                                   |
-| ---------------------------------------------------- | ---------------------------------------------------------------- |
-| `src/app/runtime/`                                   | Sessions, lifecycle, events, input orchestration, and UI bridge  |
-| `src/app/updates/`                                   | PWA updates, reload coordination, and tab activity               |
-| `src/modules/<domain>/core/`                         | Domain logic, types, mappings, and existing coordination helpers |
-| `src/modules/<domain>/adapters/`                     | Engine, worker, DOM, storage, and network side effects           |
-| `src/components/`, `src/app/ui/`, `src/app/uiHooks/` | React UI and hooks                                               |
-| `src/shared/`                                        | Shared helpers and parsers                                       |
-
-The main flow is to prepare browser storage, load the selected game data, initialize the WASM engine through the
-worker bridge, then route input, rendering, and runtime events while the session runs.
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for module boundaries, entrypoints, and the workflow for adding a feature.
+React UI calls a runtime layer that manages the WASM worker, canvas/input, networking, and IndexedDB saves.
+Domain code lives in `src/modules/`, orchestration in `src/app/runtime/`, and PWA coordination in
+`src/app/updates/`. See [ARCHITECTURE.md](./ARCHITECTURE.md) for boundaries and the feature workflow.
 
 ## Getting Started
 
@@ -154,13 +99,13 @@ Open the preview URL printed in the terminal.
 
 ## Deployment
 
-The client runs on static hosting; a game backend is not required for the demo or local single-player game.
+The client runs on static hosting; single-player and the demo need no game backend or `VITE_WS_URL`.
 The base path is `/diablo_web/` in [vite.config.ts](./vite.config.ts), matching the GitHub Pages demo.
 
 The [deployment workflow](./.github/workflows/deploy.yml) installs dependencies with `npm ci`, runs linting and unit tests,
 builds the client, and publishes `dist/` to GitHub Pages through the `github-pages` environment.
 Markdown-only changes are excluded from automatic deployment.
-For another hosting path, update the Vite base configuration accordingly.
+For another host or path, follow the URL and PWA checklist in the deployment guide.
 
 See the [deployment guide](./docs/DEPLOYMENT.md) for build identity, storage resets, and rollback behavior.
 
@@ -169,9 +114,11 @@ For a simpler deployment-oriented variant, see
 
 ## Multiplayer
 
-[hellgate-ws](https://github.com/JohnImril/hellgate-ws/tree/main) provides a WebSocket backend for online multiplayer.
-The client includes WebSocket integration; set `VITE_WS_URL` to your backend's `wss://` endpoint when building
-for production. See the backend README for deployment instructions.
+[hellgate-ws](https://github.com/JohnImril/hellgate-ws) provides the experimental WebSocket multiplayer backend
+for up to four players. Set `VITE_WS_URL` to your server's `wss://…/ws` endpoint at build time, then choose
+**Multi Player → WebSocket (Server)** in the game. **WebRTC (Direct)** is a separate transport.
+Follow the [client connection guide](https://github.com/JohnImril/hellgate-ws/blob/main/docs/client.md)
+for local setup, a two-player check, and troubleshooting.
 
 ## Status and Next Steps
 
@@ -186,6 +133,7 @@ The browser client already includes:
 Remaining limitations and areas for improvement:
 
 - Mobile and touch controls still need refinement.
+- Online multiplayer is experimental; codec and server tests do not establish full WASM gameplay compatibility.
 - Licensing for the client, inherited code, and bundled WASM artifacts still needs clarification.
 
 ## Origins and Credits

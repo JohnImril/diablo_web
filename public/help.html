@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Diablo Web Player Guide - Controls, Saves and Multiplayer</title>
+		<meta
+			name="description"
+			content="How to play Diablo 1 in your browser: start the free demo, load DIABDAT.MPQ, use the controls, back up saves, and join experimental multiplayer."
+		/>
+		<link rel="canonical" href="https://johnimril.github.io/diablo_web/help.html" />
+		<link rel="icon" href="favicon.ico" />
+		<meta name="theme-color" content="#101217" />
+		<style>
+			:root {
+				color-scheme: dark;
+				font:
+					17px/1.65 Georgia,
+					serif;
+				color: #d3cec5;
+				background: #101217;
+			}
+			body {
+				max-width: 48rem;
+				margin: auto;
+				padding: 2rem 1.25rem 4rem;
+			}
+			h1,
+			h2 {
+				color: #e4c367;
+				line-height: 1.25;
+			}
+			h1 {
+				font-size: clamp(2rem, 6vw, 3rem);
+			}
+			section {
+				margin-top: 2.5rem;
+				scroll-margin-top: 1rem;
+			}
+			a {
+				color: #e4c367;
+				text-underline-offset: 0.2em;
+			}
+			a:focus-visible {
+				outline: 2px solid #e4c367;
+				outline-offset: 4px;
+			}
+			nav {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem 1.25rem;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			th,
+			td {
+				padding: 0.6rem;
+				text-align: left;
+				border-bottom: 1px solid #45403a;
+				vertical-align: top;
+			}
+			code,
+			kbd {
+				font-size: 0.9em;
+				overflow-wrap: anywhere;
+			}
+			li + li {
+				margin-top: 0.5rem;
+			}
+			footer {
+				margin-top: 3rem;
+				border-top: 1px solid #45403a;
+				padding-top: 1rem;
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<a href="./">← Play Diablo Web</a>
+			<h1>Diablo Web player guide</h1>
+			<p>
+				Play the original Diablo (Diablo 1) in your browser. Start with the free shareware demo, or use your own
+				game data for the full game. Desktop mouse and keyboard work best.
+			</p>
+			<nav aria-label="Guide sections">
+				<a href="#play">Getting started</a><a href="#controls">Controls</a><a href="#saves">Saves</a>
+				<a href="#offline">Offline play</a><a href="#multiplayer">Multiplayer</a
+				><a href="#help">Troubleshooting</a>
+			</nav>
+		</header>
+		<main>
+			<section id="play">
+				<h2>Do I need to own Diablo?</h2>
+				<p>
+					<strong>Play Free Demo</strong> downloads the limited shareware version on first use (about 25–50
+					MB). It needs no purchase or local MPQ. The full game requires your own
+					<code>DIABDAT.MPQ</code> from a legal copy of Diablo, available from
+					<a href="https://www.gog.com/game/diablo">GOG</a>.
+				</p>
+				<p>
+					Choose <strong>Load Your MPQ</strong>, or drop the archive onto the start screen. Retail data is not
+					included. Compression is optional: open <strong>Controls, limitations &amp; game files</strong> and
+					choose <strong>Compress an MPQ to reduce its size</strong>.
+				</p>
+			</section>
+			<section id="controls">
+				<h2>Mouse, keyboard and touch controls</h2>
+				<table>
+					<thead>
+						<tr>
+							<th scope="col">Input</th>
+							<th scope="col">Action</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<th scope="row">Left click</th>
+							<td>Move, attack, interact, or pick up an item.</td>
+						</tr>
+						<tr>
+							<th scope="row">Right click</th>
+							<td>Cast the selected spell.</td>
+						</tr>
+						<tr>
+							<th scope="row"><kbd>Shift</kbd> + left click</th>
+							<td>Attack without moving.</td>
+						</tr>
+						<tr>
+							<th scope="row"><kbd>I</kbd> / <kbd>C</kbd> / <kbd>B</kbd> / <kbd>Q</kbd></th>
+							<td>Inventory / character / spellbook / quests.</td>
+						</tr>
+						<tr>
+							<th scope="row"><kbd>Tab</kbd> / <kbd>Esc</kbd></th>
+							<td>Map / game menu or close the current panel.</td>
+						</tr>
+						<tr>
+							<th scope="row"><kbd>1</kbd>–<kbd>8</kbd></th>
+							<td>Use an item from the corresponding belt slot.</td>
+						</tr>
+					</tbody>
+				</table>
+				<p>
+					On phones, use landscape and the on-screen mouse/modifier, belt, and function-key controls. Touch
+					controls still need refinement; desktop is the recommended starting point.
+				</p>
+			</section>
+			<section id="saves">
+				<h2>Where are my saves?</h2>
+				<p>
+					Saves and cached game files stay in this browser/profile through IndexedDB. There is no cloud sync.
+					Export saves before clearing site data, changing browsers, or moving to another device.
+				</p>
+				<ul>
+					<li>
+						<strong>Export:</strong> open <strong>Manage Saves</strong> on the start screen and download the
+						saves to keep.
+					</li>
+					<li>
+						<strong>First import:</strong> if Manage Saves is absent, drop a <code>.sv</code> file onto the
+						start screen. Manage Saves appears after import.
+					</li>
+					<li>
+						<strong>More imports:</strong> use the upload control in Manage Saves or drop another
+						<code>.sv</code> file.
+					</li>
+				</ul>
+				<p>
+					Keep only one game tab or installed app window open per browser profile. Returning to the menu or
+					switching tabs does not release save storage.
+				</p>
+			</section>
+			<section id="offline">
+				<h2>Can I install it or play offline?</h2>
+				<p>
+					The production app supports installation through the browser's install option when available. It
+					caches the app shell and engine assets; the demo archive is stored separately after its first
+					download. Load the game online first and verify it starts before relying on offline access.
+					Multiplayer needs a network.
+				</p>
+				<p>
+					Updates wait during gameplay and apply on the start screen when other active game tabs allow it. The
+					page waits for storage writes before reloading. If saving fails or times out, reload is blocked and
+					save downloads are offered; keep those backups before retrying.
+				</p>
+			</section>
+			<section id="multiplayer">
+				<h2>How do I play with a friend?</h2>
+				<p>
+					Online multiplayer is experimental. Both players need the same client build and game-data mode, and
+					a host configured with the
+					<a href="https://github.com/JohnImril/hellgate-ws">hellgate-ws backend</a>.
+				</p>
+				<ol>
+					<li>
+						Choose <strong>Multi Player → WebSocket (Server)</strong>, then create or select a multiplayer
+						character.
+					</li>
+					<li>
+						The host chooses <strong>Create Game</strong> and enters a name, for example
+						<code>tristram-1</code>.
+					</li>
+					<li>
+						The friend chooses <strong>Join Game</strong> and enters the same name. Names are
+						case-sensitive; use 1–32 letters A–Z/a–z, digits, underscores, or hyphens.
+					</li>
+				</ol>
+				<p>
+					Up to four players can join. The host leaving closes the room. For two players on one computer, use
+					separate browsers/profiles. <strong>WebRTC (Direct)</strong> is a separate transport.
+				</p>
+				<p>
+					Server owners: follow the
+					<a href="https://github.com/JohnImril/hellgate-ws/blob/main/docs/client.md"
+						>client connection guide</a
+					>
+					for configuration and troubleshooting. A hosted build may have no multiplayer server configured.
+				</p>
+			</section>
+			<section id="help">
+				<h2>When something goes wrong</h2>
+				<ul>
+					<li>
+						<strong>Game already open:</strong> finish saving in the other game, close its tab/app window,
+						then choose <strong>Try Again</strong> on the blocked page. Do not clear browser data.
+					</li>
+					<li>
+						<strong>Loading error:</strong> choose <strong>Reload and Try Again</strong> when offered. If
+						reload is blocked, keep the page open, download the offered saves, and retry.
+					</li>
+					<li>
+						<strong>Browser support:</strong> enable JavaScript and use a current browser with WebAssembly,
+						Web Workers, IndexedDB, and Web Locks. Open the game over HTTPS or localhost; a plain HTTP LAN
+						address is insufficient.
+					</li>
+					<li>
+						<strong>Report a bug:</strong> the error dialog can open a GitHub issue draft and download
+						diagnostics. Review the draft before submitting. Save backups are separate downloads and are not
+						automatically uploaded.
+					</li>
+				</ul>
+			</section>
+		</main>
+		<footer>
+			<p>
+				Browser adaptation by <a href="https://github.com/JohnImril">Nikita Maksimov</a>, based on
+				<a href="https://github.com/d07RiV/diabloweb">DiabloWeb</a> and the engine reconstructed by GalaXyHaXz
+				and the <a href="https://github.com/diasurgical/devilution">devilution community</a>. Diablo is the
+				original game by Blizzard North.
+			</p>
+			<p><a href="https://github.com/JohnImril/diablo_web">Source, development setup and licensing notes</a></p>
+		</footer>
+	</body>
+</html>
