@@ -1,3 +1,5 @@
-# https://www.robotstxt.org/robotstxt.html
+# Crawlers read /robots.txt at the origin root, not /diablo_web/robots.txt.
+# See docs/DEPLOYMENT.md for GitHub Pages and sitemap submission.
 User-agent: *
 Disallow:
+Sitemap: https://johnimril.github.io/diablo_web/sitemap.xml

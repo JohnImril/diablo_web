@@ -21,8 +21,29 @@ The workflow passes the optional `VITE_WS_URL` secret at build time. Set it to y
 uses this endpoint through the WebSocket adapter when the engine calls `DApi.use_websocket(true)`, providing
 the WebSocket multiplayer path. The WebRTC bridge in `src/app/runtime/gameRuntime.ts` remains a separate
 integration path; setting `VITE_WS_URL` configures the WebSocket endpoint rather than replacing that bridge.
-Although the workflow secret is optional, `resolveWsUrl()` throws when it is missing on a non-local production
-host. Development or localhost falls back to `ws://127.0.0.1:8787/ws`; production URLs must use `wss://`.
+The endpoint is resolved only when WebSocket multiplayer is selected. A missing or invalid endpoint cannot
+prevent single-player startup; selecting WebSocket without a configured production URL reports an error.
+Development or localhost falls back to `ws://127.0.0.1:8787/ws`; configured production URLs must use `wss://`.
+For local setup and a two-player check, use the
+[client connection guide](https://github.com/JohnImril/hellgate-ws/blob/main/docs/client.md).
+
+## Hosting URLs and Search Discovery
+
+When changing the host or base path, update these together:
+
+- `BASE` in `vite.config.ts` and the fallback `public/manifest.webmanifest` start URL / scope.
+- Canonical and social URLs in `index.html`, the canonical URL in `public/help.html`, and `public/sitemap.xml`.
+- The sitemap URL in `public/robots.txt` and the public play/guide links in README.
+
+The player guide is static HTML, linked from the app and available without JavaScript. Keep player-facing
+instructions there, architecture in `ARCHITECTURE.md`, and hosting operations here; README stays a short entry point.
+Check that `/diablo_web/help.html` returns the guide rather than an SPA fallback after deployment.
+
+On GitHub project Pages, `public/robots.txt` is served at `/diablo_web/robots.txt` and does not control crawlers.
+Only `https://johnimril.github.io/robots.txt`, managed by the origin's root site, can do that. Its absence does
+not block indexing. Submit the project's sitemap URL directly in Search Console; if maintaining the root site,
+add the sitemap there without replacing rules for other projects. Use URL Inspection to check rendered content
+and the selected canonical URL. A sitemap does not guarantee indexing or ranking.
 
 ## Build Identity and Storage Resets
 

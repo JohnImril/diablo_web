@@ -84,17 +84,17 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 							Own Diablo? Select or drop DIABDAT.MPQ for the full game.
 						</p>
 						<div className="start-screen__saves-slot">
-						{hasSaves && (
-							<button
-								disabled={disabled}
-								type="button"
-								className="start-screen__saves d1-link"
-								data-save-manager-trigger
-								onClick={onOpenSaves}
-							>
-								Manage Saves
-							</button>
-						)}
+							{hasSaves && (
+								<button
+									disabled={disabled}
+									type="button"
+									className="start-screen__saves d1-link"
+									data-save-manager-trigger
+									onClick={onOpenSaves}
+								>
+									Manage Saves
+								</button>
+							)}
 						</div>
 					</div>
 					<footer className="start-screen__credits">
@@ -141,8 +141,17 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 							<section>
 								<h2>Controls</h2>
 								<p>
-									Best with a mouse and keyboard. Touch controls are available; landscape gives the
-									game more room on phones.
+									Left click to move, attack, or interact; right click to cast the selected spell.
+									Desktop works best. Touch controls are available; use landscape on phones.
+								</p>
+								<p>
+									<a
+										href={`${import.meta.env.BASE_URL}help.html`}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										Player guide: controls, saves &amp; multiplayer
+									</a>
 								</p>
 							</section>
 							<section>
