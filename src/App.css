@@ -353,7 +353,8 @@ body,
 	inset: 0;
 	z-index: 200;
 	display: grid;
-	place-items: center;
+	place-items: safe center;
+	overflow-y: auto;
 	background: #101217e6;
 	padding: 16px;
 }
@@ -361,6 +362,8 @@ body,
 	padding: 24px;
 	text-align: center;
 	max-width: 480px;
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 .app__update-spinner {
 	display: inline-block;

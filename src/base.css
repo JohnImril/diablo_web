@@ -222,6 +222,10 @@
 	text-decoration: underline;
 	text-underline-offset: 4px;
 }
+a.d1-link {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
 :is(.d1-btn, .d1-link):focus-visible {
 	outline: 2px solid #e4c367;
 	outline-offset: 3px;

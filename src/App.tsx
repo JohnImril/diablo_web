@@ -338,7 +338,9 @@ const App = () => {
 
 			<section className="app__body" aria-label="Game viewport">
 				<div className="app__inner">
-					{!error && <canvas ref={canvasRef} width={DIABLO.WIDTH} height={DIABLO.HEIGHT} />}
+					{!error && (
+						<canvas ref={canvasRef} width={DIABLO.WIDTH} height={DIABLO.HEIGHT} aria-label="Diablo game" />
+					)}
 					<VirtualKeyboard
 						keyboardRef={keyboardRef}
 						keyboardStyle={keyboardStyle}
@@ -347,7 +349,7 @@ const App = () => {
 				</div>
 			</section>
 
-			<section className="app__body-v" aria-live="polite" inert={updating}>
+			<div className="app__body-v" inert={updating}>
 				{showSaves && (
 					<SaveList
 						saveNames={saveNames || {}}
@@ -423,7 +425,7 @@ const App = () => {
 						}}
 					/>
 				)}
-			</section>
+			</div>
 		</main>
 	);
 };

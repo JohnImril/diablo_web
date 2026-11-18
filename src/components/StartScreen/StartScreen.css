@@ -214,6 +214,11 @@
 	color: #dec080;
 	text-decoration: none;
 }
+.start-screen__credit a,
+.start-screen__information a {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
 .start-screen__credit a {
 	display: inline-flex;
 	align-items: center;

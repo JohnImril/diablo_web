@@ -7,23 +7,29 @@ import "./LoadingComponent.css";
 interface IProps {
 	title: string;
 	progress?: IProgress;
+	embedded?: boolean;
 }
 
-const LoadingComponent = ({ title, progress }: IProps) => {
+const LoadingComponent = ({ title, progress, embedded = false }: IProps) => {
 	return (
 		<section
-			className={cn("loading-component", "u-center-abs", "u-modal", "d1-panel")}
-			aria-busy="true"
-			aria-live="polite"
+			className={cn("loading-component", !embedded && "u-center-abs u-modal d1-panel")}
 			aria-label={progress?.text || title}
 		>
-			<span className={cn("loading-component__text", "text-gold")}>{progress?.text || title}</span>
+			<span role="status" className={cn("loading-component__text", "text-gold")}>
+				{progress?.text || title}
+			</span>
 
 			{typeof progress?.total === "number" && (
 				<progress
 					className={cn("d1-progress", "loading-component__progress")}
-					value={progress.loaded}
-					max={progress.total}
+					aria-label={progress.text || title}
+					value={
+						progress.total > 0 && typeof progress.loaded === "number"
+							? Math.max(0, Math.min(progress.loaded, progress.total))
+							: undefined
+					}
+					max={progress.total > 0 ? progress.total : undefined}
 				/>
 			)}
 		</section>

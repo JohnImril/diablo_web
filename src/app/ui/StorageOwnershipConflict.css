@@ -14,7 +14,7 @@
 }
 .storage-conflict[open] {
 	display: grid;
-	place-items: center;
+	place-items: safe center;
 }
 .storage-conflict::backdrop {
 	background: #101217;

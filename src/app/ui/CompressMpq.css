@@ -1,7 +1,12 @@
 .compress-mpq {
+	margin: 0;
 	font-size: 15px;
 	text-align: center;
 	color: var(--d1-ivory);
+}
+
+.compress-mpq::backdrop {
+	background: var(--d1-ink-mid);
 }
 
 .compress-mpq__description,
@@ -12,7 +17,7 @@
 	font-family: Arial, sans-serif;
 }
 
-.compress-mpq__button {
+.compress-mpq .compress-mpq__button {
 	display: block;
 	margin: 12px auto 0;
 	width: 11em;
@@ -25,7 +30,7 @@
 	.compress-mpq {
 		padding: 12px;
 	}
-	.compress-mpq__button {
+	.compress-mpq .compress-mpq__button {
 		width: 100%;
 		font-size: 20px;
 	}
