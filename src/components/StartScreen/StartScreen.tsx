@@ -178,6 +178,7 @@ const StartScreen = ({ disabled = false, hasSpawn, start, saveNames, onCompressM
 									disabled={disabled}
 									type="button"
 									className="start-screen__utility"
+									data-compress-trigger
 									onClick={onCompressMpq}
 								>
 									Compress an MPQ to reduce its size <span aria-hidden="true">→</span>

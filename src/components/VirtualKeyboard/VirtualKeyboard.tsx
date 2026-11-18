@@ -13,6 +13,8 @@ const VirtualKeyboard = ({ keyboardRef, keyboardStyle, onInput }: VirtualKeyboar
 			className="app__keyboard"
 			id="virtual-keyboard-input"
 			aria-label="Virtual keyboard input"
+			tabIndex={keyboardStyle ? 0 : -1}
+			aria-hidden={!keyboardStyle}
 			ref={keyboardRef}
 			onChange={() => onInput(false)}
 			onBlur={() => onInput(true)}

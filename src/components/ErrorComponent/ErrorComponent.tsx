@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import cn from "classnames";
 import SaveBackups from "../../app/ui/SaveBackups";
 
@@ -18,6 +18,10 @@ const ErrorComponent = ({ error, saveName, onApplyUpdate, onReload, loadBackups 
 	const { message = "Unknown error", reportUrl, save: saveUrl } = error;
 	const [reloading, setReloading] = useState(false);
 	const [reloadError, setReloadError] = useState<string>();
+	const titleRef = useRef<HTMLHeadingElement>(null);
+	useEffect(() => {
+		titleRef.current?.focus();
+	}, [error]);
 	useEffect(() => {
 		return () => {
 			if (saveUrl) {
@@ -36,14 +40,17 @@ const ErrorComponent = ({ error, saveName, onApplyUpdate, onReload, loadBackups 
 				"d1-panel--ruby",
 				"u-scrollbar-gold"
 			)}
-			role="alertdialog"
-			aria-modal="true"
 			aria-labelledby="error-component-title"
 			aria-describedby="error-component-body"
 		>
-			<p id="error-component-title" className={cn("error-component__header", "text-ruby")}>
-				<b>The following error has occurred:</b>
-			</p>
+			<h2
+				ref={titleRef}
+				tabIndex={-1}
+				id="error-component-title"
+				className={cn("error-component__header", "text-ruby")}
+			>
+				The following error has occurred:
+			</h2>
 
 			<p id="error-component-body" className="error-component__body">
 				{message}
